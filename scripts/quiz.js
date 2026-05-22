@@ -83,7 +83,11 @@ const {
     remedialCustomTimeLimitInput,
     remedialAttemptLimitToggle,
     remedialAttemptLimitOptions,
-    remedialAttemptLimitInput
+    remedialAttemptLimitInput,
+    // Fix: Destructure the missing elements here
+    startSubtitle,
+    fileActionsDiv,
+    editQuizNameInput
 } = elements;
 
 const { MAX_GENERATION_ATTEMPTS, IN_PROGRESS_QUIZ_KEY } = constants;
