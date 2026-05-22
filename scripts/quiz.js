@@ -84,10 +84,10 @@ const {
     remedialAttemptLimitToggle,
     remedialAttemptLimitOptions,
     remedialAttemptLimitInput,
-    // Fix: Destructure the missing elements here
     startSubtitle,
     fileActionsDiv,
-    editQuizNameInput
+    editQuizNameInput,
+    renameContainer
 } = elements;
 
 const { MAX_GENERATION_ATTEMPTS, IN_PROGRESS_QUIZ_KEY } = constants;
@@ -141,6 +141,11 @@ export async function handleFileSelect(event) {
         state.fileHash = CryptoJS.SHA256(state.fileContent).toString();
         statusMessage.textContent = 'Documents ready!';
         statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+        
+        // Show the rename container immediately when uploading new files
+        renameContainer.classList.remove('hidden');
+        editQuizNameInput.value = state.currentFileName;
+
         document.getElementById('customize-section').classList.remove('hidden');
         document.getElementById('customize-content').classList.remove('hidden');
         document.getElementById('customize-toggle-icon').classList.add('rotate-180');
@@ -332,6 +337,11 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         isRemedial: isRemedial
     };
 
+    // Before generating, apply the custom name from the text input
+    if (!isRemedial && !state.isCustomizingHistory) {
+        state.currentFileName = editQuizNameInput.value.trim() || state.currentFileName;
+    }
+
     const settingsHash = CryptoJS.SHA256(JSON.stringify(state.currentQuizConfig)).toString();
     state.currentQuizKey = `${state.fileHash}-${settingsHash}`;
     const db = state.quizHistory;
@@ -354,27 +364,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     try {
         while (allQs.length < needed && attempts < MAX_GENERATION_ATTEMPTS) {
             attempts++;
-            
-            // --- OPTIMIZATION: Calculate EXACTLY what types are still missing ---
-            let currentMC = Math.max(0, mc - allQs.filter(q => q.type === 'multiple-choice').length);
-            let currentID = Math.max(0, id - allQs.filter(q => q.type === 'identification').length);
-            let currentEN = Math.max(0, en - allQs.filter(q => q.type === 'enumeration').length);
-
-            let requestedTypes = [];
-            if (currentMC > 0) requestedTypes.push(`${currentMC} multiple-choice`);
-            if (currentID > 0) requestedTypes.push(`${currentID} identification`);
-            if (currentEN > 0) requestedTypes.push(`${currentEN} enumeration`);
-
-            // Fallback in case of math rounding weirdness
-            if (requestedTypes.length === 0 && allQs.length < needed) {
-                 requestedTypes.push(`${needed - allQs.length} multiple-choice`);
-            }
-
-            // --- OPTIMIZATION: Shorter, stricter prompt saves tokens and prevents retries ---
-            const sysP = `Return ONLY a valid JSON array. No text, no markdown. Schema: [{"type":"multiple-choice|identification|enumeration","question":"","options":["..."],"answer":"","explanation":""}]`;
-            
-            // Decreased substring to 12000 to save tokens, while passing exact type requirements
-            const userQ = `Doc: ${state.fileContent.substring(0, 12000)}\n\nGenerate exactly: ${requestedTypes.join(', ')}.`;
+            const sysP = `You are a strict Quiz generator. Return ONLY a valid JSON array of objects. Each object MUST have: "type" (must be "multiple-choice", "identification", or "enumeration"), "question", "options" (array, only if type is multiple-choice), "answer", and "explanation". Do not include any conversational text.`;
+            const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${needed - allQs.length} questions of type ${custType || selDiff}. JSON output only.`;
 
             const res = await puter.ai.chat(sysP + "\n\n" + userQ);
             let rawText = '';
@@ -417,6 +408,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                 });
             } catch (e) {
                 console.error(`Attempt ${attempts} JSON Parse Error:`, e.message);
+                console.error(`Failed JSON string:`, cleanJson.substring(0, 500));
             }
         }
 
@@ -1128,13 +1120,13 @@ function resetStartViewUI() {
     state.isCustomizingHistory = false;
     state.customizingQuizData = null;
     state.initialCustomizeState = {};
-    document.getElementById('rename-container').classList.add('hidden');
+    renameContainer.classList.add('hidden');
     document.getElementById('customize-section').classList.add('hidden');
     document.getElementById('customize-content').classList.add('hidden');
     document.getElementById('customize-toggle-icon').classList.remove('rotate-180');
-    startSubtitle.textContent = 'Customize quiz, upload documents, or load history.';
+    startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
     generateQuizBtn.textContent = 'Generate Quiz';
-    cancelCustomizeBtn.classList.add('hidden');
+    elements.cancelCustomizeBtn.classList.add('hidden');
     fileActionsDiv.classList.remove('hidden');
     questionCountInput.readOnly = false;
     questionCountInput.classList.remove('locked-input');
@@ -1156,7 +1148,7 @@ function resetStartViewUI() {
     if (selectedDifficulty === 'custom') handleCustomTypeChange();
     validateAllInputs();
     
-    // --- NEW: Bring the resume button back if progress exists ---
+    // Automatically re-evaluate if there's progress to resume
     prepareResumeButton();
 }
 
@@ -1183,7 +1175,7 @@ export function attachQuizEventListeners() {
     customTimeLimitInput.addEventListener('input', validateAllInputs);
     attemptLimitToggle.addEventListener('change', handleAttemptToggle);
     attemptLimitInput.addEventListener('input', validateAllInputs);
-    cancelCustomizeBtn.addEventListener('click', () => {
+    elements.cancelCustomizeBtn.addEventListener('click', () => {
         if (hasUnsavedChanges()) {
             if (confirm('You have unsaved changes! Do you want to save them before exiting?\n\nOK = Save changes\nCancel = Discard changes')) {
                 handleQuizGeneration(false, true);
