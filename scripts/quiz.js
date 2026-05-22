@@ -29,7 +29,9 @@ const {
     loadingTitle,
     questionCountInput,
     difficultyRadios,
+    customOptionsDiv,
     customQuestionTypeSelect,
+    customTypeGroup,
     customMixedCountsDiv,
     customCountInputs,
     customTotalFeedback,
@@ -831,6 +833,27 @@ export function handleRemedialDifficultyChange() {
 export function handleRemedialCustomTypeChange() {
     const sel = remedialCustomQuestionTypeSelect.value;
     remedialCustomMixedCountsDiv.classList.toggle('hidden', sel !== 'mixed');
+    validateRemedialInputs();
+}
+
+export function handleRemedialTimeToggle() {
+    remedialTimeLimitOptions.classList.toggle('hidden', !remedialTimeLimitToggle.checked);
+    if (remedialTimeLimitToggle.checked) {
+        handleRemedialTimePresetChange();
+    } else {
+        remedialCustomTimeInputContainer.classList.add('hidden');
+    }
+    validateRemedialInputs();
+}
+
+export function handleRemedialAttemptToggle() {
+    remedialAttemptLimitOptions.classList.toggle('hidden', !remedialAttemptLimitToggle.checked);
+    validateRemedialInputs();
+}
+
+export function handleRemedialTimePresetChange() {
+    const selected = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
+    remedialCustomTimeInputContainer.classList.toggle('hidden', selected !== 'custom');
     validateRemedialInputs();
 }
 
