@@ -1071,7 +1071,7 @@
                         
                         // Clean response
                         let rawText = "";
-                        if (res && typeof res === 'object') rawText = res.content || res.text || res.message?.content || String(res);
+                        if (res && typeof res === 'object') rawText = String(res.content || res.text || res.message?.content || res || "");
                         else rawText = String(res || "");
                         
                         const cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
