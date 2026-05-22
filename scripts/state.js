@@ -99,9 +99,12 @@ export const elements = {
     modalUsername: document.getElementById('modal-username'),
     modalAccountId: document.getElementById('modal-account-id'),
     modalEmail: document.getElementById('modal-email'),
+    modalCreditPanel: document.getElementById('modal-credit-panel'),
     modalCredits: document.getElementById('modal-credits'),
     creditProgress: document.getElementById('credit-progress'),
     buyCreditsBtn: document.getElementById('buy-credits-btn'),
+    modalStoragePanel: document.getElementById('modal-storage-panel'),
+    modalStorageLabel: document.getElementById('modal-storage-label'),
     displayNameInput: document.getElementById('display-name-input'),
     saveDisplayNameBtn: document.getElementById('save-display-name-btn'),
     logoutBtn: document.getElementById('logout-btn')

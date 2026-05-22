@@ -1,42 +1,15 @@
 // aiService.js
 // Main function to generate quiz questions using AI
 // This is the single point of change when switching AI services
-const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI
-const GROQ_API_URL = 'https://api.groq.com/v1/chat/completions';
-const GROQ_API_KEY = '<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>'; // Replace with your Groq API key
-
-export function isUsingPuterAI() {
-    return AI_SERVICE === 'puter';
-}
-
 export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
     try {
-        if (AI_SERVICE === 'puter') {
-            const response = await puter.ai.chat(systemPrompt + "\n\n" + userPrompt);
-            return extractTextFromResponse(response);
-        }
-
-        const response = await fetch(GROQ_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${GROQ_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'groq-1',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ]
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return extractTextFromResponse(data);
+        // Call the current AI service (currently using puter.ai.chat)
+        const response = await puter.ai.chat(systemPrompt + "\n\n" + userPrompt);
+        
+        // Extract text from response (handles multiple response formats)
+        const cleanedText = extractTextFromResponse(response);
+        
+        return cleanedText;
     } catch (error) {
         console.error('AI Service Error:', error);
         throw error;
@@ -86,11 +59,6 @@ function extractTextFromResponse(response) {
             if (response.choices[0].message && typeof response.choices[0].message.content === 'string') {
                 return response.choices[0].message.content;
             }
-        }
-        
-        // Groq-like response format
-        if (response.choices && Array.isArray(response.choices) && response.choices[0] && typeof response.choices[0].message?.content === 'string') {
-            return response.choices[0].message.content;
         }
         
         // Fallback: stringify the entire response

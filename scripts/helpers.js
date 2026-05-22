@@ -1,4 +1,5 @@
 import { elements, state, constants } from './state.js';
+import { isUsingPuterAI } from './aiService.js';
 
 const {
     views,
@@ -44,9 +45,12 @@ const {
     modalUsername,
     modalAccountId,
     modalEmail,
+    modalCreditPanel,
     modalCredits,
     creditProgress,
     buyCreditsBtn,
+    modalStoragePanel,
+    modalStorageLabel,
     displayNameInput,
     saveDisplayNameBtn,
     logoutBtn
@@ -142,6 +146,11 @@ export async function openAccountModal() {
 
     modalCredits.textContent = creditLabel;
     creditProgress.style.width = `${progressWidth}%`;
+
+    const showCredits = isUsingPuterAI();
+    modalCreditPanel.classList.toggle('hidden', !showCredits);
+    modalStoragePanel.classList.remove('hidden');
+    modalStorageLabel.textContent = 'Free';
 
     const customName = await puter.kv.get('custom_display_name');
     displayNameInput.value = customName || '';
