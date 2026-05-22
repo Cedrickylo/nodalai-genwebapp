@@ -1176,6 +1176,21 @@ export async function handleHistoryClick(e) {
             setupCustomizeView(quizData.config, quizData.fileName);
             showView('start');
         }
+        // ADD THIS NEW BLOCK RIGHT BELOW IT:
+        else if (action === 'share') {
+            // Create a minimal version of the data to keep the URL as short as possible
+            const minimalData = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
+            const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(minimalData));
+            const shareUrl = `${window.location.origin}${window.location.pathname}?q=${compressed}`;
+
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                showToast('Share link copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy', err);
+                showToast('Failed to copy link.', 3000, 'error');
+            }
+        }
     }
 }
 
@@ -1351,5 +1366,49 @@ export function prepareResumeButton() {
     } catch (e) {
         console.error('Could not read progress', e);
         clearInProgressQuiz();
+    }
+}
+
+// Paste this at the bottom of quiz.js
+export async function loadSharedQuiz(sharedDataString) {
+    try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(sharedDataString);
+        if (!decompressed) throw new Error("Invalid or corrupted link data");
+        
+        const data = JSON.parse(decompressed);
+        if (!data.q || !data.c) throw new Error("Missing quiz data");
+
+        // Reconstruct the quiz format
+        const reconstructedQuiz = {
+            fileName: (data.n || 'Shared Quiz') + ' (Shared)',
+            config: data.c,
+            questions: data.q
+        };
+
+        const importedId = CryptoJS.SHA256(JSON.stringify(reconstructedQuiz.questions) + JSON.stringify(reconstructedQuiz.config) + reconstructedQuiz.fileName).toString();
+
+        state.questions = reconstructedQuiz.questions;
+        state.currentQuizConfig = reconstructedQuiz.config;
+        state.currentFileName = reconstructedQuiz.fileName;
+        state.currentQuizKey = importedId;
+        state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
+        state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
+        state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
+        state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
+
+        saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
+        refreshHistory();
+
+        elements.statusMessage.textContent = `Loaded shared quiz: "${state.currentFileName}"`;
+        elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+
+        // Set up the customization view so they can immediately start it
+        state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
+        setupCustomizeView(state.currentQuizConfig, state.currentFileName);
+        showView('start');
+        showToast('Shared quiz imported successfully!');
+    } catch (e) {
+        console.error('Shared Link Error:', e);
+        showToast('Invalid or expired shared link.', 3000, 'error');
     }
 }

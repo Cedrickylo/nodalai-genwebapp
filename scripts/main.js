@@ -1,5 +1,5 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress } from './helpers.js';
-import { attachQuizEventListeners } from './quiz.js';
+import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 
 async function initApp() {
     try {
@@ -25,6 +25,16 @@ async function initApp() {
         attachQuizEventListeners();
         await updateAuthUI();
         prepareSavedProgress();
+
+        const urlParams = new URLSearchParams(window.location.search);
+                const sharedQuizData = urlParams.get('q');
+                if (sharedQuizData) {
+                    // Remove the giant code from the URL bar to keep it looking clean
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Load it!
+                    loadSharedQuiz(sharedQuizData);
+                }
+                
     } catch (error) {
         console.error('Critical Init Error:', error);
         document.body.innerHTML = `

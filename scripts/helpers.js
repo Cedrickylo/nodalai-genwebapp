@@ -324,7 +324,17 @@ export function refreshHistory() {
         }
         const attInfo = data.config.isAttemptLimited ? `(${data.config.maxAttempts} att)` : '';
         const summaryInfo = data.config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
-        item.innerHTML = `<div class="flex-grow mr-2 overflow-hidden"><p class="font-semibold text-sm truncate" title="${data.fileName || 'Untitled'}">${data.fileName || 'Untitled'}</p><p class="text-xs text-gray-400">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p></div><div class="flex-shrink-0 flex gap-1 sm:gap-2"> <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="customize" title="Customize">Cust</button><button class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="export" title="Export">Export</button><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="load" title="Load">Load</button></div>`;
+        item.innerHTML = `
+                    <div class="flex-grow mr-2 overflow-hidden">
+                        <p class="font-semibold text-sm truncate" title="${data.fileName || 'Untitled'}">${data.fileName || 'Untitled'}</p>
+                        <p class="text-xs text-gray-400">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+                    </div>
+                    <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
+                        <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="share" title="Share Link">Share</button>
+                        <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="customize" title="Customize">Cust</button>
+                        <button class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="export" title="Export">Export</button>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="load" title="Load">Load</button>
+                    </div>`;        
         historyList.appendChild(item);
     });
 }
