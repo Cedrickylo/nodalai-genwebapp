@@ -63,7 +63,6 @@ const {
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY } = constants;
 
-// 2. Add the customConfirm utility function:
 export function customConfirm(message, title = 'Confirm', acceptText = 'OK', cancelText = 'Cancel', isDestructive = false) {
     return new Promise((resolve) => {
         confirmTitle.textContent = title;
@@ -98,7 +97,6 @@ export function customConfirm(message, title = 'Confirm', acceptText = 'OK', can
     });
 }
 
-// 3. Update handleLogout to use customConfirm
 export async function handleLogout() {
     const isConfirmed = await customConfirm('Are you sure you want to log out?', 'Sign Out', 'Sign Out', 'Cancel', true);
     if (isConfirmed) {
@@ -109,7 +107,6 @@ export async function handleLogout() {
     }
 }
 
-// 4. Update clearHistory to use customConfirm (Make sure to add `async` to the function)
 export async function clearHistory() {
     const isConfirmed = await customConfirm('Are you sure you want to clear all history? This cannot be undone.', 'Clear History', 'Clear All', 'Cancel', true);
     if (isConfirmed) {
@@ -237,15 +234,6 @@ export async function saveDisplayName() {
     }
 }
 
-export async function handleLogout() {
-    if (confirm('Are you sure you want to log out?')) {
-        await puter.auth.signOut();
-        accountModal.classList.add('hidden');
-        updateAuthUI();
-        showToast('Logged out successfully');
-    }
-}
-
 export function closeAccountModalHandler() {
     accountModal.classList.add('hidden');
 }
@@ -341,16 +329,6 @@ export function refreshHistory() {
     });
 }
 
-export function clearHistory() {
-    if (confirm('Clear all history?')) {
-        localStorage.removeItem(DB_NAME);
-        state.quizHistory = {};
-        localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
-        refreshHistory();
-        syncHistoryWithCloud();
-    }
-}
-
 export function getCustomizeState() {
     let preset = '10';
     const selectedRadio = document.querySelector('input[name="time_preset"]:checked');
@@ -388,7 +366,6 @@ export function setupCustomizeView(config, name) {
     cancelCustomizeBtn.classList.remove('hidden');
     fileActionsDiv.classList.add('hidden');
 
-    // --- NEW: Hide the resume button on the customize screen ---
     elements.resumeQuizBtn.classList.add('hidden');
 
     customizeSection.classList.remove('hidden');
@@ -566,7 +543,6 @@ export function initializeAppState() {
     handleDifficultyChange();
     handleTimePresetChange();
     handleAttemptToggle();
-    // no await here; call updateAuthUI externally after initialization
 }
 
 export function prepareSavedProgress() {
