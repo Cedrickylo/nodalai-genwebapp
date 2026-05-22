@@ -1178,68 +1178,10 @@ export async function handleHistoryClick(e) {
         }
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
-            const btn = e.target;
-            try {
-                btn.disabled = true;
-                elements.statusMessage.textContent = 'Generating short link...';
-                elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm';
-
-                const minimalData = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
-
-            // Use Netlify function to create a GitHub Gist (keeps token server-side)
-            const FUNCTION_URL = '/.netlify/functions/createGist';
-                try {
-                    const response = await fetch(FUNCTION_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(minimalData)
-                    });
-
-                    if (!response.ok) {
-                        const body = await response.text().catch(() => '<no-body>');
-                        console.error('createGist failed', response.status, body);
-                        throw new Error(body || `Upload failed (${response.status})`);
-                    }
-
-                    const respJson = await response.json();
-                    const blobId = respJson.id;
-                    if (!blobId) throw new Error('Invalid response from server');
-
-                    const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(blobId)}`;
-                    elements.statusMessage.innerHTML = `<a href="${shareUrl}" target="_blank" rel="noopener" class="underline break-words">${shareUrl}</a> <button id="copy-share-link" class="ml-2 px-2 py-1 bg-gray-700 text-white rounded">Copy</button>`;
-                    elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm';
-                    document.getElementById('copy-share-link')?.addEventListener('click', async () => {
-                        try { await navigator.clipboard.writeText(shareUrl); showToast('Link copied!'); }
-                        catch { showToast('Copy failed — use manual copy.', 3000, 'error'); }
-                    });
-                    showToast('Share link created (click to open).');
-                    return;
-                } catch (err) {
-                    console.error('Failed to create share link (cloud):', err);
-                    // Fallback: save to localStorage and show a local link
-                    try {
-                        const localId = CryptoJS.SHA256(JSON.stringify(minimalData)).toString().slice(0, 12);
-                        localStorage.setItem(`local_shared_${localId}`, JSON.stringify(minimalData));
-                        const localUrl = `${window.location.origin}${window.location.pathname}?local=${localId}`;
-                        elements.statusMessage.innerHTML = `<a href="${localUrl}" target="_blank" rel="noopener" class="underline break-words">${localUrl}</a> <button id="copy-share-link" class="ml-2 px-2 py-1 bg-gray-700 text-white rounded">Copy</button>`;
-                        elements.statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm';
-                        document.getElementById('copy-share-link')?.addEventListener('click', async () => {
-                            try { await navigator.clipboard.writeText(localUrl); showToast('Link copied!'); }
-                            catch { showToast('Copy failed — use manual copy.', 3000, 'error'); }
-                        });
-                        showToast('Cloud upload failed — saved locally and link copied to UI.');
-                        return;
-                    } catch (localErr) {
-                        console.error('Local fallback failed:', localErr);
-                        const msg = (err && err.message) ? `Share failed: ${err.message}` : 'Failed to create link. Check connection.';
-                        elements.statusMessage.textContent = msg;
-                        elements.statusMessage.className = 'text-center text-red-400 mt-4 text-sm';
-                        showToast(msg, 4000, 'error');
-                    }
-                }
-            } finally {
-                try { btn.disabled = false; } catch (e) {}
-            }
+            showToast('Share is not implemented yet. Please try again later.', 4000, 'warning');
+            elements.statusMessage.textContent = 'Share feature is not available yet.';
+            elements.statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm';
+            return;
         }
     }
 }
