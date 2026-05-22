@@ -56,7 +56,7 @@
                     </button>
                 </div>
 
-                <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
+                <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Advanced AI Quiz Generator</h1>
                 
                 <div id="rename-container" class="hidden mb-6">
                     <label for="edit-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Quiz Name</label>
@@ -463,6 +463,7 @@
             let isCustomizingHistory = false;
             let customizingQuizData = null;
             let incorrectQuestionsForRemedial = [];
+            let initialCustomizeState = {};
 
             // --- Puter Sync Helpers ---
             function setSyncing(isSyncing) {
@@ -523,21 +524,31 @@
             // --- Event Listeners ---
             resumeQuizBtn.addEventListener('click', () => { if (savedProgress) resumeQuiz(savedProgress); });
             fileUploadInput.addEventListener('change', handleFileSelect); importQuizInput.addEventListener('change', handleQuizImport);
-            generateQuizBtn.addEventListener('click', () => handleQuizGeneration(false));
+            generateQuizBtn.addEventListener('click', () => handleQuizGeneration(false, false));
             difficultyRadios.forEach(r => r.addEventListener('change', handleDifficultyChange));
             questionCountInput.addEventListener('input', validateAllInputs); 
             customQuestionTypeSelect.addEventListener('change', handleCustomTypeChange);
             customCountInputs.forEach(i => i.addEventListener('input', validateAllInputs));
             nextQuestionBtn.addEventListener('click', displayNextQuestion); 
             skipQuestionBtn.addEventListener('click', skipQuestion);
-            restartQuizBtn.addEventListener('click', resetApp); exportQuizBtn.addEventListener('click', exportQuiz);
+            restartQuizBtn.addEventListener('click', () => resetApp(true)); exportQuizBtn.addEventListener('click', exportQuiz);
             homeBtn.addEventListener('click', () => { if (confirm("Save progress and return home?")) { saveAndGoHome(); } });
             saveQuizBtn.addEventListener('click', saveCurrentQuiz);
             historyList.addEventListener('click', handleHistoryClick); clearHistoryBtn.addEventListener('click', clearHistory);
             syncCloudBtn.addEventListener('click', () => syncHistoryWithCloud(true));
             timeLimitToggle.addEventListener('change', handleTimeToggle); timePresetRadios.forEach(r => r.addEventListener('change', handleTimePresetChange)); customTimeLimitInput.addEventListener('input', validateAllInputs);
             attemptLimitToggle.addEventListener('change', handleAttemptToggle); attemptLimitInput.addEventListener('input', validateAllInputs);
-            cancelCustomizeBtn.addEventListener('click', () => resetApp(true));
+            
+            // Intercept Cancel Customization to ask for save if dirty
+            cancelCustomizeBtn.addEventListener('click', () => {
+                if (hasUnsavedChanges()) {
+                    if (confirm("You have unsaved changes! Do you want to save them before exiting?\n\nOK = Save changes\nCancel = Discard changes")) {
+                        handleQuizGeneration(false, true); // true = skip starting quiz, just save
+                        return;
+                    }
+                }
+                resetApp(true);
+            });
             
             // Customize accordion logic
             customizeToggleBtn.addEventListener('click', () => {
@@ -547,7 +558,7 @@
 
             createRemedialBtn.addEventListener('click', setupRemedialView);
             cancelRemedialBtn.addEventListener('click', () => { remedialOptionsView.classList.add('hidden'); resultsActions.classList.remove('hidden'); createRemedialBtn.classList.remove('hidden');});
-            generateRemedialQuizBtn.addEventListener('click', () => handleQuizGeneration(true));
+            generateRemedialQuizBtn.addEventListener('click', () => handleQuizGeneration(true, false));
             remedialDifficultyRadios.forEach(r => r.addEventListener('change', handleRemedialDifficultyChange));
             remedialCustomQuestionTypeSelect.addEventListener('change', handleRemedialCustomTypeChange);
             remedialCustomCountInputs.forEach(i => i.addEventListener('input', validateRemedialInputs));
@@ -559,12 +570,10 @@
             remedialCustomTimeLimitInput.addEventListener('input', validateRemedialInputs);
             remedialAttemptLimitInput.addEventListener('input', validateRemedialInputs);
 
-            // 2. Updated updateAuthUI to handle Display Name
         async function updateAuthUI() {
             const signedIn = puter.auth.isSignedIn();
             
             if (signedIn) {
-                // Check KV for custom display name [cite: 70, 93]
                 const customName = await puter.kv.get('custom_display_name');
                 authBtnText.textContent = customName || "Account";
                 authBtn.classList.remove('bg-blue-600');
@@ -577,7 +586,6 @@
             }
         }
 
-        // 3. Updated authBtn click logic [cite: 65, 91, 111]
         authBtn.onclick = async () => {
             if (!puter.auth.isSignedIn()) {
                 await puter.auth.signIn();
@@ -587,7 +595,6 @@
             }
         };
 
-        // 4. New Modal Logic Functions
         async function openAccountModal() {
             const user = await puter.auth.getUser();
             modalUsername.textContent = user.username || 'Unknown';
@@ -622,7 +629,6 @@
             accountModal.classList.remove('hidden');
         }
 
-        // 5. Save Display Name to KV [cite: 72, 98, 116]
         saveDisplayNameBtn.onclick = async () => {
             const newName = displayNameInput.value.trim();
             if (newName) {
@@ -639,19 +645,15 @@
             showToast('Opening the credits purchase page...', 2500);
         };
 
-        // 6. Logout Implementation [cite: 74, 100, 120]
         logoutBtn.onclick = async () => {
             if(confirm("Are you sure you want to log out?")) {
                 await puter.auth.signOut();
                 accountModal.classList.add('hidden');
                 updateAuthUI();
                 showToast("Logged out successfully");
-                // Optional: clear local history if you want it to be cloud-only
-                // resetApp(true); 
             }
         };
         closeAccountModal.onclick = () => accountModal.classList.add('hidden');
-
 
              // --- Core Functions ---
             function showToast(message, duration = 3000, type = 'success') { if (toastTimeout) { clearTimeout(toastTimeout); } toastMessageEl.textContent = message; toastEl.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-yellow-600'); toastEl.classList.add(type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-yellow-600' : 'bg-green-600'); toastTimeout = setTimeout(() => { toastEl.classList.add('hidden'); }, duration); }
@@ -720,9 +722,36 @@
                 showView('start');
             }}}}
             
+            // Unsaved Changes Dirty Checking
+            function getCustomizeState() {
+                let preset = '10';
+                const selectedRadio = document.querySelector('input[name="time_preset"]:checked');
+                if (selectedRadio) preset = selectedRadio.value;
+                return {
+                    name: editQuizNameInput.value.trim(),
+                    timeLimit: timeLimitToggle.checked,
+                    timePreset: preset,
+                    customTime: parseInt(customTimeLimitInput.value, 10) || 15,
+                    attemptLimit: attemptLimitToggle.checked,
+                    attempts: parseInt(attemptLimitInput.value, 10) || 3,
+                    summaryOnly: summaryOnlyToggle.checked
+                };
+            }
+
+            function hasUnsavedChanges() {
+                if (!isCustomizingHistory) return false;
+                const current = getCustomizeState();
+                return current.name !== initialCustomizeState.name ||
+                       current.timeLimit !== initialCustomizeState.timeLimit ||
+                       current.timePreset !== initialCustomizeState.timePreset ||
+                       current.customTime !== initialCustomizeState.customTime ||
+                       current.attemptLimit !== initialCustomizeState.attemptLimit ||
+                       current.attempts !== initialCustomizeState.attempts ||
+                       current.summaryOnly !== initialCustomizeState.summaryOnly;
+            }
+
             function setupCustomizeView(config, name) {
                 isCustomizingHistory = true;
-                /* Display Name Customization */
                 renameContainer.classList.remove('hidden');
                 editQuizNameInput.value = name || '';
 
@@ -731,7 +760,6 @@
                 cancelCustomizeBtn.classList.remove('hidden');
                 fileActionsDiv.classList.add('hidden');
                 
-                // Show and expand customize section
                 customizeSection.classList.remove('hidden');
                 customizeContent.classList.remove('hidden');
                 customizeToggleIcon.classList.add('rotate-180');
@@ -773,6 +801,9 @@
                 handleAttemptToggle();
                 summaryOnlyToggle.checked = config.showAnswersInSummaryOnly || false;
                 validateAllInputs();
+                
+                // Store initial state for dirty checking
+                initialCustomizeState = getCustomizeState();
             }
 
             function handleRemedialTimeToggle() {
@@ -796,15 +827,13 @@
                 validateRemedialInputs();
             }
 
-
             function resetStartViewUI() {
                 isCustomizingHistory = false;
                 customizingQuizData = null;
+                initialCustomizeState = {};
                 
-                /* Reset Customization UI */
                 renameContainer.classList.add('hidden');
                 
-                // Hide and reset customize section
                 customizeSection.classList.add('hidden');
                 customizeContent.classList.add('hidden');
                 customizeToggleIcon.classList.remove('rotate-180');
@@ -876,7 +905,6 @@
                         statusMessage.textContent = 'Documents ready!';
                         statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
                         
-                        // Show and expand the customize section
                         customizeSection.classList.remove('hidden');
                         customizeContent.classList.remove('hidden');
                         customizeToggleIcon.classList.add('rotate-180');
@@ -902,9 +930,8 @@
                 showView('start');
             }
             
-            async function handleQuizGeneration(isRemedial = false) {
+            async function handleQuizGeneration(isRemedial = false, skipStart = false) {
                 if (isCustomizingHistory && customizingQuizData && !isRemedial) {
-                    /* Handle Name Customization Metadata */
                     const newName = editQuizNameInput.value.trim() || customizingQuizData.fileName;
                     questions = customizingQuizData.questions; 
                     currentFileName = newName; 
@@ -919,14 +946,18 @@
                     
                     currentQuizKey = customizingQuizData.key || `${fileHash}-${CryptoJS.SHA256(JSON.stringify(currentQuizConfig)).toString()}`;
                     
-                    /* Update saved record with new name */
                     quizHistory[currentQuizKey] = { ...quizHistory[currentQuizKey], fileName: newName, config: currentQuizConfig };
                     localStorage.setItem(DB_NAME, JSON.stringify(quizHistory));
                     localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
                     syncHistoryWithCloud();
                     
                     resetStartViewUI(); 
-                    startQuiz(); 
+                    if (!skipStart) {
+                        startQuiz(); 
+                    } else {
+                        showToast("Changes saved successfully!");
+                        refreshHistory();
+                    }
                     return;
                 }
 
@@ -1048,7 +1079,11 @@
                     saveQuizToDB(currentQuizKey,{questions:finalQs,fileName:remedialFileName,config:currentQuizConfig}); 
                     refreshHistory(); 
                     questions=finalQs; 
-                    startQuiz();
+                    if (!skipStart) {
+                        startQuiz();
+                    } else {
+                        showToast("Quiz Generated & Saved!");
+                    }
                 }catch(err){
                     console.error('API Err:',err); 
                     showView('start'); 
@@ -1220,7 +1255,45 @@
             function saveAndGoHome(){ saveCurrentQuiz(); resetApp(false);}
             function exportQuiz(){ if(questions.length===0)return; exportQuizFromHistory({questions:questions,fileName:currentFileName,config:currentQuizConfig});}
             function exportQuizFromHistory(d){ try{ const s=JSON.stringify(d,null,2); const b=new Blob([s],{type:"application/json"}); const u=URL.createObjectURL(b); const l=document.createElement('a'); const f=(d.fileName||'quiz').replace(/\.[^/.]+$/,""); l.download=`quiz-${f}.json`; l.href=u; document.body.appendChild(l); l.click(); document.body.removeChild(l); URL.revokeObjectURL(u); showToast("Exported!");}catch(e){console.error("Export fail:",e); showToast("Export failed.",3000,'error');}}
-            function handleQuizImport(event){ const f=event.target.files[0]; if(!f||!f.name.endsWith('.json')){showToast("Requires .json",3000,'error'); return;} const r=new FileReader(); r.onload=(e)=>{ try{ const d=JSON.parse(e.target.result); if(!d?.questions?.length||!d.config||!d.questions.every(q=>q?.question&&q.answer&&q.explanation)){throw new Error("Invalid format.");} questions=d.questions; currentQuizConfig=d.config; currentFileName=d.fileName||f.name; currentQuizKey=`imported-${Date.now()}`; isTimedQuiz=currentQuizConfig.isTimed||false; totalQuizTime=currentQuizConfig.totalTime||0; isAttemptLimited=currentQuizConfig.isAttemptLimited||false; maxAttempts=currentQuizConfig.maxAttempts||3; saveQuizToDB(currentQuizKey,{questions,fileName:currentFileName,config:currentQuizConfig}); refreshHistory(); statusMessage.textContent=`Imported "${currentFileName}". Starting...`; statusMessage.className='text-center text-green-400 mt-4 text-sm h-5'; setTimeout(()=>startQuiz(),1000);}catch(err){console.error("Import Err:",err); statusMessage.textContent=`Import Err: ${err.message}`; statusMessage.className='text-center text-red-400 mt-4 text-sm h-5';} finally{importQuizInput.value='';}}; r.onerror=()=>{statusMessage.textContent='Read file error.'; statusMessage.className='text-center text-red-400 mt-4 text-sm h-5'; importQuizInput.value='';}; r.readAsText(f);}
+            function handleQuizImport(event){ 
+                const f=event.target.files[0]; 
+                if(!f||!f.name.endsWith('.json')){showToast("Requires .json",3000,'error'); return;} 
+                const r=new FileReader(); 
+                r.onload=(e)=>{ 
+                    try{ 
+                        const d=JSON.parse(e.target.result); 
+                        if(!d?.questions?.length||!d.config||!d.questions.every(q=>q?.question&&q.answer&&q.explanation)){throw new Error("Invalid format.");} 
+                        questions=d.questions; 
+                        currentQuizConfig=d.config; 
+                        currentFileName=d.fileName||f.name; 
+                        currentQuizKey=`imported-${Date.now()}`; 
+                        isTimedQuiz=currentQuizConfig.isTimed||false; 
+                        totalQuizTime=currentQuizConfig.totalTime||0; 
+                        isAttemptLimited=currentQuizConfig.isAttemptLimited||false; 
+                        maxAttempts=currentQuizConfig.maxAttempts||3; 
+                        
+                        saveQuizToDB(currentQuizKey,{questions,fileName:currentFileName,config:currentQuizConfig}); 
+                        refreshHistory(); 
+                        statusMessage.textContent=`Imported "${currentFileName}". Opening customize screen...`; 
+                        statusMessage.className='text-center text-green-400 mt-4 text-sm h-5'; 
+                        
+                        setTimeout(() => {
+                            customizingQuizData = quizHistory[currentQuizKey];
+                            setupCustomizeView(currentQuizConfig, currentFileName);
+                            showView('start');
+                            statusMessage.textContent = '';
+                        }, 1000);
+                    } catch(err){
+                        console.error("Import Err:",err); 
+                        statusMessage.textContent=`Import Err: ${err.message}`; 
+                        statusMessage.className='text-center text-red-400 mt-4 text-sm h-5';
+                    } finally {
+                        importQuizInput.value='';
+                    }
+                }; 
+                r.onerror=()=>{statusMessage.textContent='Read file error.'; statusMessage.className='text-center text-red-400 mt-4 text-sm h-5'; importQuizInput.value='';}; 
+                r.readAsText(f);
+            }
             function startLoadingAnimation(){ loadingTitle.textContent = "Generating Quiz..."; loadingMessage.textContent = 'Contacting AI...'; let dots = 0; loadingInterval = setInterval(() => { dots = (dots + 1) % 4; loadingMessage.textContent = 'Contacting AI' + '.'.repeat(dots); }, 500); }
             function stopLoadingAnimation(){ clearInterval(loadingInterval); loadingTitle.textContent = ""; loadingMessage.textContent = ''; }
 
