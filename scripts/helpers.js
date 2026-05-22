@@ -394,6 +394,58 @@ export function handleAttemptToggle() {
     attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
 }
 
+export function handleDifficultyChange() {
+    const selected = document.querySelector('input[name="difficulty"]:checked')?.value;
+    const isCustom = selected === 'custom';
+    customOptionsDiv.classList.toggle('hidden', !isCustom);
+    if (isCustom) {
+        handleCustomTypeChange();
+    } else {
+        customMixedCountsDiv.classList.add('hidden');
+    }
+    validateAllInputs();
+}
+
+export function handleCustomTypeChange() {
+    const selected = customQuestionTypeSelect.value;
+    const showMixed = selected === 'mixed';
+    customMixedCountsDiv.classList.toggle('hidden', !showMixed);
+    validateAllInputs();
+}
+
+export function validateAllInputs() {
+    const hasSource = typeof state.fileContent === 'string' && state.fileContent.trim().length > 0;
+    const hasCustomize = !!state.customizingQuizData || state.isCustomizingHistory;
+    const totalCount = parseInt(questionCountInput.value, 10) || 0;
+    let enabled = (hasSource || hasCustomize) && totalCount > 0;
+
+    const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value;
+    if (difficulty === 'custom') {
+        const type = customQuestionTypeSelect.value;
+        if (type === 'mixed') {
+            const mc = parseInt(document.getElementById('mc-count').value, 10) || 0;
+            const id = parseInt(document.getElementById('id-count').value, 10) || 0;
+            const en = parseInt(document.getElementById('en-count').value, 10) || 0;
+            enabled = enabled && mc + id + en === totalCount && totalCount > 0;
+        }
+    }
+
+    if (timeLimitToggle.checked) {
+        const selectedPreset = document.querySelector('input[name="time_preset"]:checked')?.value;
+        if (selectedPreset === 'custom') {
+            const customTime = parseInt(customTimeLimitInput.value, 10) || 0;
+            enabled = enabled && customTime > 0;
+        }
+    }
+
+    if (attemptLimitToggle.checked) {
+        const maxAttempts = parseInt(attemptLimitInput.value, 10) || 0;
+        enabled = enabled && maxAttempts > 0;
+    }
+
+    generateQuizBtn.disabled = !enabled;
+}
+
 export function initializeAudio() {
     try {
         if (typeof Tone !== 'undefined') {
