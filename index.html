@@ -1049,21 +1049,23 @@
                         const userQ=`Based on the following document: """${fileContent}"""\n\n${remedialPrompt}\n\nGenerate a quiz with this configuration: ${typeIns}${avoidIns}`; 
 
                         const res = await puter.ai.chat(sysP + "\n\n" + userQ);
-                        
-                        // NEW FIX HERE: Robustly handle the response from puter.js
+
+                        // Defensive extraction logic
                         let rawText = "";
-                        if (typeof res === 'string') {
-                            rawText = res;
-                        } else if (res?.message?.content) {
-                            rawText = res.message.content;
-                        } else if (res?.text) {
-                            rawText = typeof res.text === 'function' ? await res.text() : res.text;
-                        } else {
-                            rawText = String(res);
+                        try {
+                            if (res && typeof res === 'object') {
+                                // Handle common Puter AI return patterns
+                                rawText = res.content || res.text || res.message?.content || JSON.stringify(res);
+                            } else {
+                                rawText = String(res || "");
+                            }
+                        } catch (e) {
+                            rawText = String(res || "");
                         }
-                        const txt = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                        // END NEW FIX
-                        
+
+                        // Ensure it is a string before calling replace
+                        const txt = (typeof rawText === 'string' ? rawText : "").replace(/```json/gi, '').replace(/```/g, '').trim();
+
                         if(!txt){console.warn(`Att ${att}: AI empty.`); continue;} 
                         let pQs; try{pQs=JSON.parse(txt);}catch(e){console.warn(`Att ${att}: AI JSON bad.`,txt); continue;} 
                         if(!Array.isArray(pQs)){console.warn(`Att ${att}: AI not array.`); continue;} 
