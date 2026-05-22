@@ -1075,8 +1075,12 @@
                             if (typeof res === 'string') {
                                 rawText = res;
                             } else if (typeof res === 'object') {
+                                // Try nested content array (Puter API structure)
+                                if (res.message && res.message.content && Array.isArray(res.message.content) && res.message.content[0] && typeof res.message.content[0].text === 'string') {
+                                    rawText = res.message.content[0].text;
+                                }
                                 // Try common response properties
-                                if (typeof res.content === 'string') rawText = res.content;
+                                else if (typeof res.content === 'string') rawText = res.content;
                                 else if (typeof res.text === 'string') rawText = res.text;
                                 else if (res.message && typeof res.message.content === 'string') rawText = res.message.content;
                                 else if (res.choices && res.choices[0] && typeof res.choices[0].text === 'string') rawText = res.choices[0].text;
@@ -1088,7 +1092,6 @@
                         const cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
                         
                         // Diagnostic log
-                        console.log(`Attempt ${att} Raw Response:`, rawText.substring(0, 300));
                         console.log(`Attempt ${att} Cleaned JSON:`, cleanJson.substring(0, 300));
 
                         try {
