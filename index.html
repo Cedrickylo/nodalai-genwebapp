@@ -65,91 +65,100 @@
 
                 <p id="start-subtitle" class="text-gray-400 mb-8 text-center">Customize quiz, upload documents, or load history.</p>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div id="question-count-group">
-                        <label for="question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>
-                        <input type="number" id="question-count" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value="10" min="1" max="200">
-                    </div>
-                    <div id="difficulty-group">
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            <div><input type="radio" id="difficulty-easy" name="difficulty" value="easy" class="hidden peer difficulty-radio" checked><label for="difficulty-easy" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Easy</label></div>
-                            <div><input type="radio" id="difficulty-medium" name="difficulty" value="medium" class="hidden peer difficulty-radio"><label for="difficulty-medium" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Medium</label></div>
-                            <div><input type="radio" id="difficulty-hard" name="difficulty" value="hard" class="hidden peer difficulty-radio"><label for="difficulty-hard" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Hard</label></div>
-                            <div><input type="radio" id="difficulty-custom" name="difficulty" value="custom" class="hidden peer difficulty-radio"><label for="difficulty-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Custom</label></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="custom-options" class="hidden bg-gray-700/50 p-4 rounded-lg mb-6 space-y-4">
-                     <div id="custom-type-group">
-                        <label for="custom-question-type" class="block text-sm font-medium text-gray-300 mb-2">Custom Question Type</label>
-                        <select id="custom-question-type" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="multiple-choice">Multiple Choice</option>
-                            <option value="identification">Identification</option>
-                            <option value="enumeration">Enumeration</option>
-                            <option value="mixed" selected>Mixed</option>
-                        </select>
-                    </div>
-                    <div id="custom-mixed-counts" class="hidden">
-                        <p class="text-sm font-medium text-gray-300 mb-3 text-center">Specify counts for mixed type:</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div><label for="mc-count" class="block text-xs text-gray-400">Multiple Choice</label><input type="number" id="mc-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="4" min="0"></div>
-                            <div><label for="id-count" class="block text-xs text-gray-400">Identification</label><input type="number" id="id-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="3" min="0"></div>
-                            <div><label for="en-count" class="block text-xs text-gray-400">Enumeration</label><input type="number" id="en-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="3" min="0"></div>
-                        </div>
-                        <p id="custom-total-feedback" class="text-xs text-center mt-3 h-4"></p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
-                        <div class="flex items-center gap-2">
-                            <input type="checkbox" id="time-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
-                            <label for="time-limit-toggle" class="font-medium text-gray-300">Enable Timed Quiz</label>
-                            <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">Sets a total time limit for the entire quiz. The quiz will end automatically when time runs out.</span></span>
-                        </div>
-                        <div id="time-limit-options" class="hidden space-y-3 pt-2">
-                            <label class="block text-sm font-medium text-gray-300">Select Duration:</label>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div><input type="radio" id="time-5m" name="time_preset" value="5" class="hidden peer"><label for="time-5m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">5m</label></div>
-                                <div><input type="radio" id="time-10m" name="time_preset" value="10" class="hidden peer" checked><label for="time-10m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">10m</label></div>
-                                <div><input type="radio" id="time-30m" name="time_preset" value="30" class="hidden peer"><label for="time-30m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">30m</label></div>
-                                <div><input type="radio" id="time-1h" name="time_preset" value="60" class="hidden peer"><label for="time-1h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">1h</label></div>
-                                <div><input type="radio" id="time-2h" name="time_preset" value="120" class="hidden peer"><label for="time-2h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">2h</label></div>
-                                <div><input type="radio" id="time-custom" name="time_preset" value="custom" class="hidden peer"><label for="time-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Custom</label></div>
-                            </div>
-                            <div id="custom-time-input-container" class="hidden flex items-center gap-2 pt-2">
-                                <input type="number" id="custom-time-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="15" min="1">
-                                <label for="custom-time-limit-input" class="text-sm text-gray-400">minutes</label>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
-                        <div class="flex items-center gap-2">
-                            <input type="checkbox" id="attempt-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
-                            <label for="attempt-limit-toggle" class="font-medium text-gray-300">Enable Attempt Limit</label>
-                             <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">Sets a maximum number of incorrect answers allowed. The quiz will end if you exceed this limit.</span></span>
-                        </div>
-                        <div id="attempt-limit-options" class="hidden flex items-center gap-2 pt-2">
-                            <label for="attempt-limit-input" class="text-sm font-medium text-gray-300">Max Attempts:</label>
-                            <input type="number" id="attempt-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="3" min="1">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-gray-700/50 p-4 rounded-lg space-y-3 mb-6">
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
-                        <label for="summary-only-toggle" class="font-medium text-gray-300">Show Answers in Summary Only</label>
-                        <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">If checked, immediate feedback and correct answers will be hidden during the quiz. You will only see all answers in the final summary.</span></span>
-                    </div>
-                </div>
-                
                 <div id="file-actions" class="grid grid-cols-2 gap-4 mb-6">
                      <label for="file-upload-input" class="w-full inline-block bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate"><span id="file-name">Select Documents</span></label>
                     <label for="import-quiz-input" class="w-full inline-block bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer">Import Quiz</label>
                     <input type="file" id="file-upload-input" multiple><input type="file" id="import-quiz-input">
+                </div>
+
+                <div id="customize-section" class="hidden mb-6">
+                    <button id="customize-toggle-btn" class="w-full flex justify-between items-center bg-gray-700 p-4 rounded-lg text-gray-300 font-semibold hover:bg-gray-600 transition">
+                        <span>Customize Quiz Settings</span>
+                        <svg id="customize-toggle-icon" class="w-5 h-5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    
+                    <div id="customize-content" class="hidden mt-4 space-y-6 bg-gray-800 border border-gray-700 p-5 rounded-lg shadow-inner">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div id="question-count-group">
+                                <label for="question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>
+                                <input type="number" id="question-count" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" value="10" min="1" max="200">
+                            </div>
+                            <div id="difficulty-group">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <div><input type="radio" id="difficulty-easy" name="difficulty" value="easy" class="hidden peer difficulty-radio" checked><label for="difficulty-easy" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Easy</label></div>
+                                    <div><input type="radio" id="difficulty-medium" name="difficulty" value="medium" class="hidden peer difficulty-radio"><label for="difficulty-medium" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Medium</label></div>
+                                    <div><input type="radio" id="difficulty-hard" name="difficulty" value="hard" class="hidden peer difficulty-radio"><label for="difficulty-hard" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Hard</label></div>
+                                    <div><input type="radio" id="difficulty-custom" name="difficulty" value="custom" class="hidden peer difficulty-radio"><label for="difficulty-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Custom</label></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="custom-options" class="hidden bg-gray-700/50 p-4 rounded-lg space-y-4">
+                             <div id="custom-type-group">
+                                <label for="custom-question-type" class="block text-sm font-medium text-gray-300 mb-2">Custom Question Type</label>
+                                <select id="custom-question-type" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="multiple-choice">Multiple Choice</option>
+                                    <option value="identification">Identification</option>
+                                    <option value="enumeration">Enumeration</option>
+                                    <option value="mixed" selected>Mixed</option>
+                                </select>
+                            </div>
+                            <div id="custom-mixed-counts" class="hidden">
+                                <p class="text-sm font-medium text-gray-300 mb-3 text-center">Specify counts for mixed type:</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div><label for="mc-count" class="block text-xs text-gray-400">Multiple Choice</label><input type="number" id="mc-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="4" min="0"></div>
+                                    <div><label for="id-count" class="block text-xs text-gray-400">Identification</label><input type="number" id="id-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="3" min="0"></div>
+                                    <div><label for="en-count" class="block text-xs text-gray-400">Enumeration</label><input type="number" id="en-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="3" min="0"></div>
+                                </div>
+                                <p id="custom-total-feedback" class="text-xs text-center mt-3 h-4"></p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" id="time-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
+                                    <label for="time-limit-toggle" class="font-medium text-gray-300">Enable Timed Quiz</label>
+                                    <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">Sets a total time limit for the entire quiz. The quiz will end automatically when time runs out.</span></span>
+                                </div>
+                                <div id="time-limit-options" class="hidden space-y-3 pt-2">
+                                    <label class="block text-sm font-medium text-gray-300">Select Duration:</label>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div><input type="radio" id="time-5m" name="time_preset" value="5" class="hidden peer"><label for="time-5m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">5m</label></div>
+                                        <div><input type="radio" id="time-10m" name="time_preset" value="10" class="hidden peer" checked><label for="time-10m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">10m</label></div>
+                                        <div><input type="radio" id="time-30m" name="time_preset" value="30" class="hidden peer"><label for="time-30m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">30m</label></div>
+                                        <div><input type="radio" id="time-1h" name="time_preset" value="60" class="hidden peer"><label for="time-1h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">1h</label></div>
+                                        <div><input type="radio" id="time-2h" name="time_preset" value="120" class="hidden peer"><label for="time-2h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">2h</label></div>
+                                        <div><input type="radio" id="time-custom" name="time_preset" value="custom" class="hidden peer"><label for="time-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Custom</label></div>
+                                    </div>
+                                    <div id="custom-time-input-container" class="hidden flex items-center gap-2 pt-2">
+                                        <input type="number" id="custom-time-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="15" min="1">
+                                        <label for="custom-time-limit-input" class="text-sm text-gray-400">minutes</label>
+                                    </div>
+                                </div>
+                            </div>
+                             <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" id="attempt-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
+                                    <label for="attempt-limit-toggle" class="font-medium text-gray-300">Enable Attempt Limit</label>
+                                     <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">Sets a maximum number of incorrect answers allowed. The quiz will end if you exceed this limit.</span></span>
+                                </div>
+                                <div id="attempt-limit-options" class="hidden flex items-center gap-2 pt-2">
+                                    <label for="attempt-limit-input" class="text-sm font-medium text-gray-300">Max Attempts:</label>
+                                    <input type="number" id="attempt-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="3" min="1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
+                                <label for="summary-only-toggle" class="font-medium text-gray-300">Show Answers in Summary Only</label>
+                                <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">If checked, immediate feedback and correct answers will be hidden during the quiz. You will only see all answers in the final summary.</span></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <button id="resume-quiz-btn" class="hidden w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg mb-4">Resume Previous Quiz</button>
@@ -400,6 +409,10 @@
             
             /* Customization elements */
             const renameContainer = document.getElementById('rename-container'), editQuizNameInput = document.getElementById('edit-quiz-name');
+            const customizeSection = document.getElementById('customize-section');
+            const customizeToggleBtn = document.getElementById('customize-toggle-btn');
+            const customizeContent = document.getElementById('customize-content');
+            const customizeToggleIcon = document.getElementById('customize-toggle-icon');
 
             const resultsActions = document.getElementById('results-actions');
             const createRemedialBtn = document.getElementById('create-remedial-btn');
@@ -526,6 +539,12 @@
             attemptLimitToggle.addEventListener('change', handleAttemptToggle); attemptLimitInput.addEventListener('input', validateAllInputs);
             cancelCustomizeBtn.addEventListener('click', () => resetApp(true));
             
+            // Customize accordion logic
+            customizeToggleBtn.addEventListener('click', () => {
+                customizeContent.classList.toggle('hidden');
+                customizeToggleIcon.classList.toggle('rotate-180');
+            });
+
             createRemedialBtn.addEventListener('click', setupRemedialView);
             cancelRemedialBtn.addEventListener('click', () => { remedialOptionsView.classList.add('hidden'); resultsActions.classList.remove('hidden'); createRemedialBtn.classList.remove('hidden');});
             generateRemedialQuizBtn.addEventListener('click', () => handleQuizGeneration(true));
@@ -711,6 +730,12 @@
                 generateQuizBtn.textContent = 'Start Customized Quiz';
                 cancelCustomizeBtn.classList.remove('hidden');
                 fileActionsDiv.classList.add('hidden');
+                
+                // Show and expand customize section
+                customizeSection.classList.remove('hidden');
+                customizeContent.classList.remove('hidden');
+                customizeToggleIcon.classList.add('rotate-180');
+
                 questionCountInput.value = config.count || 10;
                 questionCountInput.readOnly = true;
                 questionCountInput.classList.add('locked-input');
@@ -778,8 +803,13 @@
                 
                 /* Reset Customization UI */
                 renameContainer.classList.add('hidden');
+                
+                // Hide and reset customize section
+                customizeSection.classList.add('hidden');
+                customizeContent.classList.add('hidden');
+                customizeToggleIcon.classList.remove('rotate-180');
 
-                startSubtitle.textContent = "Customize quiz, upload document, or load history.";
+                startSubtitle.textContent = "Customize quiz, upload documents, or load history.";
                 generateQuizBtn.textContent = 'Generate Quiz';
                 cancelCustomizeBtn.classList.add('hidden');
                 fileActionsDiv.classList.remove('hidden');
@@ -838,13 +868,18 @@
                         combinedText += `\n[SOURCE: ${file.name}]\n${txt}\n`;
                     }
 
-                    if(!combinedText.trim().length < 10){
+                    if(!(combinedText.trim().length < 10)){
                         fileContent = combinedText;
                         currentFileName = files.length > 1 ? `${files.length} Documents Combined` : files[0].name;
                         fileNameDisplay.textContent = currentFileName;
                         fileHash = CryptoJS.SHA256(fileContent).toString();
                         statusMessage.textContent = 'Documents ready!';
                         statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+                        
+                        // Show and expand the customize section
+                        customizeSection.classList.remove('hidden');
+                        customizeContent.classList.remove('hidden');
+                        customizeToggleIcon.classList.add('rotate-180');
                     } else {
                         throw new Error('Not enough text extracted.');
                     }
