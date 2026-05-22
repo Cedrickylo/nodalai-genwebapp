@@ -53,10 +53,73 @@ const {
     modalStorageLabel,
     displayNameInput,
     saveDisplayNameBtn,
-    logoutBtn
+    logoutBtn,
+    confirmModal,
+    confirmTitle,
+    confirmMessage,
+    acceptConfirmBtn,
+    cancelConfirmBtn
 } = elements;
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY } = constants;
+
+// 2. Add the customConfirm utility function:
+export function customConfirm(message, title = 'Confirm', acceptText = 'OK', cancelText = 'Cancel', isDestructive = false) {
+    return new Promise((resolve) => {
+        confirmTitle.textContent = title;
+        // Replace newlines with <br> for HTML rendering
+        confirmMessage.innerHTML = message.replace(/\n/g, '<br>'); 
+        
+        acceptConfirmBtn.textContent = acceptText;
+        cancelConfirmBtn.textContent = cancelText;
+
+        // Apply destructive styling (red) if requested, else default blue
+        if (isDestructive) {
+            acceptConfirmBtn.classList.replace('bg-blue-600', 'bg-red-600');
+            acceptConfirmBtn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+        } else {
+            acceptConfirmBtn.classList.replace('bg-red-600', 'bg-blue-600');
+            acceptConfirmBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+        }
+
+        confirmModal.classList.remove('hidden');
+
+        const cleanup = () => {
+            confirmModal.classList.add('hidden');
+            acceptConfirmBtn.removeEventListener('click', onAccept);
+            cancelConfirmBtn.removeEventListener('click', onCancel);
+        };
+
+        const onAccept = () => { cleanup(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+
+        acceptConfirmBtn.addEventListener('click', onAccept);
+        cancelConfirmBtn.addEventListener('click', onCancel);
+    });
+}
+
+// 3. Update handleLogout to use customConfirm
+export async function handleLogout() {
+    const isConfirmed = await customConfirm('Are you sure you want to log out?', 'Sign Out', 'Sign Out', 'Cancel', true);
+    if (isConfirmed) {
+        await puter.auth.signOut();
+        accountModal.classList.add('hidden');
+        updateAuthUI();
+        showToast('Logged out successfully');
+    }
+}
+
+// 4. Update clearHistory to use customConfirm (Make sure to add `async` to the function)
+export async function clearHistory() {
+    const isConfirmed = await customConfirm('Are you sure you want to clear all history? This cannot be undone.', 'Clear History', 'Clear All', 'Cancel', true);
+    if (isConfirmed) {
+        localStorage.removeItem(DB_NAME);
+        state.quizHistory = {};
+        localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
+        refreshHistory();
+        syncHistoryWithCloud();
+    }
+}
 
 export function setSyncing(isSyncing) {
     [globalSyncDone, quizSyncDone].forEach(el => el?.classList.toggle('hidden', isSyncing));

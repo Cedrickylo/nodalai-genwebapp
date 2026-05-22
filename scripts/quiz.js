@@ -17,7 +17,8 @@ import {
     validateAllInputs,
     handleDifficultyChange,
     handleCustomTypeChange,
-    clearHistory
+    clearHistory,
+    customConfirm
 } from './helpers.js';
 
 const {
@@ -377,8 +378,16 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const settingsHash = CryptoJS.SHA256(JSON.stringify(state.currentQuizConfig)).toString();
     state.currentQuizKey = `${state.fileHash}-${settingsHash}`;
     const db = state.quizHistory;
+    
     if (db[state.currentQuizKey] && !isRemedial) {
-        if (!confirm('A quiz with the same file and settings already exists. Load the existing quiz instead of regenerating it?')) {
+        const wantsToLoad = await customConfirm(
+            'A quiz with the same file and settings already exists. Load the existing quiz instead of regenerating it?',
+            'Quiz Exists',
+            'Load Existing',
+            'Cancel'
+        );
+        
+        if (!wantsToLoad) {
             statusMessage.textContent = 'Generation canceled; keep your current settings.';
             statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm h-5';
             return;
@@ -1036,7 +1045,7 @@ export function handleQuizImport(event) {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         try {
             const data = JSON.parse(e.target.result);
             if (!data?.questions?.length || !data.config || !data.questions.every(q => q?.question && q.answer && q.explanation)) {
@@ -1044,8 +1053,16 @@ export function handleQuizImport(event) {
             }
 
             const importedId = data.quizId || CryptoJS.SHA256(JSON.stringify(data.questions) + JSON.stringify(data.config) + (data.fileName || file.name)).toString();
+            
             if (state.quizHistory[importedId]) {
-                if (!confirm('A similar quiz already exists in your history. Do you want to import it anyway? (This will overwrite the existing one)')) {
+                const importAnyway = await customConfirm(
+                    'A similar quiz already exists in your history. Do you want to import it anyway? (This will overwrite the existing one)',
+                    'Duplicate Detected',
+                    'Overwrite & Import',
+                    'Cancel'
+                );
+                
+                if (!importAnyway) {
                     importQuizInput.value = '';
                     statusMessage.textContent = 'Import cancelled.';
                     statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
@@ -1119,7 +1136,7 @@ export function resumeQuiz(savedData) {
     }
 }
 
-export function handleHistoryClick(e) {
+export async function handleHistoryClick(e) {
     if (e.target.tagName === 'BUTTON') {
         const key = e.target.dataset.key;
         const action = e.target.dataset.action;
@@ -1128,7 +1145,13 @@ export function handleHistoryClick(e) {
 
         if (action === 'load') {
             if (state.savedProgress?.key === key && (state.savedProgress.shuffledIndexPos < state.savedProgress.shuffledIndices?.length || state.savedProgress.inSkippedRound)) {
-                if (confirm('Resume unfinished? (Cancel=start over)')) {
+                const doResume = await customConfirm(
+                    'Do you want to resume where you left off, or start over from the beginning?',
+                    'Resume Quiz',
+                    'Resume',
+                    'Start Over'
+                );
+                if (doResume) {
                     resumeQuiz(state.savedProgress);
                     return;
                 }
@@ -1229,7 +1252,13 @@ export function attachQuizEventListeners() {
     skipQuestionBtn.addEventListener('click', skipQuestion);
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn.addEventListener('click', exportQuiz);
-    homeBtn.addEventListener('click', () => { if (confirm('Save progress and return home?')) saveAndGoHome(); });
+    
+    homeBtn.addEventListener('click', async () => { 
+        if (await customConfirm('Save progress and return to the home screen?', 'Return Home', 'Save & Exit', 'Cancel')) {
+            saveAndGoHome(); 
+        }
+    });
+    
     saveQuizBtn.addEventListener('click', saveCurrentQuiz);
     historyList.addEventListener('click', handleHistoryClick);
     clearHistoryBtn.addEventListener('click', clearHistory);
@@ -1240,9 +1269,17 @@ export function attachQuizEventListeners() {
     attemptLimitToggle.addEventListener('change', handleAttemptToggle);
     attemptLimitInput.addEventListener('input', validateAllInputs);
     
-    elements.cancelCustomizeBtn.addEventListener('click', () => {
+    elements.cancelCustomizeBtn.addEventListener('click', async () => {
         if (hasUnsavedChanges() && state.isCustomizingHistory) {
-            if (confirm('You have unsaved changes! Do you want to save them before exiting?\n\nOK = Save changes\nCancel = Discard changes')) {
+            const wantsToSave = await customConfirm(
+                'You have unsaved changes! Do you want to save them before exiting?\n\n• OK = Save changes\n• Cancel = Discard changes',
+                'Unsaved Changes',
+                'Save Changes',
+                'Discard',
+                false
+            );
+            
+            if (wantsToSave) {
                 handleQuizGeneration(false, true);
                 return;
             }

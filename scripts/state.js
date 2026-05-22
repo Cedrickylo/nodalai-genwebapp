@@ -107,7 +107,12 @@ export const elements = {
     modalStorageLabel: document.getElementById('modal-storage-label'),
     displayNameInput: document.getElementById('display-name-input'),
     saveDisplayNameBtn: document.getElementById('save-display-name-btn'),
-    logoutBtn: document.getElementById('logout-btn')
+    logoutBtn: document.getElementById('logout-btn'),
+    confirmModal: document.getElementById('custom-confirm-modal'),
+    confirmTitle: document.getElementById('confirm-title'),
+    confirmMessage: document.getElementById('confirm-message'),
+    acceptConfirmBtn: document.getElementById('accept-confirm-btn'),
+    cancelConfirmBtn: document.getElementById('cancel-confirm-btn')
 };
 
 export const state = {
