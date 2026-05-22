@@ -1137,6 +1137,9 @@ function resetStartViewUI() {
     customOptionsDiv.classList.toggle('hidden', selectedDifficulty !== 'custom');
     if (selectedDifficulty === 'custom') handleCustomTypeChange();
     validateAllInputs();
+    
+    // --- NEW: Bring the resume button back if progress exists ---
+    prepareResumeButton();
 }
 
 export function attachQuizEventListeners() {

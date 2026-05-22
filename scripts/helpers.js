@@ -312,6 +312,9 @@ export function setupCustomizeView(config, name) {
     cancelCustomizeBtn.classList.remove('hidden');
     fileActionsDiv.classList.add('hidden');
 
+    // --- NEW: Hide the resume button on the customize screen ---
+    elements.resumeQuizBtn.classList.add('hidden');
+
     customizeSection.classList.remove('hidden');
     customizeContent.classList.remove('hidden');
     customizeToggleIcon.classList.add('rotate-180');
@@ -320,12 +323,14 @@ export function setupCustomizeView(config, name) {
     questionCountInput.readOnly = true;
     questionCountInput.classList.add('locked-input');
     document.getElementById('question-count-group')?.querySelector('label')?.classList.add('locked-label');
+    
     const diffValue = config.difficulty || 'easy';
     difficultyRadios.forEach(radio => {
         radio.checked = radio.value === diffValue;
         radio.disabled = true;
         radio.closest('div')?.querySelector('label')?.classList.add('locked-label');
     });
+    
     if (diffValue === 'custom') {
         customOptionsDiv.classList.remove('hidden');
         const customType = config.customType || 'mixed';
@@ -372,8 +377,11 @@ export function setupCustomizeView(config, name) {
         document.getElementById('time-10m').checked = true;
         handleTimePresetChange();
     }
+    
     attemptLimitToggle.checked = config.isAttemptLimited || false;
     attemptLimitInput.value = config.maxAttempts || 3;
+
+    validateAllInputs();
 }
 
 export function handleTimeToggle() {
