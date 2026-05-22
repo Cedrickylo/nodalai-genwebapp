@@ -35,6 +35,7 @@ const {
     customTotalFeedback,
     timeLimitToggle,
     timeLimitOptions,
+    timePresetRadios,
     customTimeInputContainer,
     customTimeLimitInput,
     timerDisplayEl,
