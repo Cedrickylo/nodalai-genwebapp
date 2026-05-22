@@ -90,17 +90,45 @@ const {
     renameContainer
 } = elements;
 
+// New elements queried locally to prevent overwriting your main state.js
+const selectedFilesContainer = document.getElementById('selected-files-container');
+const selectedFilesList = document.getElementById('selected-files-list');
+const addMoreFilesInput = document.getElementById('add-more-files-input');
+const remedialQuizNameInput = document.getElementById('remedial-quiz-name');
+
 const { MAX_GENERATION_ATTEMPTS, IN_PROGRESS_QUIZ_KEY } = constants;
 
 export async function handleFileSelect(event) {
     if (state.isCustomizingHistory) resetStartViewUI();
-    const files = Array.from(event.target.files || []);
-    if (!files.length) {
+
+    const isAddMore = event.target.id === 'add-more-files-input';
+    const newFiles = Array.from(event.target.files || []);
+
+    if (!newFiles.length && !isAddMore) {
         resetApp();
         return;
     }
 
-    statusMessage.textContent = `Analyzing ${files.length} document(s)...`;
+    if (isAddMore) {
+        state.currentFiles = [...(state.currentFiles || []), ...newFiles];
+    } else {
+        state.currentFiles = newFiles;
+    }
+
+    if (!state.currentFiles || state.currentFiles.length === 0) return;
+
+    // UI Updates for the accumulated files
+    selectedFilesContainer.classList.remove('hidden');
+    selectedFilesList.innerHTML = state.currentFiles.map(f => `<li class="truncate">• ${f.name}</li>`).join('');
+    fileNameDisplay.textContent = 'Clear & upload new files';
+    
+    // Auto-generate generic name based on file count if not explicitly set
+    if (!editQuizNameInput.value || editQuizNameInput.value === 'Select Documents' || editQuizNameInput.value.includes('Documents Combined')) {
+        state.currentFileName = state.currentFiles.length > 1 ? `${state.currentFiles.length} Documents Combined` : state.currentFiles[0].name;
+        editQuizNameInput.value = state.currentFileName;
+    }
+
+    statusMessage.textContent = `Analyzing ${state.currentFiles.length} document(s)...`;
     statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
     state.fileContent = '';
     state.fileHash = '';
@@ -108,7 +136,7 @@ export async function handleFileSelect(event) {
 
     try {
         let combinedText = '';
-        for (const file of files) {
+        for (const file of state.currentFiles) {
             const ext = file.name.split('.').pop().toLowerCase();
             let txt = '';
             if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json'].includes(ext)) {
@@ -136,14 +164,11 @@ export async function handleFileSelect(event) {
         }
 
         state.fileContent = combinedText;
-        state.currentFileName = files.length > 1 ? `${files.length} Documents Combined` : files[0].name;
-        fileNameDisplay.textContent = state.currentFileName;
         state.fileHash = CryptoJS.SHA256(state.fileContent).toString();
         statusMessage.textContent = 'Documents ready!';
         statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
         
         renameContainer.classList.remove('hidden');
-        editQuizNameInput.value = state.currentFileName;
 
         document.getElementById('customize-section').classList.remove('hidden');
         document.getElementById('customize-content').classList.remove('hidden');
@@ -182,6 +207,7 @@ export function resetApp(clearProg = true) {
     state.inSkippedRound = false;
     state.currentSkippedArray = [];
     fileUploadInput.value = '';
+    addMoreFilesInput.value = '';
     importQuizInput.value = '';
     fileNameDisplay.textContent = 'Select Documents';
     statusMessage.textContent = '';
@@ -340,7 +366,10 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         isRemedial: isRemedial
     };
 
-    if (!isRemedial && !state.isCustomizingHistory) {
+    // Apply the correct custom name prior to generating
+    if (isRemedial) {
+        state.currentFileName = remedialQuizNameInput.value.trim() || (state.currentFileName + ' - Remedial');
+    } else if (!state.isCustomizingHistory) {
         state.currentFileName = editQuizNameInput.value.trim() || state.currentFileName;
     }
 
@@ -818,6 +847,9 @@ export function setupRemedialView() {
     remedialOptionsView.classList.remove('hidden');
     createRemedialBtn.classList.add('hidden');
 
+    // Pre-fill Remedial Title Name
+    remedialQuizNameInput.value = (state.currentFileName || 'Quiz') + ' - Remedial';
+
     const defaultTotal = Math.min(10, state.incorrectQuestionsForRemedial.length * 2);
     remedialQuestionCountInput.value = defaultTotal;
     remedialQuestionCountInput.max = state.incorrectQuestionsForRemedial.length * 3;
@@ -1122,13 +1154,18 @@ function resetStartViewUI() {
     state.isCustomizingHistory = false;
     state.customizingQuizData = null;
     state.initialCustomizeState = {};
+    state.currentFiles = []; // Clear active files pool
+    
     renameContainer.classList.add('hidden');
+    selectedFilesContainer.classList.add('hidden');
+    selectedFilesList.innerHTML = '';
+    addMoreFilesInput.value = '';
+    
     document.getElementById('customize-section').classList.add('hidden');
     document.getElementById('customize-content').classList.add('hidden');
     document.getElementById('customize-toggle-icon').classList.remove('rotate-180');
     startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
     
-    // Explicitly disable Generate button on reset
     generateQuizBtn.textContent = 'Generate Quiz';
     generateQuizBtn.disabled = true; 
     
@@ -1160,6 +1197,7 @@ function resetStartViewUI() {
 export function attachQuizEventListeners() {
     resumeQuizBtn.addEventListener('click', () => { if (state.savedProgress) resumeQuiz(state.savedProgress); });
     fileUploadInput.addEventListener('change', handleFileSelect);
+    addMoreFilesInput.addEventListener('change', handleFileSelect); // Bind Add More button logic
     importQuizInput.addEventListener('change', handleQuizImport);
     generateQuizBtn.addEventListener('click', () => handleQuizGeneration(false, false));
     difficultyRadios.forEach(r => r.addEventListener('change', handleDifficultyChange));
@@ -1181,7 +1219,6 @@ export function attachQuizEventListeners() {
     attemptLimitToggle.addEventListener('change', handleAttemptToggle);
     attemptLimitInput.addEventListener('input', validateAllInputs);
     
-    // Check for unsaved changes or cancel upload
     elements.cancelCustomizeBtn.addEventListener('click', () => {
         if (hasUnsavedChanges() && state.isCustomizingHistory) {
             if (confirm('You have unsaved changes! Do you want to save them before exiting?\n\nOK = Save changes\nCancel = Discard changes')) {
@@ -1192,7 +1229,6 @@ export function attachQuizEventListeners() {
         resetApp(true);
     });
 
-    // Handle resume button visibility based on dropdown toggle state
     document.getElementById('customize-toggle-btn').addEventListener('click', () => {
         const content = document.getElementById('customize-content');
         content.classList.toggle('hidden');
@@ -1242,7 +1278,6 @@ export function attachQuizEventListeners() {
 export function prepareResumeButton() {
     try {
         const saved = localStorage.getItem(IN_PROGRESS_QUIZ_KEY);
-        // Only bring it back if the customize dropdown is NOT open
         if (saved && document.getElementById('customize-content').classList.contains('hidden')) {
             const data = JSON.parse(saved);
             if (data?.questions?.length && (data.shuffledIndexPos < data.shuffledIndices?.length || data.inSkippedRound)) {

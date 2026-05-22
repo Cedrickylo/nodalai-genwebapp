@@ -47,6 +47,15 @@
                             <input type="text" id="edit-quiz-name" class="w-full bg-gray-700 border border-blue-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter quiz name...">
                         </div>
 
+                        <div id="selected-files-container" class="hidden p-4 bg-gray-700/30 border border-gray-600 rounded-lg">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-sm font-medium text-gray-300">Selected Documents</h4>
+                                <label for="add-more-files-input" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded cursor-pointer transition shadow-md">Add More</label>
+                                <input type="file" id="add-more-files-input" multiple class="hidden">
+                            </div>
+                            <ul id="selected-files-list" class="space-y-1 text-xs text-gray-400 max-h-32 overflow-y-auto pl-1"></ul>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div id="question-count-group">
                                 <label for="question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>
@@ -214,6 +223,11 @@
                 <div id="remedial-options-view" class="hidden mt-8 pt-6 border-t border-gray-700">
                     <h3 class="text-2xl font-bold mb-4 text-center text-yellow-400">Remedial Quiz Setup</h3>
                      <p class="text-gray-400 mb-6 text-center text-sm">Generating a new quiz based on the topics of the questions you answered incorrectly.</p>
+
+                    <div id="remedial-rename-container" class="mb-6">
+                        <label for="remedial-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Remedial Quiz Name</label>
+                        <input type="text" id="remedial-quiz-name" class="w-full bg-gray-700 border border-yellow-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Enter remedial quiz name...">
+                    </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
