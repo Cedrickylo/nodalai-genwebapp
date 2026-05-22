@@ -57,3 +57,30 @@ Now that you're more familiar with your Bitbucket repository, go ahead and add a
 - **Debugging tips:** open the browser DevTools → Console/Network to see the POST response body and status. The app now logs detailed errors for failed uploads.
 
 If you'd like, I can: add instructions to store the key in a separate `config.json`, or switch the backend to GitHub Gists. Reply with which option you prefer.
+
+---
+
+**Netlify deployment & serverless Gist upload**
+
+This project includes a Netlify Function to create GitHub Gists (used for share links) so your GitHub token remains secret.
+
+1. Install the Netlify CLI (optional but helpful):
+
+```bash
+npm install -g netlify-cli
+```
+
+2. Deploy to Netlify (manual via UI or CLI). If using CLI, run:
+
+```bash
+netlify init   # link or create a site
+netlify deploy --prod
+```
+
+3. Set the `GITHUB_TOKEN` environment variable in your Netlify site settings (Site Settings → Build & deploy → Environment → Environment variables). The token should have `gist` scope.
+
+4. After deploy, the frontend will POST to the Netlify function `/.netlify/functions/createGist` to create a gist; the function returns the gist `id` which the app uses as `?share=<id>`.
+
+5. If you prefer not to create a token, the app will fall back to saving the quiz in `localStorage` and produce a `?local=<id>` link that only works in the same browser.
+
+Questions? I can also add a short `deploy.sh` script or CI configuration to automate Netlify deployments.

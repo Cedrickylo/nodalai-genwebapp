@@ -1178,77 +1178,67 @@ export async function handleHistoryClick(e) {
         }
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
-            elements.statusMessage.textContent = 'Generating short link...';
-            elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
-
-            const minimalData = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
-
-            // Configurable npoint settings (replace placeholder with your key)
-            const NPOINT_CREATE_URL = 'https://api.npoint.io/';
-            const NPOINT_API_KEY = 'YOUR_NPOINT_API_KEY_HERE'; // replace with real key or leave empty
-
+            const btn = e.target;
             try {
-                let lastErr = null;
-                let data = null;
+                btn.disabled = true;
+                elements.statusMessage.textContent = 'Generating short link...';
+                elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm';
 
-                // Try a couple times to avoid transient network errors
-                for (let attempt = 1; attempt <= 2; attempt++) {
+                const minimalData = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
+
+            // Use Netlify function to create a GitHub Gist (keeps token server-side)
+            const FUNCTION_URL = '/.netlify/functions/createGist';
+                try {
+                    const response = await fetch(FUNCTION_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(minimalData)
+                    });
+
+                    if (!response.ok) {
+                        const body = await response.text().catch(() => '<no-body>');
+                        console.error('createGist failed', response.status, body);
+                        throw new Error(body || `Upload failed (${response.status})`);
+                    }
+
+                    const respJson = await response.json();
+                    const blobId = respJson.id;
+                    if (!blobId) throw new Error('Invalid response from server');
+
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(blobId)}`;
+                    elements.statusMessage.innerHTML = `<a href="${shareUrl}" target="_blank" rel="noopener" class="underline break-words">${shareUrl}</a> <button id="copy-share-link" class="ml-2 px-2 py-1 bg-gray-700 text-white rounded">Copy</button>`;
+                    elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm';
+                    document.getElementById('copy-share-link')?.addEventListener('click', async () => {
+                        try { await navigator.clipboard.writeText(shareUrl); showToast('Link copied!'); }
+                        catch { showToast('Copy failed — use manual copy.', 3000, 'error'); }
+                    });
+                    showToast('Share link created (click to open).');
+                    return;
+                } catch (err) {
+                    console.error('Failed to create share link (cloud):', err);
+                    // Fallback: save to localStorage and show a local link
                     try {
-                        const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-                        if (NPOINT_API_KEY && NPOINT_API_KEY !== 'YOUR_NPOINT_API_KEY_HERE') headers['x-api-key'] = NPOINT_API_KEY;
-
-                        const response = await fetch(NPOINT_CREATE_URL, {
-                            method: 'POST',
-                            headers,
-                            body: JSON.stringify(minimalData)
+                        const localId = CryptoJS.SHA256(JSON.stringify(minimalData)).toString().slice(0, 12);
+                        localStorage.setItem(`local_shared_${localId}`, JSON.stringify(minimalData));
+                        const localUrl = `${window.location.origin}${window.location.pathname}?local=${localId}`;
+                        elements.statusMessage.innerHTML = `<a href="${localUrl}" target="_blank" rel="noopener" class="underline break-words">${localUrl}</a> <button id="copy-share-link" class="ml-2 px-2 py-1 bg-gray-700 text-white rounded">Copy</button>`;
+                        elements.statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm';
+                        document.getElementById('copy-share-link')?.addEventListener('click', async () => {
+                            try { await navigator.clipboard.writeText(localUrl); showToast('Link copied!'); }
+                            catch { showToast('Copy failed — use manual copy.', 3000, 'error'); }
                         });
-
-                        if (!response.ok) {
-                            const body = await response.text().catch(() => '<no-body>');
-                            console.error(`npoint create failed (attempt ${attempt})`, response.status, body);
-                            lastErr = new Error(`npoint create failed: ${response.status}`);
-                            // small delay before retry
-                            await new Promise(r => setTimeout(r, 300 * attempt));
-                            continue;
-                        }
-
-                        data = await response.json();
-                        break;
-                    } catch (fetchErr) {
-                        console.error(`npoint fetch error (attempt ${attempt})`, fetchErr);
-                        lastErr = fetchErr;
-                        await new Promise(r => setTimeout(r, 300 * attempt));
+                        showToast('Cloud upload failed — saved locally and link copied to UI.');
+                        return;
+                    } catch (localErr) {
+                        console.error('Local fallback failed:', localErr);
+                        const msg = (err && err.message) ? `Share failed: ${err.message}` : 'Failed to create link. Check connection.';
+                        elements.statusMessage.textContent = msg;
+                        elements.statusMessage.className = 'text-center text-red-400 mt-4 text-sm';
+                        showToast(msg, 4000, 'error');
                     }
                 }
-
-                if (!data) throw lastErr || new Error('Failed to create cloud link');
-
-                const blobId = data.id || data.name || (data?.url && data.url.split('/').pop());
-                if (!blobId) throw new Error('Invalid response from npoint');
-
-                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(blobId)}`;
-                await navigator.clipboard.writeText(shareUrl);
-                showToast('Short link copied to clipboard!');
-                elements.statusMessage.textContent = 'Link copied!';
-                elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
-                return;
-            } catch (err) {
-                console.error('Failed to create share link (cloud):', err);
-                // Fallback: save to localStorage and copy a local link
-                try {
-                    const localId = CryptoJS.SHA256(JSON.stringify(minimalData)).toString().slice(0, 12);
-                    localStorage.setItem(`local_shared_${localId}`, JSON.stringify(minimalData));
-                    const localUrl = `${window.location.origin}${window.location.pathname}?local=${localId}`;
-                    await navigator.clipboard.writeText(localUrl);
-                    showToast('Could not upload to cloud — saved locally and copied link.', 5000, 'warning');
-                    elements.statusMessage.textContent = 'Saved locally';
-                    elements.statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm h-5';
-                    return;
-                } catch (localErr) {
-                    console.error('Local fallback failed:', localErr);
-                    showToast('Failed to create link. Check connection.', 3000, 'error');
-                    elements.statusMessage.textContent = '';
-                }
+            } finally {
+                try { btn.disabled = false; } catch (e) {}
             }
         }
     }
@@ -1434,20 +1424,24 @@ export async function loadSharedQuiz(sharedId) {
         elements.statusMessage.textContent = 'Downloading shared quiz...';
         elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
         
-        // Fetching from the new npoint.io endpoint
+        // Try GitHub Gist first (public gist), then fall back to localStorage
         let data = null;
         try {
-            const response = await fetch(`https://api.npoint.io/${sharedId}`);
-            if (response.ok) {
-                data = await response.json();
+            const gistResp = await fetch(`https://api.github.com/gists/${sharedId}`);
+            if (gistResp.ok) {
+                const gist = await gistResp.json();
+                // prefer a file named quiz.json, otherwise take the first file
+                const files = gist.files || {};
+                const file = files['quiz.json'] || Object.values(files)[0];
+                if (!file || !file.content) throw new Error('Gist missing expected file');
+                data = JSON.parse(file.content);
             } else {
-                const body = await response.text().catch(() => '<no-body>');
-                console.error('npoint fetch failed', response.status, body);
-                throw new Error('Quiz not found or expired');
+                const body = await gistResp.text().catch(() => '<no-body>');
+                console.warn('gist fetch failed', gistResp.status, body);
+                throw new Error('Gist not found');
             }
         } catch (fetchErr) {
             console.warn('Cloud fetch failed, trying localStorage fallback', fetchErr);
-            // try local fallback
             const local = localStorage.getItem(`local_shared_${sharedId}`);
             if (local) {
                 try { data = JSON.parse(local); }
