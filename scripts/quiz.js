@@ -1184,8 +1184,8 @@ export async function handleHistoryClick(e) {
             const minimalData = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
 
             try {
-                // Upload the quiz to a free, anonymous JSON hosting service
-                const response = await fetch('https://jsonblob.com/api/jsonBlob', {
+                // Using npoint.io instead of jsonblob to fix the CORS error
+                const response = await fetch('https://api.npoint.io/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1194,9 +1194,11 @@ export async function handleHistoryClick(e) {
                     body: JSON.stringify(minimalData)
                 });
 
-                // Get the unique ID from the response header
-                const location = response.headers.get('Location');
-                const blobId = location.split('/').pop(); 
+                if (!response.ok) throw new Error('Failed to create cloud link');
+
+                // npoint.io safely returns the ID inside the JSON body!
+                const data = await response.json();
+                const blobId = data.id; 
                 
                 // Create a beautiful, short URL
                 const shareUrl = `${window.location.origin}${window.location.pathname}?share=${blobId}`;
@@ -1389,14 +1391,13 @@ export function prepareResumeButton() {
     }
 }
 
-// Paste this at the bottom of quiz.js
 export async function loadSharedQuiz(sharedId) {
     try {
         elements.statusMessage.textContent = 'Downloading shared quiz...';
         elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
         
-        // Download the quiz from the cloud using the short ID
-        const response = await fetch(`https://jsonblob.com/api/jsonBlob/${sharedId}`);
+        // Fetching from the new npoint.io endpoint
+        const response = await fetch(`https://api.npoint.io/${sharedId}`);
         if (!response.ok) throw new Error("Quiz not found or expired");
         
         const data = await response.json();
