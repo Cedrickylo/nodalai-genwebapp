@@ -23,15 +23,9 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         <span id="auth-btn-text">Puter Login</span>
                     </button>
-                    </div>
-
-                <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
-                
-                <div id="rename-container" class="hidden mb-6">
-                    <label for="edit-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Quiz Name</label>
-                    <input type="text" id="edit-quiz-name" class="w-full bg-gray-700 border border-blue-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter quiz name...">
                 </div>
 
+                <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
                 <p id="start-subtitle" class="text-gray-400 mb-8 text-center">Transform your documents into tailored assessments instantly.</p>
                 
                 <div id="file-actions" class="grid grid-cols-2 gap-4 mb-6">
@@ -47,6 +41,12 @@
                     </button>
                     
                     <div id="customize-content" class="hidden mt-4 space-y-6 bg-gray-800 border border-gray-700 p-5 rounded-lg shadow-inner">
+                        
+                        <div id="rename-container" class="hidden">
+                            <label for="edit-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Quiz Name</label>
+                            <input type="text" id="edit-quiz-name" class="w-full bg-gray-700 border border-blue-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter quiz name...">
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div id="question-count-group">
                                 <label for="question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>
@@ -132,7 +132,7 @@
                 
                 <button id="resume-quiz-btn" class="hidden w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg mb-4">Resume Previous Quiz</button>
                 <button id="generate-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Generate Quiz</button>
-                <button id="cancel-customize-btn" class="hidden w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">Cancel Customization</button>
+                <button id="cancel-customize-btn" class="hidden w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Cancel</button>
                 <p id="status-message" class="text-center text-gray-400 mt-4 text-sm h-5"></p>
 
                 <div id="history-section" class="mt-8">

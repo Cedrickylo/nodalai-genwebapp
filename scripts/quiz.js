@@ -142,13 +142,16 @@ export async function handleFileSelect(event) {
         statusMessage.textContent = 'Documents ready!';
         statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
         
-        // Show the rename container immediately when uploading new files
         renameContainer.classList.remove('hidden');
         editQuizNameInput.value = state.currentFileName;
 
         document.getElementById('customize-section').classList.remove('hidden');
         document.getElementById('customize-content').classList.remove('hidden');
         document.getElementById('customize-toggle-icon').classList.add('rotate-180');
+
+        cancelCustomizeBtn.classList.remove('hidden');
+        generateQuizBtn.disabled = false;
+        resumeQuizBtn.classList.add('hidden'); // Hide resume while dropdown is open
     } catch (err) {
         console.error('File err:', err);
         statusMessage.textContent = `Err: ${err.message}`;
@@ -337,7 +340,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         isRemedial: isRemedial
     };
 
-    // Before generating, apply the custom name from the text input
     if (!isRemedial && !state.isCustomizingHistory) {
         state.currentFileName = editQuizNameInput.value.trim() || state.currentFileName;
     }
@@ -1125,7 +1127,11 @@ function resetStartViewUI() {
     document.getElementById('customize-content').classList.add('hidden');
     document.getElementById('customize-toggle-icon').classList.remove('rotate-180');
     startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
+    
+    // Explicitly disable Generate button on reset
     generateQuizBtn.textContent = 'Generate Quiz';
+    generateQuizBtn.disabled = true; 
+    
     elements.cancelCustomizeBtn.classList.add('hidden');
     fileActionsDiv.classList.remove('hidden');
     questionCountInput.readOnly = false;
@@ -1148,7 +1154,6 @@ function resetStartViewUI() {
     if (selectedDifficulty === 'custom') handleCustomTypeChange();
     validateAllInputs();
     
-    // Automatically re-evaluate if there's progress to resume
     prepareResumeButton();
 }
 
@@ -1175,8 +1180,10 @@ export function attachQuizEventListeners() {
     customTimeLimitInput.addEventListener('input', validateAllInputs);
     attemptLimitToggle.addEventListener('change', handleAttemptToggle);
     attemptLimitInput.addEventListener('input', validateAllInputs);
+    
+    // Check for unsaved changes or cancel upload
     elements.cancelCustomizeBtn.addEventListener('click', () => {
-        if (hasUnsavedChanges()) {
+        if (hasUnsavedChanges() && state.isCustomizingHistory) {
             if (confirm('You have unsaved changes! Do you want to save them before exiting?\n\nOK = Save changes\nCancel = Discard changes')) {
                 handleQuizGeneration(false, true);
                 return;
@@ -1184,10 +1191,20 @@ export function attachQuizEventListeners() {
         }
         resetApp(true);
     });
+
+    // Handle resume button visibility based on dropdown toggle state
     document.getElementById('customize-toggle-btn').addEventListener('click', () => {
-        document.getElementById('customize-content').classList.toggle('hidden');
+        const content = document.getElementById('customize-content');
+        content.classList.toggle('hidden');
         document.getElementById('customize-toggle-icon').classList.toggle('rotate-180');
+
+        if (!content.classList.contains('hidden')) {
+            resumeQuizBtn.classList.add('hidden');
+        } else {
+            prepareResumeButton();
+        }
     });
+
     createRemedialBtn.addEventListener('click', setupRemedialView);
     cancelRemedialBtn.addEventListener('click', () => {
         remedialOptionsView.classList.add('hidden');
@@ -1225,7 +1242,8 @@ export function attachQuizEventListeners() {
 export function prepareResumeButton() {
     try {
         const saved = localStorage.getItem(IN_PROGRESS_QUIZ_KEY);
-        if (saved) {
+        // Only bring it back if the customize dropdown is NOT open
+        if (saved && document.getElementById('customize-content').classList.contains('hidden')) {
             const data = JSON.parse(saved);
             if (data?.questions?.length && (data.shuffledIndexPos < data.shuffledIndices?.length || data.inSkippedRound)) {
                 state.savedProgress = data;
