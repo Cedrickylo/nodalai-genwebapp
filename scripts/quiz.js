@@ -495,6 +495,17 @@ export function stopQuizTimer() {
     visualTimerBar.classList.add('bg-blue-500');
 }
 
+export function updateAttemptDisplay() {
+    if (!attemptDisplayEl) return;
+    if (state.isAttemptLimited) {
+        attemptDisplayEl.classList.remove('hidden');
+        attemptDisplayEl.textContent = `Attempts: ${state.currentAttempts}/${state.maxAttempts}`;
+    } else {
+        attemptDisplayEl.classList.add('hidden');
+        attemptDisplayEl.textContent = '';
+    }
+}
+
 export function handleTimeUp() {
     stopQuizTimer();
     showToast("Time's Up!", 3000, 'error');
