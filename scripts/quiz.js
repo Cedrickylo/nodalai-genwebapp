@@ -15,7 +15,8 @@ import {
     handleAttemptToggle,
     validateAllInputs,
     handleDifficultyChange,
-    handleCustomTypeChange
+    handleCustomTypeChange,
+    clearHistory
 } from './helpers.js';
 
 const {
