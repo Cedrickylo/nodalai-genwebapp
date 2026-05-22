@@ -673,7 +673,6 @@
             function saveQuizToDB(key,data){ 
                 try{
                     let finalName = data.fileName || "Untitled Quiz";
-                    // Only append number if the name exists AND it belongs to a DIFFERENT quiz key
                     const existingEntries = Object.entries(quizHistory);
                     let counter = 2;
                     let baseName = finalName.replace(/\.[^/.]+$/, "");
@@ -1050,7 +1049,20 @@
                         const userQ=`Based on the following document: """${fileContent}"""\n\n${remedialPrompt}\n\nGenerate a quiz with this configuration: ${typeIns}${avoidIns}`; 
 
                         const res = await puter.ai.chat(sysP + "\n\n" + userQ);
-                        const txt = res.toString().replace(/```json/g, '').replace(/```/g, '').trim();
+                        
+                        // NEW FIX HERE: Robustly handle the response from puter.js
+                        let rawText = "";
+                        if (typeof res === 'string') {
+                            rawText = res;
+                        } else if (res?.message?.content) {
+                            rawText = res.message.content;
+                        } else if (res?.text) {
+                            rawText = typeof res.text === 'function' ? await res.text() : res.text;
+                        } else {
+                            rawText = String(res);
+                        }
+                        const txt = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                        // END NEW FIX
                         
                         if(!txt){console.warn(`Att ${att}: AI empty.`); continue;} 
                         let pQs; try{pQs=JSON.parse(txt);}catch(e){console.warn(`Att ${att}: AI JSON bad.`,txt); continue;} 
