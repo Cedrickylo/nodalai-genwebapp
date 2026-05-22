@@ -1170,9 +1170,25 @@ export function attachQuizEventListeners() {
     remedialCustomQuestionTypeSelect.addEventListener('change', handleRemedialCustomTypeChange);
     remedialCustomCountInputs.forEach(i => i.addEventListener('input', validateRemedialInputs));
     remedialQuestionCountInput.addEventListener('input', validateRemedialInputs);
-    remedialTimeLimitToggle.addEventListener('change', handleRemedialTimeToggle);
-    remedialAttemptLimitToggle.addEventListener('change', handleRemedialAttemptToggle);
-    remedialTimePresetRadios.forEach(r => r.addEventListener('change', handleRemedialTimePresetChange));
+    remedialTimeLimitToggle.addEventListener('change', () => {
+        remedialTimeLimitOptions.classList.toggle('hidden', !remedialTimeLimitToggle.checked);
+        if (remedialTimeLimitToggle.checked) {
+            const sel = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
+            remedialCustomTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
+        } else {
+            remedialCustomTimeInputContainer.classList.add('hidden');
+        }
+        validateRemedialInputs();
+    });
+    remedialAttemptLimitToggle.addEventListener('change', () => {
+        remedialAttemptLimitOptions.classList.toggle('hidden', !remedialAttemptLimitToggle.checked);
+        validateRemedialInputs();
+    });
+    remedialTimePresetRadios.forEach(r => r.addEventListener('change', () => {
+        const sel = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
+        remedialCustomTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
+        validateRemedialInputs();
+    }));
     remedialCustomTimeLimitInput.addEventListener('input', validateRemedialInputs);
     remedialAttemptLimitInput.addEventListener('input', validateRemedialInputs);
 }
