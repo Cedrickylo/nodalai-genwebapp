@@ -61,6 +61,7 @@ const {
     syncCloudBtn,
     resumeQuizBtn,
     resultsActions,
+    cancelCustomizeBtn,
     createRemedialBtn,
     remedialOptionsView,
     cancelRemedialBtn,
