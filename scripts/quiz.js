@@ -1180,37 +1180,75 @@ export async function handleHistoryClick(e) {
         else if (action === 'share') {
             elements.statusMessage.textContent = 'Generating short link...';
             elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
-            
+
             const minimalData = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
 
+            // Configurable npoint settings (replace placeholder with your key)
+            const NPOINT_CREATE_URL = 'https://api.npoint.io/';
+            const NPOINT_API_KEY = 'YOUR_NPOINT_API_KEY_HERE'; // replace with real key or leave empty
+
             try {
-                // Using npoint.io instead of jsonblob to fix the CORS error
-                const response = await fetch('https://api.npoint.io/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(minimalData)
-                });
+                let lastErr = null;
+                let data = null;
 
-                if (!response.ok) throw new Error('Failed to create cloud link');
+                // Try a couple times to avoid transient network errors
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+                        if (NPOINT_API_KEY && NPOINT_API_KEY !== 'YOUR_NPOINT_API_KEY_HERE') headers['x-api-key'] = NPOINT_API_KEY;
 
-                // npoint.io safely returns the ID inside the JSON body!
-                const data = await response.json();
-                const blobId = data.id; 
-                
-                // Create a beautiful, short URL
-                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${blobId}`;
+                        const response = await fetch(NPOINT_CREATE_URL, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(minimalData)
+                        });
 
+                        if (!response.ok) {
+                            const body = await response.text().catch(() => '<no-body>');
+                            console.error(`npoint create failed (attempt ${attempt})`, response.status, body);
+                            lastErr = new Error(`npoint create failed: ${response.status}`);
+                            // small delay before retry
+                            await new Promise(r => setTimeout(r, 300 * attempt));
+                            continue;
+                        }
+
+                        data = await response.json();
+                        break;
+                    } catch (fetchErr) {
+                        console.error(`npoint fetch error (attempt ${attempt})`, fetchErr);
+                        lastErr = fetchErr;
+                        await new Promise(r => setTimeout(r, 300 * attempt));
+                    }
+                }
+
+                if (!data) throw lastErr || new Error('Failed to create cloud link');
+
+                const blobId = data.id || data.name || (data?.url && data.url.split('/').pop());
+                if (!blobId) throw new Error('Invalid response from npoint');
+
+                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(blobId)}`;
                 await navigator.clipboard.writeText(shareUrl);
                 showToast('Short link copied to clipboard!');
                 elements.statusMessage.textContent = 'Link copied!';
                 elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+                return;
             } catch (err) {
-                console.error('Failed to create share link', err);
-                showToast('Failed to create link. Check connection.', 3000, 'error');
-                elements.statusMessage.textContent = '';
+                console.error('Failed to create share link (cloud):', err);
+                // Fallback: save to localStorage and copy a local link
+                try {
+                    const localId = CryptoJS.SHA256(JSON.stringify(minimalData)).toString().slice(0, 12);
+                    localStorage.setItem(`local_shared_${localId}`, JSON.stringify(minimalData));
+                    const localUrl = `${window.location.origin}${window.location.pathname}?local=${localId}`;
+                    await navigator.clipboard.writeText(localUrl);
+                    showToast('Could not upload to cloud — saved locally and copied link.', 5000, 'warning');
+                    elements.statusMessage.textContent = 'Saved locally';
+                    elements.statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm h-5';
+                    return;
+                } catch (localErr) {
+                    console.error('Local fallback failed:', localErr);
+                    showToast('Failed to create link. Check connection.', 3000, 'error');
+                    elements.statusMessage.textContent = '';
+                }
             }
         }
     }
@@ -1397,10 +1435,29 @@ export async function loadSharedQuiz(sharedId) {
         elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
         
         // Fetching from the new npoint.io endpoint
-        const response = await fetch(`https://api.npoint.io/${sharedId}`);
-        if (!response.ok) throw new Error("Quiz not found or expired");
-        
-        const data = await response.json();
+        let data = null;
+        try {
+            const response = await fetch(`https://api.npoint.io/${sharedId}`);
+            if (response.ok) {
+                data = await response.json();
+            } else {
+                const body = await response.text().catch(() => '<no-body>');
+                console.error('npoint fetch failed', response.status, body);
+                throw new Error('Quiz not found or expired');
+            }
+        } catch (fetchErr) {
+            console.warn('Cloud fetch failed, trying localStorage fallback', fetchErr);
+            // try local fallback
+            const local = localStorage.getItem(`local_shared_${sharedId}`);
+            if (local) {
+                try { data = JSON.parse(local); }
+                catch (e) { throw new Error('Shared data corrupted'); }
+            } else {
+                throw fetchErr;
+            }
+        }
+
+        if (!data) throw new Error('Quiz not found or expired');
         if (!data.q || !data.c) throw new Error("Missing quiz data");
 
         // Reconstruct the quiz

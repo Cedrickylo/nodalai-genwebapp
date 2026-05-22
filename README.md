@@ -43,3 +43,17 @@ Use these steps to clone from SourceTree, our client for using the repository co
 4. Open the directory you just created to see your repository’s files.
 
 Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+
+---
+
+**Share Link (npoint.io) Setup**
+
+- **Purpose:** The app can upload a generated quiz to npoint.io and create a short share link. If cloud upload fails, the app falls back to saving the quiz in `localStorage` and copies a `?local=<id>` link.
+- **Add your npoint API key:** open `scripts/quiz.js` and update the `NPOINT_API_KEY` constant near the `action === 'share'` block. Replace the placeholder `YOUR_NPOINT_API_KEY_HERE` with your real key.
+- **If you don't set a key:** the app will still attempt the cloud POST without the header, but may receive a 500/401; on failure it will save to localStorage and copy a `?local=<id>` link instead.
+- **Loading shared links:**
+	- Cloud links: `?share=<id>` — the app will fetch `https://api.npoint.io/<id>`.
+	- Local links: `?local=<id>` — the app will read `local_shared_<id>` from `localStorage`.
+- **Debugging tips:** open the browser DevTools → Console/Network to see the POST response body and status. The app now logs detailed errors for failed uploads.
+
+If you'd like, I can: add instructions to store the key in a separate `config.json`, or switch the backend to GitHub Gists. Reply with which option you prefer.
