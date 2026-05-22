@@ -3,6 +3,22 @@ import { attachQuizEventListeners } from './quiz.js';
 
 async function initApp() {
     try {
+        // Bind a one-time user gesture to resume the AudioContext (Tone.js) when needed
+        function bindUserGestureToStartAudio() {
+            const resumeAudio = async () => {
+                try {
+                    if (window.Tone && Tone.context && Tone.context.state === 'suspended') {
+                        await Tone.start();
+                        console.log('AudioContext resumed via Tone.start()');
+                    }
+                } catch (e) {
+                    console.warn('Tone.start() failed', e);
+                }
+            };
+            window.addEventListener('click', resumeAudio, { once: true });
+            window.addEventListener('keydown', resumeAudio, { once: true });
+        }
+        bindUserGestureToStartAudio();
         initializeAudio();
         initializeAppState();
         attachAuthHandlers();
