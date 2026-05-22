@@ -27,13 +27,14 @@ async function initApp() {
         prepareSavedProgress();
 
         const urlParams = new URLSearchParams(window.location.search);
-                const sharedQuizData = urlParams.get('q');
-                if (sharedQuizData) {
-                    // Remove the giant code from the URL bar to keep it looking clean
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    // Load it!
-                    loadSharedQuiz(sharedQuizData);
-                }
+        const shareId = urlParams.get('share'); // Changed from 'q' to 'share'
+        
+        if (shareId) {
+            // Hide the ID from the URL bar to keep it looking clean
+            window.history.replaceState({}, document.title, window.location.pathname);
+            // Download and load it!
+            loadSharedQuiz(shareId);
+        }
                 
     } catch (error) {
         console.error('Critical Init Error:', error);

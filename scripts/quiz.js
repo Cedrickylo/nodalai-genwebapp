@@ -1178,17 +1178,37 @@ export async function handleHistoryClick(e) {
         }
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
-            // Create a minimal version of the data to keep the URL as short as possible
+            elements.statusMessage.textContent = 'Generating short link...';
+            elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
+            
             const minimalData = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
-            const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(minimalData));
-            const shareUrl = `${window.location.origin}${window.location.pathname}?q=${compressed}`;
 
             try {
+                // Upload the quiz to a free, anonymous JSON hosting service
+                const response = await fetch('https://jsonblob.com/api/jsonBlob', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(minimalData)
+                });
+
+                // Get the unique ID from the response header
+                const location = response.headers.get('Location');
+                const blobId = location.split('/').pop(); 
+                
+                // Create a beautiful, short URL
+                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${blobId}`;
+
                 await navigator.clipboard.writeText(shareUrl);
-                showToast('Share link copied to clipboard!');
+                showToast('Short link copied to clipboard!');
+                elements.statusMessage.textContent = 'Link copied!';
+                elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
             } catch (err) {
-                console.error('Failed to copy', err);
-                showToast('Failed to copy link.', 3000, 'error');
+                console.error('Failed to create share link', err);
+                showToast('Failed to create link. Check connection.', 3000, 'error');
+                elements.statusMessage.textContent = '';
             }
         }
     }
@@ -1370,15 +1390,19 @@ export function prepareResumeButton() {
 }
 
 // Paste this at the bottom of quiz.js
-export async function loadSharedQuiz(sharedDataString) {
+export async function loadSharedQuiz(sharedId) {
     try {
-        const decompressed = LZString.decompressFromEncodedURIComponent(sharedDataString);
-        if (!decompressed) throw new Error("Invalid or corrupted link data");
+        elements.statusMessage.textContent = 'Downloading shared quiz...';
+        elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
         
-        const data = JSON.parse(decompressed);
+        // Download the quiz from the cloud using the short ID
+        const response = await fetch(`https://jsonblob.com/api/jsonBlob/${sharedId}`);
+        if (!response.ok) throw new Error("Quiz not found or expired");
+        
+        const data = await response.json();
         if (!data.q || !data.c) throw new Error("Missing quiz data");
 
-        // Reconstruct the quiz format
+        // Reconstruct the quiz
         const reconstructedQuiz = {
             fileName: (data.n || 'Shared Quiz') + ' (Shared)',
             config: data.c,
@@ -1402,13 +1426,13 @@ export async function loadSharedQuiz(sharedDataString) {
         elements.statusMessage.textContent = `Loaded shared quiz: "${state.currentFileName}"`;
         elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
 
-        // Set up the customization view so they can immediately start it
         state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
         setupCustomizeView(state.currentQuizConfig, state.currentFileName);
         showView('start');
-        showToast('Shared quiz imported successfully!');
+        showToast('Shared quiz imported!');
     } catch (e) {
         console.error('Shared Link Error:', e);
         showToast('Invalid or expired shared link.', 3000, 'error');
+        elements.statusMessage.textContent = '';
     }
 }
