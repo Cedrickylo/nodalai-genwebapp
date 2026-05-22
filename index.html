@@ -1069,19 +1069,34 @@
 
                         const res = await puter.ai.chat(sysP + "\n\n" + userQ);
                         
-                        // Clean response
+                        // Clean response - extract text from various response formats
                         let rawText = "";
-                        if (res && typeof res === 'object') rawText = String(res.content || res.text || res.message?.content || res || "");
-                        else rawText = String(res || "");
+                        if (res) {
+                            if (typeof res === 'string') {
+                                rawText = res;
+                            } else if (typeof res === 'object') {
+                                // Try common response properties
+                                if (typeof res.content === 'string') rawText = res.content;
+                                else if (typeof res.text === 'string') rawText = res.text;
+                                else if (res.message && typeof res.message.content === 'string') rawText = res.message.content;
+                                else if (res.choices && res.choices[0] && typeof res.choices[0].text === 'string') rawText = res.choices[0].text;
+                                else if (res.choices && res.choices[0] && res.choices[0].message && typeof res.choices[0].message.content === 'string') rawText = res.choices[0].message.content;
+                                else rawText = JSON.stringify(res);
+                            }
+                        }
                         
                         const cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
                         
                         // Diagnostic log
-                        console.log(`Attempt ${att} Response:`, cleanJson);
+                        console.log(`Attempt ${att} Raw Response:`, rawText.substring(0, 300));
+                        console.log(`Attempt ${att} Cleaned JSON:`, cleanJson.substring(0, 300));
 
                         try {
                             const pQs = JSON.parse(cleanJson);
-                            if (!Array.isArray(pQs)) continue;
+                            if (!Array.isArray(pQs)) {
+                                console.warn(`Attempt ${att}: Response is not an array:`, pQs);
+                                continue;
+                            }
 
                             pQs.forEach(q => {
                                 if (q.question && q.answer && q.type && !qSet.has(q.question)) {
@@ -1090,11 +1105,12 @@
                                 }
                             });
                         } catch (e) {
-                            console.error(`Attempt ${att} JSON Parse Error:`, e);
+                            console.error(`Attempt ${att} JSON Parse Error:`, e.message);
+                            console.error(`Failed JSON string:`, cleanJson.substring(0, 500));
                         }
                     }
 
-                    if (allQs.length === 0) throw new Error("AI failed to return valid JSON format.");
+                    if (allQs.length === 0) throw new Error("AI failed to return valid JSON format. Check browser console for details.");
 
                     // Finish logic
                     questions = allQs.slice(0, needed);
