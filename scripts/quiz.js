@@ -378,6 +378,11 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     state.currentQuizKey = `${state.fileHash}-${settingsHash}`;
     const db = state.quizHistory;
     if (db[state.currentQuizKey] && !isRemedial) {
+        if (!confirm('A quiz with the same file and settings already exists. Load the existing quiz instead of regenerating it?')) {
+            statusMessage.textContent = 'Generation canceled; keep your current settings.';
+            statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm h-5';
+            return;
+        }
         statusMessage.textContent = 'Quiz found! Loading...';
         setTimeout(() => {
             handleHistoryClick({ target: { tagName: 'BUTTON', dataset: { key: state.currentQuizKey, action: 'load' } } });

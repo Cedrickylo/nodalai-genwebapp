@@ -124,7 +124,11 @@ export async function openAccountModal() {
     const user = await puter.auth.getUser();
     modalUsername.textContent = user.username || 'Unknown';
     modalAccountId.textContent = user.uuid || user.id || user.accountId || 'Unknown';
-    modalEmail.textContent = user.email ? user.email : (user.sessionId ? `Session ${user.sessionId}` : 'Not available');
+    modalEmail.textContent = user.email
+        ? user.email
+        : user.sessionId
+            ? `Session ${user.sessionId}`
+            : user.accountId || user.uuid || user.id || 'Not available';
 
     let creditLabel = 'Balance unavailable';
     let progressWidth = 40;
