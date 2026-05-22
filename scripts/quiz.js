@@ -115,6 +115,7 @@ export async function handleFileSelect(event) {
         state.currentFiles = [...(state.currentFiles || []), ...newFiles];
     } else {
         state.currentFiles = newFiles;
+        editQuizNameInput.value = '';
     }
 
     if (!state.currentFiles || state.currentFiles.length === 0) return;
@@ -1204,6 +1205,7 @@ function resetStartViewUI() {
     selectedFilesContainer.classList.add('hidden');
     selectedFilesList.innerHTML = '';
     addMoreFilesInput.value = '';
+    editQuizNameInput.value = ''; // Clear the input so it defaults to blank
     
     document.getElementById('customize-section').classList.add('hidden');
     document.getElementById('customize-content').classList.add('hidden');
