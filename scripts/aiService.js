@@ -2,8 +2,8 @@
 // Main function to generate quiz questions using AI
 // This is the single point of change when switching AI services
 const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI
-const GROQ_API_URL = 'https://api.groq.com/v1/chat/completions';
-const GROQ_API_KEY = '<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>'; // Replace with your Groq API key
+const GROQ_API_URL = 'https://api.groq.com/v1/completions';
+const GROQ_API_KEY = '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'; // Replace with your Groq API key
 
 export function isUsingPuterAI() {
     return AI_SERVICE === 'puter';
@@ -24,10 +24,7 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
             },
             body: JSON.stringify({
                 model: 'groq-1',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ]
+                input: `${systemPrompt}\n\n${userPrompt}`
             })
         });
 
