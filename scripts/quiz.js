@@ -354,8 +354,27 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     try {
         while (allQs.length < needed && attempts < MAX_GENERATION_ATTEMPTS) {
             attempts++;
-            const sysP = `You are a strict Quiz generator. Return ONLY a valid JSON array of objects. Each object MUST have: "type" (must be "multiple-choice", "identification", or "enumeration"), "question", "options" (array, only if type is multiple-choice), "answer", and "explanation". Do not include any conversational text.`;
-            const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${needed - allQs.length} questions of type ${custType || selDiff}. JSON output only.`;
+            
+            // --- OPTIMIZATION: Calculate EXACTLY what types are still missing ---
+            let currentMC = Math.max(0, mc - allQs.filter(q => q.type === 'multiple-choice').length);
+            let currentID = Math.max(0, id - allQs.filter(q => q.type === 'identification').length);
+            let currentEN = Math.max(0, en - allQs.filter(q => q.type === 'enumeration').length);
+
+            let requestedTypes = [];
+            if (currentMC > 0) requestedTypes.push(`${currentMC} multiple-choice`);
+            if (currentID > 0) requestedTypes.push(`${currentID} identification`);
+            if (currentEN > 0) requestedTypes.push(`${currentEN} enumeration`);
+
+            // Fallback in case of math rounding weirdness
+            if (requestedTypes.length === 0 && allQs.length < needed) {
+                 requestedTypes.push(`${needed - allQs.length} multiple-choice`);
+            }
+
+            // --- OPTIMIZATION: Shorter, stricter prompt saves tokens and prevents retries ---
+            const sysP = `Return ONLY a valid JSON array. No text, no markdown. Schema: [{"type":"multiple-choice|identification|enumeration","question":"","options":["..."],"answer":"","explanation":""}]`;
+            
+            // Decreased substring to 12000 to save tokens, while passing exact type requirements
+            const userQ = `Doc: ${state.fileContent.substring(0, 12000)}\n\nGenerate exactly: ${requestedTypes.join(', ')}.`;
 
             const res = await puter.ai.chat(sysP + "\n\n" + userQ);
             let rawText = '';
@@ -398,7 +417,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                 });
             } catch (e) {
                 console.error(`Attempt ${attempts} JSON Parse Error:`, e.message);
-                console.error(`Failed JSON string:`, cleanJson.substring(0, 500));
             }
         }
 
