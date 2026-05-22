@@ -1,4 +1,5 @@
 import { elements, state, constants } from './state.js';
+import { generateQuestionsFromAI } from './aiService.js';
 import {
     showToast,
     showView,
@@ -398,30 +399,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             const sysP = `You are a strict Quiz generator. Return ONLY a valid JSON array of objects. Each object MUST have: "type" (must be "multiple-choice", "identification", or "enumeration"), "question", "options" (array, only if type is multiple-choice), "answer", and "explanation". Do not include any conversational text.`;
             const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${needed - allQs.length} questions of type ${custType || selDiff}. JSON output only.`;
 
-            const res = await puter.ai.chat(sysP + "\n\n" + userQ);
-            let rawText = '';
-            if (res) {
-                if (typeof res === 'string') {
-                    rawText = res;
-                } else if (typeof res === 'object') {
-                    if (res.message && res.message.content && Array.isArray(res.message.content) && res.message.content[0] && typeof res.message.content[0].text === 'string') {
-                        rawText = res.message.content[0].text;
-                    } else if (typeof res.content === 'string') {
-                        rawText = res.content;
-                    } else if (typeof res.text === 'string') {
-                        rawText = res.text;
-                    } else if (res.message && typeof res.message.content === 'string') {
-                        rawText = res.message.content;
-                    } else if (res.choices && res.choices[0] && typeof res.choices[0].text === 'string') {
-                        rawText = res.choices[0].text;
-                    } else if (res.choices && res.choices[0] && res.choices[0].message && typeof res.choices[0].message.content === 'string') {
-                        rawText = res.choices[0].message.content;
-                    } else {
-                        rawText = JSON.stringify(res);
-                    }
-                }
-            }
-
+            const rawText = await generateQuestionsFromAI(sysP, userQ);
             const cleanJson = (typeof rawText === 'string' ? rawText : '').replace(/```json/gi, '').replace(/```/g, '').trim();
             console.log(`Attempt ${attempts} Cleaned JSON:`, cleanJson.substring(0, 300));
 
