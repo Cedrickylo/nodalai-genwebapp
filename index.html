@@ -68,7 +68,7 @@
                 <div id="file-actions" class="grid grid-cols-2 gap-4 mb-6">
                      <label for="file-upload-input" class="w-full inline-block bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate"><span id="file-name">Select Documents</span></label>
                     <label for="import-quiz-input" class="w-full inline-block bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer">Import Quiz</label>
-                    <input type="file" id="file-upload-input" multiple><input type="file" id="import-quiz-input">
+                    <input type="file" id="file-upload-input" multiple><input type="file" id="import-quiz-input" accept=".json">
                 </div>
 
                 <div id="customize-section" class="hidden mb-6">
@@ -672,8 +672,18 @@
             
             function saveQuizToDB(key,data){ 
                 try{
-                    const uniqueName = getUniqueName(data.fileName || "Untitled Quiz");
-                    quizHistory[key]={questions:data.questions,fileName:uniqueName,config:data.config,timestamp:Date.now()}; 
+                    let finalName = data.fileName || "Untitled Quiz";
+                    // Only append number if the name exists AND it belongs to a DIFFERENT quiz key
+                    const existingEntries = Object.entries(quizHistory);
+                    let counter = 2;
+                    let baseName = finalName.replace(/\.[^/.]+$/, "");
+                    
+                    while (existingEntries.some(([k, v]) => k !== key && v.fileName === finalName)) {
+                        finalName = `${counter} ${baseName}`;
+                        counter++;
+                    }
+
+                    quizHistory[key]={questions:data.questions,fileName:finalName,config:data.config,timestamp:Date.now()}; 
                     localStorage.setItem(DB_NAME,JSON.stringify(quizHistory)); 
                     localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
                     syncHistoryWithCloud();
@@ -716,8 +726,8 @@
                 }
             }
             
-            function handleHistoryClick(e){ if(e.target.tagName==='BUTTON'){ const key=e.target.dataset.key; const action=e.target.dataset.action; const db=quizHistory; const quizData=db[key]; if(quizData){ if(action==='load'){ if(savedProgress?.key===key&&(savedProgress.shuffledIndexPos<savedProgress.shuffledIndices?.length||savedProgress.inSkippedRound)){if(confirm("Resume unfinished? (Cancel=start over)")){resumeQuiz(savedProgress); return;}} clearInProgressQuiz(); questions=quizData.questions; currentQuizConfig=quizData.config; currentQuizKey=key; currentFileName=quizData.fileName; isTimedQuiz=currentQuizConfig.isTimed||false; totalQuizTime=currentQuizConfig.totalTime||0; isAttemptLimited=currentQuizConfig.isAttemptLimited||false; maxAttempts=currentQuizConfig.maxAttempts||3; statusMessage.textContent=`Loaded "${currentFileName}".`; statusMessage.className='text-center text-green-400 mt-4 text-sm h-5'; startQuiz();} else if(action==='export'){exportQuizFromHistory(quizData);} else if (action === 'customize') { 
-                customizingQuizData = quizData;
+            function handleHistoryClick(e){ if(e.target.tagName==='BUTTON'){ const key=e.target.dataset.key; const action=e.target.dataset.action; const db=quizHistory; const quizData=db[key]; if(quizData){ if(action==='load'){ if(savedProgress?.key===key&&(savedProgress.shuffledIndexPos<savedProgress.shuffledIndices?.length||savedProgress.inSkippedRound)){if(confirm("Resume unfinished? (Cancel=start over)")){resumeQuiz(savedProgress); return;}} clearInProgressQuiz(); questions=quizData.questions; currentQuizConfig=quizData.config; currentQuizKey=key; currentFileName=quizData.fileName; isTimedQuiz=currentQuizConfig.isTimed||false; totalQuizTime=currentQuizConfig.totalTime||0; isAttemptLimited=currentQuizConfig.isAttemptLimited||false; maxAttempts=currentQuizConfig.maxAttempts||3; statusMessage.textContent=`Loaded "${currentFileName}".`; statusMessage.className='text-center text-green-400 mt-4 text-sm h-5'; startQuiz();} else if(action==='export'){exportQuizFromHistory(quizData, key);} else if (action === 'customize') { 
+                customizingQuizData = { ...quizData, key: key };
                 setupCustomizeView(quizData.config, quizData.fileName);
                 showView('start');
             }}}}
@@ -944,12 +954,15 @@
                     currentQuizConfig.isAttemptLimited = isAttemptLimited; currentQuizConfig.maxAttempts = maxAttempts;
                     currentQuizConfig.showAnswersInSummaryOnly = summaryOnlyToggle.checked;
                     
-                    currentQuizKey = customizingQuizData.key || `${fileHash}-${CryptoJS.SHA256(JSON.stringify(currentQuizConfig)).toString()}`;
+                    // Generate deterministic hash for the updated setup
+                    const newQuizId = CryptoJS.SHA256(JSON.stringify(questions) + JSON.stringify(currentQuizConfig) + newName).toString();
                     
-                    quizHistory[currentQuizKey] = { ...quizHistory[currentQuizKey], fileName: newName, config: currentQuizConfig };
-                    localStorage.setItem(DB_NAME, JSON.stringify(quizHistory));
-                    localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
-                    syncHistoryWithCloud();
+                    if (newQuizId !== customizingQuizData.key && quizHistory[customizingQuizData.key]) {
+                        delete quizHistory[customizingQuizData.key];
+                    }
+                    
+                    currentQuizKey = newQuizId;
+                    saveQuizToDB(currentQuizKey, {questions: questions, fileName: newName, config: currentQuizConfig});
                     
                     resetStartViewUI(); 
                     if (!skipStart) {
@@ -1075,6 +1088,9 @@
                     
                     const remedialFileName = isRemedial ? `Remedial for ${currentFileName}`: currentFileName;
                     if(isRemedial) currentFileName = remedialFileName; 
+
+                    // Generate a strong deterministic key based strictly on final questions and config
+                    currentQuizKey = CryptoJS.SHA256(JSON.stringify(finalQs) + JSON.stringify(currentQuizConfig) + currentFileName).toString();
 
                     saveQuizToDB(currentQuizKey,{questions:finalQs,fileName:remedialFileName,config:currentQuizConfig}); 
                     refreshHistory(); 
@@ -1253,8 +1269,35 @@
             
             function saveCurrentQuiz(){ if(currentQuizKey&&questions.length>0){const saved=saveQuizToDB(currentQuizKey,{questions:questions,fileName:currentFileName,config:currentQuizConfig}); if(saved){showToast("Progress saved!"); refreshHistory();}}}
             function saveAndGoHome(){ saveCurrentQuiz(); resetApp(false);}
-            function exportQuiz(){ if(questions.length===0)return; exportQuizFromHistory({questions:questions,fileName:currentFileName,config:currentQuizConfig});}
-            function exportQuizFromHistory(d){ try{ const s=JSON.stringify(d,null,2); const b=new Blob([s],{type:"application/json"}); const u=URL.createObjectURL(b); const l=document.createElement('a'); const f=(d.fileName||'quiz').replace(/\.[^/.]+$/,""); l.download=`quiz-${f}.json`; l.href=u; document.body.appendChild(l); l.click(); document.body.removeChild(l); URL.revokeObjectURL(u); showToast("Exported!");}catch(e){console.error("Export fail:",e); showToast("Export failed.",3000,'error');}}
+            
+            function exportQuiz(){ if(questions.length===0)return; exportQuizFromHistory({questions:questions,fileName:currentFileName,config:currentQuizConfig}, currentQuizKey);}
+            
+            function exportQuizFromHistory(d, key){ 
+                try{ 
+                    const exportPayload = {
+                        quizId: key || CryptoJS.SHA256(JSON.stringify(d.questions) + JSON.stringify(d.config) + d.fileName).toString(),
+                        fileName: d.fileName,
+                        config: d.config,
+                        questions: d.questions
+                    };
+                    const s=JSON.stringify(exportPayload,null,2); 
+                    const b=new Blob([s],{type:"application/json"}); 
+                    const u=URL.createObjectURL(b); 
+                    const l=document.createElement('a'); 
+                    const f=(d.fileName||'quiz').replace(/\.[^/.]+$/,""); 
+                    l.download=`quiz-${f}.json`; 
+                    l.href=u; 
+                    document.body.appendChild(l); 
+                    l.click(); 
+                    document.body.removeChild(l); 
+                    URL.revokeObjectURL(u); 
+                    showToast("Exported!");
+                }catch(e){
+                    console.error("Export fail:",e); 
+                    showToast("Export failed.",3000,'error');
+                }
+            }
+
             function handleQuizImport(event){ 
                 const f=event.target.files[0]; 
                 if(!f||!f.name.endsWith('.json')){showToast("Requires .json",3000,'error'); return;} 
@@ -1263,10 +1306,23 @@
                     try{ 
                         const d=JSON.parse(e.target.result); 
                         if(!d?.questions?.length||!d.config||!d.questions.every(q=>q?.question&&q.answer&&q.explanation)){throw new Error("Invalid format.");} 
+                        
+                        // Check for unique identifier to prevent silent duplicates
+                        const importedId = d.quizId || CryptoJS.SHA256(JSON.stringify(d.questions) + JSON.stringify(d.config) + (d.fileName || f.name)).toString();
+                        
+                        if (quizHistory[importedId]) {
+                            if (!confirm("A similar quiz already exists in your history. Do you want to import it anyway? (This will overwrite the existing one)")) {
+                                importQuizInput.value = '';
+                                statusMessage.textContent = 'Import cancelled.';
+                                statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
+                                return;
+                            }
+                        }
+
                         questions=d.questions; 
                         currentQuizConfig=d.config; 
                         currentFileName=d.fileName||f.name; 
-                        currentQuizKey=`imported-${Date.now()}`; 
+                        currentQuizKey=importedId; 
                         isTimedQuiz=currentQuizConfig.isTimed||false; 
                         totalQuizTime=currentQuizConfig.totalTime||0; 
                         isAttemptLimited=currentQuizConfig.isAttemptLimited||false; 
@@ -1278,7 +1334,7 @@
                         statusMessage.className='text-center text-green-400 mt-4 text-sm h-5'; 
                         
                         setTimeout(() => {
-                            customizingQuizData = quizHistory[currentQuizKey];
+                            customizingQuizData = { ...quizHistory[currentQuizKey], key: currentQuizKey };
                             setupCustomizeView(currentQuizConfig, currentFileName);
                             showView('start');
                             statusMessage.textContent = '';
@@ -1294,6 +1350,7 @@
                 r.onerror=()=>{statusMessage.textContent='Read file error.'; statusMessage.className='text-center text-red-400 mt-4 text-sm h-5'; importQuizInput.value='';}; 
                 r.readAsText(f);
             }
+            
             function startLoadingAnimation(){ loadingTitle.textContent = "Generating Quiz..."; loadingMessage.textContent = 'Contacting AI...'; let dots = 0; loadingInterval = setInterval(() => { dots = (dots + 1) % 4; loadingMessage.textContent = 'Contacting AI' + '.'.repeat(dots); }, 500); }
             function stopLoadingAnimation(){ clearInterval(loadingInterval); loadingTitle.textContent = ""; loadingMessage.textContent = ''; }
 
