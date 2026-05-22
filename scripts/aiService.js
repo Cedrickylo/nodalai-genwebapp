@@ -2,7 +2,7 @@
 // Main function to generate quiz questions using AI
 // This is the single point of change when switching AI services
 const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI
-const GROQ_API_URL = 'https://api.groq.com/v1/completions';
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/responses';
 const GROQ_API_KEY = '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'; // Replace with your Groq API key
 
 export function isUsingPuterAI() {
@@ -23,7 +23,7 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'groq-1',
+                model: 'openai/gpt-oss-20b',
                 input: `${systemPrompt}\n\n${userPrompt}`
             })
         });
@@ -82,6 +82,28 @@ function extractTextFromResponse(response) {
             }
             if (response.choices[0].message && typeof response.choices[0].message.content === 'string') {
                 return response.choices[0].message.content;
+            }
+        }
+        
+        // Groq response output_text
+        if (typeof response.output_text === 'string') {
+            return response.output_text;
+        }
+        
+        // Groq output array structures
+        if (response.output && Array.isArray(response.output)) {
+            const outputText = response.output
+                .map(item => {
+                    if (typeof item === 'string') return item;
+                    if (item.content && Array.isArray(item.content)) {
+                        return item.content.map(chunk => chunk.text || '').join('');
+                    }
+                    return '';
+                })
+                .join('')
+                .trim();
+            if (outputText) {
+                return outputText;
             }
         }
         
