@@ -973,16 +973,17 @@
                     return;
                 }
 
+                
                 const qCountInput = isRemedial ? remedialQuestionCountInput : questionCountInput;
                 const diffSelector = isRemedial ? 'input[name="remedial_difficulty"]:checked' : 'input[name="difficulty"]:checked';
                 const timeToggle = isRemedial ? document.getElementById('remedial-time-limit-toggle') : timeLimitToggle;
                 const attemptToggle = isRemedial ? document.getElementById('remedial-attempt-limit-toggle') : attemptLimitToggle;
                 const summaryToggle = isRemedial ? document.getElementById('remedial-summary-only-toggle') : summaryOnlyToggle;
-                const mainCustTypeSelect = isRemedial ? remedialCustomQuestionTypeSelect : customQuestionTypeSelect;
+                const mainCustTypeSelect = isRemedial ? remedialCustomQuestionTypeSelect : customQuestionTypeSelect;    
                 
-                 const selDiff=document.querySelector(diffSelector).value; 
-                 let mc=0,id=0,en=0; let custType=null; let custTypeShort=null; 
-                 const totalQ=parseInt(qCountInput.value,10); 
+                const selDiff = document.querySelector(diffSelector).value;
+                let mc = 0, id = 0, en = 0; let custType = null; let custTypeShort = null;
+                const totalQ = parseInt(qCountInput.value, 10);
                  
                  if(selDiff==='custom'){
                     custType=mainCustTypeSelect.value; 
@@ -1033,6 +1034,82 @@
                  const db=quizHistory; 
                  if(db[currentQuizKey] && !isRemedial){statusMessage.textContent='Quiz found! Loading...'; setTimeout(()=>{handleHistoryClick({target:{tagName:'BUTTON',dataset:{key:currentQuizKey,action:'load'}}});},1000); return;} 
                  
+
+    
+                if(selDiff === 'custom'){
+                    custType = mainCustTypeSelect.value;
+                    if(custType === 'mixed'){
+                        mc = parseInt(document.getElementById(isRemedial ? 'remedial-mc-count' : 'mc-count').value, 10) || 0;
+                        id = parseInt(document.getElementById(isRemedial ? 'remedial-id-count' : 'id-count').value, 10) || 0;
+                        en = parseInt(document.getElementById(isRemedial ? 'remedial-en-count' : 'en-count').value, 10) || 0;
+                    } else if(custType === 'multiple-choice'){ mc = totalQ; }
+                    else if(custType === 'identification'){ id = totalQ; }
+                    else if(custType === 'enumeration'){ en = totalQ; }
+                } else if(selDiff === 'easy'){ mc = Math.max(1, Math.round(totalQ * 0.85)); id = totalQ - mc; }
+                else if(selDiff === 'medium'){ mc = Math.round(totalQ * 0.5); id = Math.round(totalQ * 0.25); en = totalQ - mc - id; }
+                else if(selDiff === 'hard'){ mc = Math.max(0, Math.min(1, Math.round(totalQ * 0.15))); id = Math.round((totalQ - mc) * 0.5); en = totalQ - mc - id; }
+                
+                // Setup configs ...
+                isTimedQuiz = timeToggle.checked;
+                isAttemptLimited = attemptToggle.checked;
+                
+                showView('loading'); 
+                startLoadingAnimation();
+
+                let allQs = [];
+                let qSet = new Set();
+                let att = 0;
+                const needed = totalQ;
+
+                try {
+                    while (allQs.length < needed && att < MAX_GENERATION_ATTEMPTS) {
+                        att++;
+                        const sysP = `You are a strict Quiz generator. Return ONLY a valid JSON array of objects. Each object MUST have: "type" (must be "multiple-choice", "identification", or "enumeration"), "question", "options" (array, only if type is multiple-choice), "answer", and "explanation". Do not include any conversational text.`;
+                        const userQ = `Document: """${fileContent.substring(0, 15000)}"""\n\nGenerate ${needed - allQs.length} questions of type ${custType || selDiff}. JSON output only.`;
+
+                        const res = await puter.ai.chat(sysP + "\n\n" + userQ);
+                        
+                        // Clean response
+                        let rawText = "";
+                        if (res && typeof res === 'object') rawText = res.content || res.text || res.message?.content || String(res);
+                        else rawText = String(res || "");
+                        
+                        const cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                        
+                        // Diagnostic log
+                        console.log(`Attempt ${att} Response:`, cleanJson);
+
+                        try {
+                            const pQs = JSON.parse(cleanJson);
+                            if (!Array.isArray(pQs)) continue;
+
+                            pQs.forEach(q => {
+                                if (q.question && q.answer && q.type && !qSet.has(q.question)) {
+                                    allQs.push(q);
+                                    qSet.add(q.question);
+                                }
+                            });
+                        } catch (e) {
+                            console.error(`Attempt ${att} JSON Parse Error:`, e);
+                        }
+                    }
+
+                    if (allQs.length === 0) throw new Error("AI failed to return valid JSON format.");
+
+                    // Finish logic
+                    questions = allQs.slice(0, needed);
+                    saveQuizToDB(currentQuizKey, {questions, fileName: currentFileName, config: currentQuizConfig});
+                    refreshHistory();
+                    startQuiz();
+                } catch (err) {
+                    statusMessage.textContent = `Err: ${err.message}`;
+                    showView('start');
+                } finally {
+                    stopLoadingAnimation();
+                }
+            }
+
+            async function generateQuiz() {
                  let allQs=[]; let qSet=new Set(); let att=0; const needed=currentQuizConfig.count; 
                  showView('loading'); startLoadingAnimation(); 
                  
