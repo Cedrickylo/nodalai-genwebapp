@@ -393,14 +393,52 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     let attempts = 0;
     const needed = totalQ;
 
+    function extractJsonArrayString(text) {
+        const normalized = (typeof text === 'string' ? text : '').replace(/```json/gi, '').replace(/```/g, '').trim();
+        if (!normalized) return '';
+        if (normalized[0] === '[') return normalized;
+
+        const start = normalized.indexOf('[');
+        if (start === -1) return normalized;
+
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+        for (let i = start; i < normalized.length; i++) {
+            const char = normalized[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (char === '\\') {
+                escaped = true;
+                continue;
+            }
+            if (char === '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) continue;
+            if (char === '[') {
+                depth++;
+            } else if (char === ']') {
+                depth--;
+                if (depth === 0) {
+                    return normalized.slice(start, i + 1).trim();
+                }
+            }
+        }
+        return normalized;
+    }
+
     try {
         while (allQs.length < needed && attempts < MAX_GENERATION_ATTEMPTS) {
             attempts++;
-            const sysP = `You are a strict Quiz generator. Return ONLY a valid JSON array of objects. Each object MUST have: "type" (must be "multiple-choice", "identification", or "enumeration"), "question", "options" (array, only if type is multiple-choice), "answer", and "explanation". Do not include any conversational text.`;
-            const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${needed - allQs.length} questions of type ${custType || selDiff}. JSON output only.`;
+            const sysP = `You are a strict JSON-only quiz generator. Output ONLY a valid JSON array with ${needed - allQs.length} objects and nothing else. No markdown fences, no explanatory text, no list numbers, no comments, no extra punctuation. Each object MUST include exactly these keys: "type", "question", "options", "answer", and "explanation". Each answer value must exactly match one of the option values.`;
+            const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${needed - allQs.length} multiple-choice questions from the document. Output must be only a valid JSON array and nothing else.`;
 
             const rawText = await generateQuestionsFromAI(sysP, userQ);
-            const cleanJson = (typeof rawText === 'string' ? rawText : '').replace(/```json/gi, '').replace(/```/g, '').trim();
+            const cleanJson = extractJsonArrayString(rawText);
             console.log(`Attempt ${attempts} Cleaned JSON:`, cleanJson.substring(0, 300));
 
             try {
