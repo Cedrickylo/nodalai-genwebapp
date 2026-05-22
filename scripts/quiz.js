@@ -46,6 +46,7 @@ const {
     attemptLimitToggle,
     attemptLimitOptions,
     attemptLimitInput,
+    attemptDisplayEl,
     summaryOnlyToggle,
     nextQuestionBtn,
     skipQuestionBtn,
