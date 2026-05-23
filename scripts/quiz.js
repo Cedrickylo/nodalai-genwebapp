@@ -1200,7 +1200,19 @@ export async function handleHistoryClick(e) {
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
             try {
-                // REPLACE your current redirection logic with this background fetch logic
+                elements.statusMessage.textContent = 'Generating shareable link...';
+                
+                // 1. Create the public Puter file
+                const shortId = 'quiz-' + Math.random().toString(36).substring(2, 10);
+                const sharePayload = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
+                const fileName = `${shortId}.json`;
+                await puter.fs.write(fileName, JSON.stringify(sharePayload));
+                
+                // 2. Get the public URL and build the long Netlify link (THIS PART DEFINES THE VARIABLE)
+                const publicUrl = await puter.fs.getReadURL(fileName);
+                const longShareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
+                
+                // 3. NOW run the fetch request using the variable we just defined
                 const response = await fetch(`https://spoo.me/api/action/shorten`, {
                     method: 'POST',
                     headers: {
@@ -1213,11 +1225,13 @@ export async function handleHistoryClick(e) {
                 if (!response.ok) throw new Error("Shortening service failed.");
 
                 const data = await response.json();
-                const shortenedUrl = data.short; // The API returns JSON with a 'short' field
+                const shortenedUrl = data.short;
 
-                // Now copy 'shortenedUrl' to clipboard
+                // 4. Copy to clipboard
                 await navigator.clipboard.writeText(shortenedUrl);
                 
+                showToast('Short link copied to clipboard!', 3000, 'success');
+                elements.statusMessage.textContent = 'Share link copied!';
             } catch (err) {
                 console.error('Share Error:', err);
                 showToast('Failed to generate share link.', 4000, 'error');
