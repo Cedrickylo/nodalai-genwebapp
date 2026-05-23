@@ -112,28 +112,30 @@ export function toggleContainerVisibility(containerId, isVisible) {
     }
 }
 
-// --- Updated handleTimeToggle ---
+// --- Consolidated Toggle Functions ---
+
 export function handleTimeToggle() {
-    setVisibility(timeLimitOptions, timeLimitToggle.checked);
+    // Show/hide the entire options container
+    timeLimitOptions.classList.toggle('hidden', !timeLimitToggle.checked);
+    
     if (timeLimitToggle.checked) {
-        handleTimePresetChange();
+        handleTimePresetChange(); // Show specific sub-option if enabled
     } else {
         customTimeInputContainer.classList.add('hidden');
     }
 }
 
-// --- Updated handleAttemptToggle ---
 export function handleAttemptToggle() {
-    setVisibility(attemptLimitOptions, attemptLimitToggle.checked);
+    // Show/hide the attempt limit container based on checkbox state
+    attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
 }
 
-// --- Updated handleDifficultyChange ---
 export function handleDifficultyChange() {
     const selected = document.querySelector('input[name="difficulty"]:checked')?.value;
     const isCustom = selected === 'custom';
     
-    // Hide/Show the main custom options group
-    setVisibility(customOptionsDiv, isCustom);
+    // Hide/show the Custom Options box entirely
+    customOptionsDiv.classList.toggle('hidden', !isCustom);
     
     if (isCustom) {
         handleCustomTypeChange();
