@@ -1200,35 +1200,44 @@ export async function handleHistoryClick(e) {
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
             try {
-                elements.statusMessage.textContent = 'Creating shareable link...';
+                elements.statusMessage.textContent = 'Generating shareable link...';
+                elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
                 
-                // 1. Create a unique filename for the share
+                // 1. Ensure the /shares directory exists
+                try {
+                    await puter.fs.mkdir('/shares');
+                } catch (e) {
+                    // Ignore error if folder already exists
+                }
+                
+                // 2. Prepare the quiz data
                 const shortId = 'quiz-' + Math.random().toString(36).substring(2, 10);
                 const sharePayload = { 
                     n: quizData.fileName, 
                     c: quizData.config, 
                     q: quizData.questions 
                 };
+                const fileName = `/shares/${shortId}.json`;
                 
-                // 2. Ensure the /shares directory exists, then save the file
-                const sharePath = `/shares/${shortId}.json`;
-                await puter.fs.write(sharePath, JSON.stringify(sharePayload));
+                // 3. Save the quiz file to Puter
+                await puter.fs.write(fileName, JSON.stringify(sharePayload));
                 
-                // 3. Get the direct read URL for this specific file
-                const publicUrl = await puter.fs.getReadURL(sharePath);
+                // 4. Get the public read URL
+                const publicUrl = await puter.fs.getReadURL(fileName);
                 
-                // 4. Construct the share URL using your Netlify domain
-                // We pass the public Puter file URL as the share parameter
+                // 5. Construct the link using your Netlify domain
                 const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
                 
-                // 5. Copy to clipboard
+                // 6. Copy to clipboard
                 await navigator.clipboard.writeText(shareUrl);
                 
-                showToast('Share link copied to clipboard!', 3000, 'success');
+                showToast('Link copied to clipboard!', 3000, 'success');
                 elements.statusMessage.textContent = 'Share link copied!';
+                elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+                
             } catch (err) {
                 console.error('Share Error:', err);
-                showToast('Failed to generate share link.', 4000, 'error');
+                showToast('Failed to generate share link. Make sure you are logged in.', 4000, 'error');
                 elements.statusMessage.textContent = '';
             }
         }
