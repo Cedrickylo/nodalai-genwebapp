@@ -121,7 +121,22 @@ export const elements = {
     confirmTitle: document.getElementById('confirm-title'),
     confirmMessage: document.getElementById('confirm-message'),
     acceptConfirmBtn: document.getElementById('accept-confirm-btn'),
-    cancelConfirmBtn: document.getElementById('cancel-confirm-btn')
+    cancelConfirmBtn: document.getElementById('cancel-confirm-btn'),
+    // --- Share Gateway Modal Elements ---
+    shareModal: document.getElementById('share-modal'),
+    shareBackBtn: document.getElementById('share-back-btn'),
+    closeShareModalBtn: document.getElementById('close-share-modal-btn'),
+    shareStepMenu: document.getElementById('share-step-menu'),
+    shareStepConfig: document.getElementById('share-step-config'),
+    shareStepManage: document.getElementById('share-step-manage'),
+    shareMenuLinkBtn: document.getElementById('share-menu-link-btn'),
+    shareMenuExportBtn: document.getElementById('share-menu-export-btn'),
+    shareExpirySelect: document.getElementById('share-expiry-select'),
+    generateShareLinkBtn: document.getElementById('generate-share-link-btn'),
+    shareLinkInput: document.getElementById('share-link-input'),
+    copyShareLinkBtn: document.getElementById('copy-share-link-btn'),
+    disableShareBtn: document.getElementById('disable-share-btn'),
+    shareExpiryDisplay: document.getElementById('share-expiry-display')
 };
 
 export const state = {
@@ -157,5 +172,8 @@ export const state = {
     isCustomizingHistory: false,
     customizingQuizData: null,
     incorrectQuestionsForRemedial: [],
-    initialCustomizeState: {}
+    initialCustomizeState: {},
+    // --- Share Gateway State ---
+    activeShareStep: 'menu',
+    currentShareQuizKey: null
 };

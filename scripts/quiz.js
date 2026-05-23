@@ -23,7 +23,12 @@ import {
     getGenerationCooldownWarning,
     recordGenerationEvent,
     refreshCooldownPanel,
-    syncHistoryWithCloud
+    syncHistoryWithCloud,
+    openShareModal, 
+    closeShareModal, 
+    navigateToShareStep, 
+    exportQuizAsJSON,
+    generateShareableLink
 } from './helpers.js';
 
 const {
@@ -1158,6 +1163,58 @@ export function resumeQuiz(savedData) {
     }
 }
 
+export async function generateShareableLink(quizKey) {
+    const quiz = state.quizHistory[quizKey];
+    if (!quiz) return;
+
+    try {
+        // 1. Get expiry duration from the dropdown
+        const days = parseInt(elements.shareExpirySelect.value);
+        const expiryTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
+        
+        // 2. Prepare payload with metadata
+        const shareId = 'quiz-' + Math.random().toString(36).substring(2, 10) + '.json';
+        const sharePayload = { 
+            n: quiz.fileName, 
+            c: quiz.config, 
+            q: quiz.questions,
+            expiryTimestamp: expiryTimestamp // We embed the expiry for later validation
+        };
+        
+        // 3. Save to Puter (root directory to avoid 404s)
+        await puter.fs.write(shareId, JSON.stringify(sharePayload));
+        
+        // 4. Generate URL
+        const publicUrl = await puter.fs.getReadURL(shareId);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
+        
+        // 5. Update local state
+        quiz.share = {
+            isShared: true,
+            shareId: shareId,
+            shareUrl: shareUrl,
+            expiryTimestamp: expiryTimestamp
+        };
+        
+        // 6. Sync and UI Update
+        await syncHistoryWithCloud();
+        
+        // Transition to Step 2 (Management View)
+        elements.shareLinkInput.value = shareUrl;
+        
+        const daysLeft = days; 
+        elements.shareExpiryDisplay.textContent = `Expires in ${daysLeft} days`;
+        elements.shareExpiryDisplay.className = 'text-xs text-blue-300 mt-1';
+        
+        navigateToShareStep('manage');
+        showToast('Link generated!', 3000, 'success');
+        
+    } catch (err) {
+        console.error('Generation Error:', err);
+        showToast('Failed to generate link.', 4000, 'error');
+    }
+}
+
 export async function handleHistoryClick(e) {
     if (e.target.tagName === 'BUTTON') {
         const key = e.target.dataset.key;
@@ -1198,40 +1255,20 @@ export async function handleHistoryClick(e) {
             showView('start');
         }
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
-        else if (action === 'share') {
-    try {
-        elements.statusMessage.textContent = 'Generating shareable link...';
-        elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
-        
-        // 1. Generate unique filename (saved at root to avoid mkdir 404s)
-        const shortId = 'quiz-' + Math.random().toString(36).substring(2, 10);
-        const fileName = `${shortId}.json`;
-        const sharePayload = { 
-            n: quizData.fileName, 
-            c: quizData.config, 
-            q: quizData.questions 
-        };
-        
-        // 2. Write directly to root
-        await puter.fs.write(fileName, JSON.stringify(sharePayload));
-        
-        // 3. Get the direct read URL
-        const publicUrl = await puter.fs.getReadURL(fileName);
-        
-        // 4. Construct the share URL
-        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
-        
-        // 5. Copy to clipboard
-        await navigator.clipboard.writeText(shareUrl);
-        
-        showToast('Link copied to clipboard!', 3000, 'success');
-        elements.statusMessage.textContent = 'Share link copied!';
-        elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
-        
-    } catch (err) {
-        console.error('Share Error:', err);
-        showToast('Failed to generate link. Check your connection.', 4000, 'error');
-        elements.statusMessage.textContent = '';
+        // Inside your handleHistoryClick function
+else if (action === 'share') {
+    const quiz = state.quizHistory[key];
+    if (!quiz) return;
+    
+    // Store the key of the quiz we are currently interacting with
+    state.currentShareQuizKey = key;
+    
+    // If already shared, go directly to management view (Step 2)
+    if (quiz.share && quiz.share.isShared) {
+        openShareModal(key);
+    } else {
+        // Otherwise, open the menu (Step 0)
+        openShareModal(key);
     }
 }
     }
@@ -1312,6 +1349,46 @@ export function attachQuizEventListeners() {
     skipQuestionBtn.addEventListener('click', skipQuestion);
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn.addEventListener('click', exportQuiz);
+    elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
+
+    // 2. Copy Link Button
+    elements.copyShareLinkBtn.onclick = () => {
+        elements.shareLinkInput.select();
+        document.execCommand('copy');
+        showToast('Link copied to clipboard!', 2000, 'success');
+    };
+
+    // 3. Disable Share Button
+    elements.disableShareBtn.onclick = async () => {
+        const quiz = state.quizHistory[state.currentShareQuizKey];
+        if (quiz && quiz.share && quiz.share.shareId) {
+            try {
+                // Delete from Puter FS
+                await puter.fs.unlink(quiz.share.shareId);
+                
+                // Reset metadata
+                quiz.share = { isShared: false };
+                await syncHistoryWithCloud();
+                
+                refreshHistory();
+                closeShareModal();
+                showToast('Sharing disabled.', 3000, 'info');
+            } catch (err) {
+                console.error('Disable Error:', err);
+                showToast('Failed to disable sharing.', 3000, 'error');
+            }
+        }
+    };
+
+    // 4. Modal Navigation & Closing
+    elements.closeShareModalBtn.onclick = closeShareModal;
+    elements.shareMenuLinkBtn.onclick = () => navigateToShareStep('config');
+    elements.shareMenuExportBtn.onclick = () => {
+        exportQuizAsJSON(state.currentShareQuizKey);
+        closeShareModal();
+    };
+    elements.shareBackBtn.onclick = () => navigateToShareStep('menu');
+    
     
     homeBtn.addEventListener('click', async () => { 
         if (await customConfirm('Save progress and return to the home screen?', 'Return Home', 'Save & Exit', 'Cancel')) {
@@ -1412,56 +1489,44 @@ export function prepareResumeButton() {
     }
 }
 
-export async function loadSharedQuiz(sharedUrl) {
+export async function loadSharedQuiz(publicUrl) {
     try {
-        elements.statusMessage.textContent = 'Downloading shared quiz...';
-        elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
+        elements.statusMessage.textContent = 'Verifying shared quiz...';
         
-        // 1. Fetch the JSON directly from the public URL Puter generated
-        const response = await fetch(sharedUrl);
+        // 1. Fetch the data from the Puter public URL
+        const response = await fetch(publicUrl);
+        if (!response.ok) throw new Error("Link is invalid or has been removed.");
         
-        if (!response.ok) {
-            throw new Error('Quiz not found. The link might be invalid or expired.');
+        const data = await response.json();
+        
+        // 2. Expiration Validation Logic
+        if (data.expiryTimestamp && Date.now() > data.expiryTimestamp) {
+            // Link has expired!
+            // Clean up the file from Puter to save space
+            try {
+                // The publicUrl usually contains the file path; we need the filename
+                // This assumes standard Puter URL structure
+                await puter.fs.unlink(publicUrl.split('/').pop().split('?')[0]);
+            } catch (err) {
+                console.warn("Cleanup of expired file failed (already deleted?)");
+            }
+            throw new Error("This shared link has expired.");
         }
         
-        // 2. Parse the retrieved JSON
-        const data = await response.json();
-
-        if (!data.q || !data.c) throw new Error("Missing valid quiz data in the stored payload.");
-
-        // 3. Reconstruct the quiz state
-        const reconstructedQuiz = {
-            fileName: (data.n || 'Shared Quiz') + ' (Shared)',
-            config: data.c,
-            questions: data.q
-        };
-
-        const importedId = CryptoJS.SHA256(JSON.stringify(reconstructedQuiz.questions) + JSON.stringify(reconstructedQuiz.config) + reconstructedQuiz.fileName).toString();
-
-        state.questions = reconstructedQuiz.questions;
-        state.currentQuizConfig = reconstructedQuiz.config;
-        state.currentFileName = reconstructedQuiz.fileName;
-        state.currentQuizKey = importedId;
-        state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
-        state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
-        state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
-        state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
-
-        // 4. Save to the new user's local history
-        saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
-        refreshHistory();
-
-        elements.statusMessage.textContent = `Loaded shared quiz: "${state.currentFileName}"`;
-        elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
-
-        // 5. Setup the view
-        state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
+        // 3. Load the quiz if valid
+        state.questions = data.q;
+        state.currentQuizConfig = data.c;
+        state.currentFileName = data.n;
+        
+        // Setup view and toast
         setupCustomizeView(state.currentQuizConfig, state.currentFileName);
         showView('start');
-        showToast('Shared quiz imported!');
+        showToast('Shared quiz loaded successfully!');
+        elements.statusMessage.textContent = '';
+        
     } catch (e) {
         console.error('Shared Link Error:', e);
-        showToast(e.message || 'Invalid or expired shared link.', 4000, 'error');
+        showToast(e.message || 'Error loading shared quiz.', 'error');
         elements.statusMessage.textContent = '';
     }
 }

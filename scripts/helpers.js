@@ -447,18 +447,23 @@ export function formatTime(secs) {
 export function refreshHistory() {
     const db = state.quizHistory;
     const sorted = Object.entries(db).sort(([, a], [, b]) => b.timestamp - a.timestamp);
-    historyList.innerHTML = '';
+    
+    elements.historyList.innerHTML = '';
+    
     if (sorted.length === 0) {
-        historyList.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
-        clearHistoryBtn.classList.add('hidden');
+        elements.historyList.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
+        elements.clearHistoryBtn.classList.add('hidden');
         return;
     }
-    clearHistoryBtn.classList.remove('hidden');
+    
+    elements.clearHistoryBtn.classList.remove('hidden');
+    
     sorted.forEach(([key, data]) => {
         const item = document.createElement('div');
         item.className = 'p-3 bg-gray-700/50 rounded-lg flex justify-between items-center';
+        
         const tInfo = formatTime(data.config.totalTime);
-        let diffTxt = data.config.difficulty ? `(${data.config.difficulty}` : '(`';
+        let diffTxt = data.config.difficulty ? `(${data.config.difficulty}` : '(';
         if (data.config.difficulty === 'custom' && data.config.customTypeShort) {
             diffTxt += `: ${data.config.customTypeShort})`;
         } else if (data.config.difficulty) {
@@ -466,20 +471,39 @@ export function refreshHistory() {
         } else {
             diffTxt += `${data.config.type || 'mixed'})`;
         }
+        
         const attInfo = data.config.isAttemptLimited ? `(${data.config.maxAttempts} att)` : '';
         const summaryInfo = data.config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
+        
+        // 1. Check if the quiz is shared
+        const isShared = data.share && data.share.isShared;
+        const shareIconHTML = isShared ? `
+            <span class="text-blue-400 bg-blue-500/10 p-1 rounded inline-flex items-center" title="Currently sharing via link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            </span>
+        ` : '';
+
+        // 2. Build the title row WITH the icon included
+        const titleHtml = `
+            <div class="flex items-center gap-2 mb-1">
+                <p class="font-semibold text-sm truncate max-w-[150px]" title="${data.fileName || 'Untitled'}">${data.fileName || 'Untitled'}</p>
+                ${shareIconHTML}
+            </div>
+        `;
+
+        // 3. Set the HTML (Notice Export is removed, Share acts as the gateway)
         item.innerHTML = `
-                    <div class="flex-grow mr-2 overflow-hidden">
-                        <p class="font-semibold text-sm truncate" title="${data.fileName || 'Untitled'}">${data.fileName || 'Untitled'}</p>
-                        <p class="text-xs text-gray-400">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
-                    </div>
-                    <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
-                        <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="share" title="Share Link">Share</button>
-                        <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="customize" title="Customize">Cust</button>
-                        <button class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="export" title="Export">Export</button>
-                        <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="load" title="Load">Load</button>
-                    </div>`;        
-        historyList.appendChild(item);
+            <div class="flex-grow mr-2 overflow-hidden">
+                ${titleHtml}
+                <p class="text-xs text-gray-400">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+            </div>
+            <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
+                <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="share" title="Share / Export">Share</button>
+                <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="customize" title="Customize">Cust</button>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="load" title="Load">Load</button>
+            </div>
+        `;        
+        elements.historyList.appendChild(item);
     });
 }
 
@@ -748,5 +772,92 @@ export function saveInProgressQuiz(data) {
         state.savedProgress = data;
     } catch (e) {
         console.error('Save failed', e);
+    }
+}
+
+// ==========================================
+// SHARE GATEWAY MODAL LOGIC
+// ==========================================
+
+export function openShareModal(quizKey) {
+    state.currentShareQuizKey = quizKey;
+    const quiz = state.quizHistory[quizKey];
+    
+    // Show the modal backdrop
+    elements.shareModal.classList.remove('hidden');
+    
+    // Check if this quiz is already shared
+    if (quiz && quiz.share && quiz.share.isShared) {
+        // Populate the existing share details
+        elements.shareLinkInput.value = quiz.share.shareUrl || 'Link unavailable. Please generate again.';
+        
+        // Calculate days remaining
+        if (quiz.share.expiryTimestamp) {
+            const daysLeft = Math.ceil((quiz.share.expiryTimestamp - Date.now()) / (1000 * 60 * 60 * 24));
+            elements.shareExpiryDisplay.textContent = daysLeft > 0 ? `Active for ${daysLeft} more days` : 'Expired';
+            elements.shareExpiryDisplay.className = daysLeft > 0 ? 'text-xs text-blue-300 mt-1' : 'text-xs text-red-400 mt-1 font-bold';
+        }
+        
+        navigateToShareStep('manage');
+    } else {
+        // Not shared yet, show the main menu
+        navigateToShareStep('menu');
+    }
+}
+
+export function closeShareModal() {
+    elements.shareModal.classList.add('hidden');
+    state.currentShareQuizKey = null;
+    elements.statusMessage.textContent = ''; // clear any toasts
+}
+
+export function navigateToShareStep(step) {
+    state.activeShareStep = step;
+    
+    // Hide all step containers
+    elements.shareStepMenu.classList.add('hidden');
+    elements.shareStepConfig.classList.add('hidden');
+    elements.shareStepManage.classList.add('hidden');
+    
+    // Show the requested step and manage the Back button visibility
+    if (step === 'menu') {
+        elements.shareStepMenu.classList.remove('hidden');
+        elements.shareBackBtn.classList.add('hidden'); // No back button on main menu
+    } else if (step === 'config') {
+        elements.shareStepConfig.classList.remove('hidden');
+        elements.shareBackBtn.classList.remove('hidden');
+    } else if (step === 'manage') {
+        elements.shareStepManage.classList.remove('hidden');
+        elements.shareBackBtn.classList.remove('hidden');
+    }
+}
+
+// ==========================================
+// ISOLATED EXPORT LOGIC
+// ==========================================
+
+export function exportQuizAsJSON(quizKey) {
+    const quiz = state.quizHistory[quizKey];
+    if (!quiz) return;
+    
+    try {
+        const exportData = {
+            fileName: quiz.fileName,
+            config: quiz.config,
+            questions: quiz.questions
+        };
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `${quiz.fileName || 'my-quiz'}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        
+        showToast('Quiz exported to your device!', 3000, 'success');
+    } catch (err) {
+        console.error('Export Error:', err);
+        showToast('Failed to export quiz.', 3000, 'error');
     }
 }
