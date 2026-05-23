@@ -1202,23 +1202,19 @@ export async function handleHistoryClick(e) {
                 elements.statusMessage.textContent = 'Generating shareable link...';
                 elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
                 
-                // 1. Generate a short, unique ID (e.g., 'quiz-a1b2c3d4')
                 const shortId = 'quiz-' + Math.random().toString(36).substring(2, 10);
+                const sharePayload = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
+                const fileName = `${shortId}.json`;
                 
-                // 2. Prepare the minimal payload to save space
-                const sharePayload = {
-                    n: quizData.fileName,
-                    c: quizData.config,
-                    q: quizData.questions
-                };
+                // 1. Save the quiz as a file in the user's Puter file system
+                await puter.fs.write(fileName, JSON.stringify(sharePayload));
                 
-                // 3. Save to Puter KV Store
-                await puter.kv.set(shortId, JSON.stringify(sharePayload));
+                // 2. Ask Puter for a public, read-only URL to that file
+                const publicUrl = await puter.fs.getReadURL(fileName);
                 
-                // 4. Build the URL using your current domain
-                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${shortId}`;
+                // 3. Attach the public URL as the ?share= parameter
+                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
                 
-                // 5. Copy directly to the user's clipboard
                 await navigator.clipboard.writeText(shareUrl);
                 
                 showToast('Link copied to clipboard!', 3000, 'success');
@@ -1408,20 +1404,20 @@ export function prepareResumeButton() {
     }
 }
 
-export async function loadSharedQuiz(sharedId) {
+export async function loadSharedQuiz(sharedUrl) {
     try {
         elements.statusMessage.textContent = 'Downloading shared quiz...';
         elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
         
-        // 1. Ask Puter for the data using the ID from the URL
-        const storedDataStr = await puter.kv.get(sharedId);
+        // 1. Fetch the JSON directly from the public URL Puter generated
+        const response = await fetch(sharedUrl);
         
-        if (!storedDataStr) {
+        if (!response.ok) {
             throw new Error('Quiz not found. The link might be invalid or expired.');
         }
         
         // 2. Parse the retrieved JSON
-        const data = JSON.parse(storedDataStr);
+        const data = await response.json();
 
         if (!data.q || !data.c) throw new Error("Missing valid quiz data in the stored payload.");
 
@@ -1450,7 +1446,7 @@ export async function loadSharedQuiz(sharedId) {
         elements.statusMessage.textContent = `Loaded shared quiz: "${state.currentFileName}"`;
         elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
 
-        // 5. Setup the view so they can start taking it
+        // 5. Setup the view
         state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
         setupCustomizeView(state.currentQuizConfig, state.currentFileName);
         showView('start');
