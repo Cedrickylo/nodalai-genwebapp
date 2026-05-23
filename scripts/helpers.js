@@ -61,7 +61,8 @@ const {
     confirmTitle,
     confirmMessage,
     acceptConfirmBtn,
-    cancelConfirmBtn
+    cancelConfirmBtn,
+    syncHistoryWithCloud
 } = elements;
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS } = constants;
