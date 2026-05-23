@@ -421,14 +421,26 @@ export function saveQuizToDB(key, data) {
             counter++;
         }
 
-        state.quizHistory[key] = { questions: data.questions, fileName: finalName, config: data.config, timestamp: Date.now() };
-        localStorage.setItem(DB_NAME, JSON.stringify(state.quizHistory));
-        localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
+        // GET EXISTING DATA FIRST
+        const existingQuiz = state.quizHistory[key] || {};
+
+        // MERGE: Keep old 'share' data, update the rest
+        state.quizHistory[key] = {
+            ...existingQuiz, // Preserve existing 'share' object if it exists
+            questions: data.questions, 
+            fileName: finalName, 
+            config: data.config, 
+            timestamp: Date.now() 
+        };
+
+        localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+        localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
+        
         syncHistoryWithCloud();
         return true;
     } catch (e) {
         console.error('Save DB fail', e);
-        statusMessage.textContent = 'Err saving history.';
+        elements.statusMessage.textContent = 'Err saving history.';
         return false;
     }
 }
