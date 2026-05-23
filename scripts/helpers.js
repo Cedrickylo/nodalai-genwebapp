@@ -66,6 +66,11 @@ const {
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS } = constants;
 
+// Add this to helpers.js
+const setVisibility = (element, isVisible) => {
+    element.classList.toggle('hidden', !isVisible);
+};
+
 export function customConfirm(message, title = 'Confirm', acceptText = 'OK', cancelText = 'Cancel', isDestructive = false) {
     return new Promise((resolve) => {
         confirmTitle.textContent = title;
@@ -98,6 +103,41 @@ export function customConfirm(message, title = 'Confirm', acceptText = 'OK', can
         acceptConfirmBtn.addEventListener('click', onAccept);
         cancelConfirmBtn.addEventListener('click', onCancel);
     });
+}
+
+export function toggleContainerVisibility(containerId, isVisible) {
+    const el = document.getElementById(containerId);
+    if (el) {
+        el.classList.toggle('hidden', !isVisible);
+    }
+}
+
+// --- Updated handleTimeToggle ---
+export function handleTimeToggle() {
+    setVisibility(timeLimitOptions, timeLimitToggle.checked);
+    if (timeLimitToggle.checked) {
+        handleTimePresetChange();
+    } else {
+        customTimeInputContainer.classList.add('hidden');
+    }
+}
+
+// --- Updated handleAttemptToggle ---
+export function handleAttemptToggle() {
+    setVisibility(attemptLimitOptions, attemptLimitToggle.checked);
+}
+
+// --- Updated handleDifficultyChange ---
+export function handleDifficultyChange() {
+    const selected = document.querySelector('input[name="difficulty"]:checked')?.value;
+    const isCustom = selected === 'custom';
+    
+    // Hide/Show the main custom options group
+    setVisibility(customOptionsDiv, isCustom);
+    
+    if (isCustom) {
+        handleCustomTypeChange();
+    }
 }
 
 export async function handleLogout() {
@@ -743,7 +783,7 @@ export function attachAuthHandlers() {
 export function initializeAppState() {
     refreshHistory();
     handleDifficultyChange();
-    handleTimePresetChange();
+    handleTimeToggle();
     handleAttemptToggle();
 }
 
