@@ -456,7 +456,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     // 5. THE NEW BATCHING LOGIC
     let allQs = [];
     let qSet = new Set();
-    const batchSize = 10; // Chunk into 10s to prevent Groq 429 Errors
+    const batchSize = 5; // Chunk into 10s to prevent Groq 429 Errors
     const totalBatches = Math.ceil(totalQ / batchSize);
 
     try {
@@ -493,13 +493,13 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                     batchSuccess = true; 
                 } catch (e) {
                     console.error(`Batch ${i+1} Attempt ${attempts} Failed:`, e.message);
-                    if (attempts === 3) throw new Error(`Batch ${i+1} failed completely.`);
-                    await new Promise(r => setTimeout(r, 2000)); // wait before retry
+                    if (attempts === 5) throw new Error(`Batch ${i+1} failed completely.`);
+                    await new Promise(r => setTimeout(r, 10000)); // wait before retry
                 }
             }
 
             // Pause slightly between successful batches to respect Rate Limits
-            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 2500)); 
+            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 8500)); 
         }
 
         if (allQs.length === 0) {
