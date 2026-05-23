@@ -52,7 +52,7 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
                 'Authorization': `Bearer ${OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini', // Or 'gpt-4o' for higher intelligence
+                model: 'gpt-3.5-turbo-16k', // Or 'gpt-4o' for higher intelligence
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
