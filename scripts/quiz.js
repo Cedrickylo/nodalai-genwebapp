@@ -1215,7 +1215,6 @@ export async function handleHistoryClick(e) {
                 // 3. Shorten the link using is.gd (no API key required)
                 // We encode the long URL to safely pass it as a query parameter
                 const response = await fetch(`https://spoo.me/?action=shorten&url=${encodeURIComponent(longShareUrl)}`);
-                const shortenedUrl = await response.text();
                 
                 if (!response.ok) throw new Error("Shortening service failed.");
                 
