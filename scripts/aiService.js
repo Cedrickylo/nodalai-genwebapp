@@ -2,70 +2,70 @@
 // Main function to generate quiz questions using AI
 // This is the single point of change when switching AI services
 const AI_SERVICE = 'openai'; // Change to 'puter' if you want to switch back to Puter AI, groq
-// const GROQ_API_URL = 'https://api.groq.com/openai/v1/responses';
-// const GROQ_API_KEY = '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'; // Replace with your Groq API key
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/responses';
+const GROQ_API_KEY = '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'; // Replace with your Groq API key
 export function isUsingPuterAI() {
     return AI_SERVICE === 'puter';
 }
 
-// export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
-//     try {
-//         if (AI_SERVICE === 'puter') {
-//             const response = await puter.ai.chat(systemPrompt + "\n\n" + userPrompt);
-//             return extractTextFromResponse(response);
-//         }
+export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
+    try {
+        if (AI_SERVICE === 'puter') {
+            const response = await puter.ai.chat(systemPrompt + "\n\n" + userPrompt);
+            return extractTextFromResponse(response);
+        }
 
-//         const response = await fetch(GROQ_API_URL, {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'Authorization': `Bearer ${GROQ_API_KEY}`
-//             },
-//             body: JSON.stringify({
-//                 model: 'openai/gpt-oss-20b',
-//                 input: `${systemPrompt}\n\n${userPrompt}`
-//             })
-//         });
+        const response = await fetch(GROQ_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'openai/gpt-oss-20b',
+                input: `${systemPrompt}\n\n${userPrompt}`
+            })
+        });
 
-//         if (!response.ok) {
-//             throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
-//         }
+        if (!response.ok) {
+            throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+        }
 
-//         const data = await response.json();
-//         return extractTextFromResponse(data);
-//     } catch (error) {
-//         console.error('AI Service Error:', error);
-//         throw error;
-//     }
-// }
+        const data = await response.json();
+        return extractTextFromResponse(data);
+    } catch (error) {
+        console.error('AI Service Error:', error);
+        throw error;
+    }
+}
 
 // Helper function to extract text from various AI response formats
 // This handles different response structures from different AI providers
-export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer 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`, // Secure this in production!
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: "gpt-4o-mini", // Use gpt-4o-mini for speed and cost-effectiveness
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-            ],
-            temperature: 0.2
-        })
-    });
+// export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
+//     const response = await fetch("https://api.openai.com/v1/chat/completions", {
+//         method: "POST",
+//         headers: {
+//             "Authorization": `Bearer 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`, // Secure this in production!
+//             "Content-Type": "application/json"
+//         },
+//         body: JSON.stringify({
+//             model: "gpt-4o-mini", // Use gpt-4o-mini for speed and cost-effectiveness
+//             messages: [
+//                 { role: "system", content: systemPrompt },
+//                 { role: "user", content: userPrompt }
+//             ],
+//             temperature: 0.2
+//         })
+//     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`OpenAI API error: ${errorData.error.message}`);
-    }
+//     if (!response.ok) {
+//         const errorData = await response.json();
+//         throw new Error(`OpenAI API error: ${errorData.error.message}`);
+//     }
 
-    const data = await response.json();
-    return data.choices[0].message.content; // This returns the AI's actual text
-}
+//     const data = await response.json();
+//     return data.choices[0].message.content; // This returns the AI's actual text
+// }
 
 function extractTextFromResponse(response) {
     if (!response) {
