@@ -373,7 +373,11 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     state.currentQuizConfig = {
         count: totalQ,
         difficulty: selDiff,
-        mc, id, en, customType, customTypeShort,
+        mc, 
+        id, 
+        en, 
+        customType: custType, // <--- FIXED HERE
+        customTypeShort,
         isTimed: state.isTimedQuiz,
         totalTime: state.totalQuizTime,
         isAttemptLimited: state.isAttemptLimited,
