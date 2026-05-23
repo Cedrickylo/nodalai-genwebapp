@@ -1198,10 +1198,37 @@ export async function handleHistoryClick(e) {
         }
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
-            showToast('Share is not implemented yet. Please try again later.', 4000, 'warning');
-            elements.statusMessage.textContent = 'Share feature is not available yet.';
-            elements.statusMessage.className = 'text-center text-yellow-400 mt-4 text-sm';
-            return;
+            try {
+                elements.statusMessage.textContent = 'Generating shareable link...';
+                elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
+                
+                // 1. Generate a short, unique ID (e.g., 'quiz-a1b2c3d4')
+                const shortId = 'quiz-' + Math.random().toString(36).substring(2, 10);
+                
+                // 2. Prepare the minimal payload to save space
+                const sharePayload = {
+                    n: quizData.fileName,
+                    c: quizData.config,
+                    q: quizData.questions
+                };
+                
+                // 3. Save to Puter KV Store
+                await puter.kv.set(shortId, JSON.stringify(sharePayload));
+                
+                // 4. Build the URL using your current domain
+                const shareUrl = `${window.location.origin}${window.location.pathname}?share=${shortId}`;
+                
+                // 5. Copy directly to the user's clipboard
+                await navigator.clipboard.writeText(shareUrl);
+                
+                showToast('Link copied to clipboard!', 3000, 'success');
+                elements.statusMessage.textContent = 'Share link copied!';
+                elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+            } catch (err) {
+                console.error('Share Error:', err);
+                showToast('Failed to generate share link. Make sure you are logged in.', 4000, 'error');
+                elements.statusMessage.textContent = '';
+            }
         }
     }
 }
@@ -1386,37 +1413,19 @@ export async function loadSharedQuiz(sharedId) {
         elements.statusMessage.textContent = 'Downloading shared quiz...';
         elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
         
-        // Try GitHub Gist first (public gist), then fall back to localStorage
-        let data = null;
-        try {
-            const gistResp = await fetch(`https://api.github.com/gists/${sharedId}`);
-            if (gistResp.ok) {
-                const gist = await gistResp.json();
-                // prefer a file named quiz.json, otherwise take the first file
-                const files = gist.files || {};
-                const file = files['quiz.json'] || Object.values(files)[0];
-                if (!file || !file.content) throw new Error('Gist missing expected file');
-                data = JSON.parse(file.content);
-            } else {
-                const body = await gistResp.text().catch(() => '<no-body>');
-                console.warn('gist fetch failed', gistResp.status, body);
-                throw new Error('Gist not found');
-            }
-        } catch (fetchErr) {
-            console.warn('Cloud fetch failed, trying localStorage fallback', fetchErr);
-            const local = localStorage.getItem(`local_shared_${sharedId}`);
-            if (local) {
-                try { data = JSON.parse(local); }
-                catch (e) { throw new Error('Shared data corrupted'); }
-            } else {
-                throw fetchErr;
-            }
+        // 1. Ask Puter for the data using the ID from the URL
+        const storedDataStr = await puter.kv.get(sharedId);
+        
+        if (!storedDataStr) {
+            throw new Error('Quiz not found. The link might be invalid or expired.');
         }
+        
+        // 2. Parse the retrieved JSON
+        const data = JSON.parse(storedDataStr);
 
-        if (!data) throw new Error('Quiz not found or expired');
-        if (!data.q || !data.c) throw new Error("Missing quiz data");
+        if (!data.q || !data.c) throw new Error("Missing valid quiz data in the stored payload.");
 
-        // Reconstruct the quiz
+        // 3. Reconstruct the quiz state
         const reconstructedQuiz = {
             fileName: (data.n || 'Shared Quiz') + ' (Shared)',
             config: data.c,
@@ -1434,19 +1443,21 @@ export async function loadSharedQuiz(sharedId) {
         state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
         state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
 
+        // 4. Save to the new user's local history
         saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
         refreshHistory();
 
         elements.statusMessage.textContent = `Loaded shared quiz: "${state.currentFileName}"`;
         elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
 
+        // 5. Setup the view so they can start taking it
         state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
         setupCustomizeView(state.currentQuizConfig, state.currentFileName);
         showView('start');
         showToast('Shared quiz imported!');
     } catch (e) {
         console.error('Shared Link Error:', e);
-        showToast('Invalid or expired shared link.', 3000, 'error');
+        showToast(e.message || 'Invalid or expired shared link.', 4000, 'error');
         elements.statusMessage.textContent = '';
     }
 }
