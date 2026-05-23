@@ -1200,32 +1200,23 @@ export async function handleHistoryClick(e) {
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
             try {
-                elements.statusMessage.textContent = 'Generating shareable link...';
-                
-                // 1. Create the public Puter file
-                const shortId = 'quiz-' + Math.random().toString(36).substring(2, 10);
-                const sharePayload = { n: quizData.fileName, c: quizData.config, q: quizData.questions };
-                const fileName = `${shortId}.json`;
-                await puter.fs.write(fileName, JSON.stringify(sharePayload));
-                
-                // 2. Get the public URL and build the long Netlify link
-                const publicUrl = await puter.fs.getReadURL(fileName);
-                const longShareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
-                
-                // 3. Shorten the link using is.gd (no API key required)
-                // We encode the long URL to safely pass it as a query parameter
-                const response = await fetch(`https://spoo.me/?action=shorten&url=${encodeURIComponent(longShareUrl)}`);
-                
+                // REPLACE your current redirection logic with this background fetch logic
+                const response = await fetch(`https://spoo.me/api/action/shorten`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `url=${encodeURIComponent(longShareUrl)}`
+                });
+
                 if (!response.ok) throw new Error("Shortening service failed.");
-                
-                const shortenedUrl = await response.text();
-                
-                // 4. Copy the short link to clipboard
+
+                const data = await response.json();
+                const shortenedUrl = data.short; // The API returns JSON with a 'short' field
+
+                // Now copy 'shortenedUrl' to clipboard
                 await navigator.clipboard.writeText(shortenedUrl);
-                
-                showToast('Short link copied to clipboard!', 3000, 'success');
-                elements.statusMessage.textContent = 'Short share link copied!';
-                elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
                 
             } catch (err) {
                 console.error('Share Error:', err);
