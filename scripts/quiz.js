@@ -377,7 +377,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         id, 
         en, 
         customType: custType, // <--- FIXED HERE
-        customTypeShort,
+        customtypeshort: custTypeShort,
         isTimed: state.isTimedQuiz,
         totalTime: state.totalQuizTime,
         isAttemptLimited: state.isAttemptLimited,
