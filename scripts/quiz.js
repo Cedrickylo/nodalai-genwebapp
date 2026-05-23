@@ -27,8 +27,7 @@ import {
     openShareModal, 
     closeShareModal, 
     navigateToShareStep, 
-    exportQuizAsJSON,
-    generateShareableLink
+    exportQuizAsJSON
 } from './helpers.js';
 
 const {
