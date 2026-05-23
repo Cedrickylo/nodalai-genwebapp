@@ -499,7 +499,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             }
 
             // Pause slightly between successful batches to respect Rate Limits
-            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 15500)); 
+            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 25500)); 
         }
 
         if (allQs.length === 0) {
