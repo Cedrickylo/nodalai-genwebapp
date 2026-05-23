@@ -677,9 +677,21 @@ export function initializeAudio() {
 export function attachAuthHandlers() {
     authBtn.onclick = async () => {
         if (!puter.auth.isSignedIn()) {
-            await puter.auth.signIn();
-            updateAuthUI();
+            try {
+                // 1. Wait for the user to finish logging in
+                await puter.auth.signIn();
+                
+                // 2. Wait for the UI to update with their username and credits
+                await updateAuthUI(); 
+                
+                // 3. Immediately pull their saved quizzes from the cloud!
+                syncHistoryWithCloud(); 
+                
+            } catch (e) {
+                console.error("Sign in failed", e);
+            }
         } else {
+            // If they are already signed in, just open the dashboard
             openAccountModal();
         }
     };

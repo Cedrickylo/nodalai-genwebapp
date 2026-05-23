@@ -22,7 +22,8 @@ import {
     loadGenerationCooldownState,
     getGenerationCooldownWarning,
     recordGenerationEvent,
-    refreshCooldownPanel
+    refreshCooldownPanel,
+    syncHistoryWithCloud
 } from './helpers.js';
 
 const {
