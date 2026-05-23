@@ -475,7 +475,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             let attempts = 0;
 
             // Retry loop strictly for the current batch
-            while (!batchSuccess && attempts < 3) {
+            while (!batchSuccess && attempts < 5) {
                 attempts++;
                 try {
                     const rawText = await generateQuestionsFromAI(sysP, userQ);
@@ -499,7 +499,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             }
 
             // Pause slightly between successful batches to respect Rate Limits
-            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 8500)); 
+            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 15500)); 
         }
 
         if (allQs.length === 0) {
