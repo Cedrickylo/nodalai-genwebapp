@@ -103,10 +103,27 @@ export function customConfirm(message, title = 'Confirm', acceptText = 'OK', can
 export async function handleLogout() {
     const isConfirmed = await customConfirm('Are you sure you want to log out?', 'Sign Out', 'Sign Out', 'Cancel', true);
     if (isConfirmed) {
+        // 1. Sign out of Puter
         await puter.auth.signOut();
         accountModal.classList.add('hidden');
+        
+        // --- NEW CLEANUP LOGIC ---
+        // 2. Wipe the saved data from the browser's Local Storage
+        localStorage.removeItem(constants.DB_NAME); 
+        localStorage.removeItem(constants.IN_PROGRESS_QUIZ_KEY);
+        
+        // 3. Clear the active history from the live state
+        state.quizHistory = {};
+        
+        // 4. Update the UI to reflect empty history and reset the view
+        refreshHistory();
+        clearInProgressQuiz(); // Hides any "Resume Quiz" buttons
+        showView('start');     // Kicks the user back to the main screen
+        // -------------------------
+
+        // 5. Update Auth buttons and notify user
         updateAuthUI();
-        showToast('Logged out successfully');
+        showToast('Logged out successfully and cleared local history');
     }
 }
 
