@@ -1,7 +1,7 @@
 // aiService.js
 // Main function to generate quiz questions using AI
 // This is the single point of change when switching AI services
-const AI_SERVICE = 'openai'; // Change to 'puter' if you want to switch back to Puter AI, groq
+const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI, groq
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/responses';
 const GROQ_API_KEY = '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'; // Replace with your Groq API key
 export function isUsingPuterAI() {
