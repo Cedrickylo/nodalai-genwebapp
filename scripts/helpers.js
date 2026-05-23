@@ -669,35 +669,14 @@ export function setupCustomizeView(config, name) {
     validateAllInputs();
 }
 
-export function handleTimeToggle() {
-    timeLimitOptions.classList.toggle('hidden', !timeLimitToggle.checked);
-    if (timeLimitToggle.checked) {
-        handleTimePresetChange();
-    } else {
-        customTimeInputContainer.classList.add('hidden');
-    }
-}
+
 
 export function handleTimePresetChange() {
     const sel = document.querySelector('input[name="time_preset"]:checked').value;
     customTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
 }
 
-export function handleAttemptToggle() {
-    attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
-}
 
-export function handleDifficultyChange() {
-    const selected = document.querySelector('input[name="difficulty"]:checked')?.value;
-    const isCustom = selected === 'custom';
-    customOptionsDiv.classList.toggle('hidden', !isCustom);
-    if (isCustom) {
-        handleCustomTypeChange();
-    } else {
-        customMixedCountsDiv.classList.add('hidden');
-    }
-    validateAllInputs();
-}
 
 export function handleCustomTypeChange() {
     const selected = customQuestionTypeSelect.value;
