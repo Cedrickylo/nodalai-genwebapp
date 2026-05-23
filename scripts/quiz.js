@@ -1200,36 +1200,35 @@ export async function handleHistoryClick(e) {
         // ADD THIS NEW BLOCK RIGHT BELOW IT:
         else if (action === 'share') {
             try {
-                elements.statusMessage.textContent = 'Generating shareable link...';
-                elements.statusMessage.className = 'text-center text-blue-400 mt-4 text-sm h-5';
+                elements.statusMessage.textContent = 'Creating shareable link...';
                 
-                // 1. Create a unique ID and filename
+                // 1. Create a unique filename for the share
                 const shortId = 'quiz-' + Math.random().toString(36).substring(2, 10);
                 const sharePayload = { 
                     n: quizData.fileName, 
                     c: quizData.config, 
                     q: quizData.questions 
                 };
-                const fileName = `${shortId}.json`;
                 
-                // 2. Save the quiz as a public file in Puter
-                await puter.fs.write(fileName, JSON.stringify(sharePayload));
+                // 2. Ensure the /shares directory exists, then save the file
+                const sharePath = `/shares/${shortId}.json`;
+                await puter.fs.write(sharePath, JSON.stringify(sharePayload));
                 
-                // 3. Get the public read URL for that file
-                const publicUrl = await puter.fs.getReadURL(fileName);
+                // 3. Get the direct read URL for this specific file
+                const publicUrl = await puter.fs.getReadURL(sharePath);
                 
-                // 4. Build the full Netlify share link
+                // 4. Construct the share URL using your Netlify domain
+                // We pass the public Puter file URL as the share parameter
                 const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
                 
                 // 5. Copy to clipboard
                 await navigator.clipboard.writeText(shareUrl);
                 
-                showToast('Link copied to clipboard!', 3000, 'success');
+                showToast('Share link copied to clipboard!', 3000, 'success');
                 elements.statusMessage.textContent = 'Share link copied!';
-                elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
             } catch (err) {
                 console.error('Share Error:', err);
-                showToast('Failed to generate share link. Make sure you are logged in.', 4000, 'error');
+                showToast('Failed to generate share link.', 4000, 'error');
                 elements.statusMessage.textContent = '';
             }
         }
