@@ -2,7 +2,13 @@ export const constants = {
     DB_NAME: 'AIQuizGeneratorDB_v4',
     CLOUD_SYNC_KEY: 'puter_quiz_sync_v4',
     IN_PROGRESS_QUIZ_KEY: 'AIQuizInProgress',
-    MAX_GENERATION_ATTEMPTS: 5
+    MAX_GENERATION_ATTEMPTS: 5,
+    MAX_GENERATIONS_PER_WINDOW: 5,
+    GENERATION_WINDOW_MS: 3 * 60 * 60 * 1000,
+    GENERATION_LOG_LOCAL_KEY: 'AIQuizGenerationLog',
+    GENERATION_LOG_CLOUD_KEY: 'AIQuizGenerationLog_v1',
+    MIN_QUIZ_QUESTIONS: 5,
+    MAX_QUIZ_QUESTIONS: 100
 };
 
 export const elements = {
@@ -105,6 +111,9 @@ export const elements = {
     buyCreditsBtn: document.getElementById('buy-credits-btn'),
     modalStoragePanel: document.getElementById('modal-storage-panel'),
     modalStorageLabel: document.getElementById('modal-storage-label'),
+    modalCooldownPanel: document.getElementById('modal-cooldown-panel'),
+    modalCooldownStatus: document.getElementById('modal-cooldown-status'),
+    modalCooldownDetail: document.getElementById('modal-cooldown-detail'),
     displayNameInput: document.getElementById('display-name-input'),
     saveDisplayNameBtn: document.getElementById('save-display-name-btn'),
     logoutBtn: document.getElementById('logout-btn'),
@@ -131,6 +140,7 @@ export const state = {
     toastTimeout: null,
     quizTimerInterval: null,
     quizHistory: JSON.parse(localStorage.getItem(constants.DB_NAME) || '{}'),
+    generationLog: [],
     savedProgress: null,
     timeRemaining: 0,
     isTimedQuiz: false,

@@ -61,7 +61,7 @@ const {
     cancelConfirmBtn
 } = elements;
 
-const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY } = constants;
+const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS } = constants;
 
 export function customConfirm(message, title = 'Confirm', acceptText = 'OK', cancelText = 'Cancel', isDestructive = false) {
     return new Promise((resolve) => {
@@ -152,6 +152,128 @@ export async function syncHistoryWithCloud(manual = false) {
     }
 }
 
+export function pruneGenerationLog(log = [], now = Date.now()) {
+    if (!Array.isArray(log)) return [];
+    return log
+        .filter(ts => typeof ts === 'number' && now - ts < GENERATION_WINDOW_MS)
+        .sort((a, b) => a - b);
+}
+
+export function getLocalGenerationLog() {
+    try {
+        const raw = localStorage.getItem(GENERATION_LOG_LOCAL_KEY);
+        const log = raw ? JSON.parse(raw) : [];
+        return pruneGenerationLog(log);
+    } catch (e) {
+        console.error('Read generation log failed', e);
+        return [];
+    }
+}
+
+export function saveLocalGenerationLog(log = []) {
+    try {
+        const pruned = pruneGenerationLog(log);
+        localStorage.setItem(GENERATION_LOG_LOCAL_KEY, JSON.stringify(pruned));
+        localStorage.setItem(GENERATION_LOG_LOCAL_KEY + '_ts', Date.now().toString());
+        return pruned;
+    } catch (e) {
+        console.error('Save generation log failed', e);
+        return [];
+    }
+}
+
+export async function loadGenerationCooldownState() {
+    let log = getLocalGenerationLog();
+    if (!puter.auth.isSignedIn()) {
+        state.generationLog = log;
+        return log;
+    }
+
+    try {
+        const cloudRaw = await puter.kv.get(GENERATION_LOG_CLOUD_KEY);
+        const cloudData = cloudRaw
+            ? (typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw)
+            : { timestamps: [], updatedAt: 0 };
+        const cloudLog = pruneGenerationLog(cloudData.timestamps || []);
+        const merged = [...new Set([...(log || []), ...cloudLog])].sort((a, b) => a - b);
+        const pruned = pruneGenerationLog(merged);
+        state.generationLog = pruned;
+        saveLocalGenerationLog(pruned);
+        await puter.kv.set(GENERATION_LOG_CLOUD_KEY, JSON.stringify({ timestamps: pruned, updatedAt: Date.now() }));
+        return pruned;
+    } catch (e) {
+        console.error('Cooldown sync fail', e);
+        state.generationLog = log;
+        return log;
+    }
+}
+
+export function getGenerationCooldownInfo(log = state.generationLog || []) {
+    const pruned = pruneGenerationLog(log);
+    const used = pruned.length;
+    const remaining = Math.max(0, MAX_GENERATIONS_PER_WINDOW - used);
+    const nextAvailableAt = remaining > 0 ? 0 : (pruned[0] || Date.now()) + GENERATION_WINDOW_MS;
+    const now = Date.now();
+    return {
+        used,
+        remaining,
+        nextAvailableInMs: Math.max(0, nextAvailableAt - now),
+        isAllowed: remaining > 0
+    };
+}
+
+export function formatMsDuration(ms) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    if (totalSeconds <= 0) return '0s';
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    }
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+}
+
+export async function recordGenerationEvent() {
+    const now = Date.now();
+    const existingLog = getLocalGenerationLog();
+    const log = pruneGenerationLog([...existingLog, now]);
+    state.generationLog = saveLocalGenerationLog(log);
+    if (puter.auth.isSignedIn()) {
+        try {
+            await puter.kv.set(GENERATION_LOG_CLOUD_KEY, JSON.stringify({ timestamps: state.generationLog, updatedAt: now }));
+        } catch (err) {
+            console.error('Failed sync cooldown to cloud', err);
+        }
+    }
+    return state.generationLog;
+}
+
+export async function refreshCooldownPanel() {
+    if (!modalCooldownPanel) return;
+    const log = await loadGenerationCooldownState();
+    const info = getGenerationCooldownInfo(log);
+    modalCooldownPanel.classList.remove('hidden');
+    if (info.isAllowed) {
+        modalCooldownStatus.textContent = `${info.remaining} / ${MAX_GENERATIONS_PER_WINDOW} available`;
+        modalCooldownStatus.className = 'text-sm font-bold text-green-400';
+        modalCooldownDetail.textContent = `You can generate ${info.remaining} more quiz${info.remaining === 1 ? '' : 'zes'} in the next 3 hours.`;
+    } else {
+        modalCooldownStatus.textContent = 'Cooldown active';
+        modalCooldownStatus.className = 'text-sm font-bold text-yellow-400';
+        modalCooldownDetail.textContent = `Next generation available in ${formatMsDuration(info.nextAvailableInMs)}.`;
+    }
+}
+
+export function getGenerationCooldownWarning() {
+    const info = getGenerationCooldownInfo();
+    if (info.isAllowed) return null;
+    return `Maximum of ${MAX_GENERATIONS_PER_WINDOW} quizzes generated in ${Math.floor(GENERATION_WINDOW_MS / 3600000)} hours. Next allowed generation in ${formatMsDuration(info.nextAvailableInMs)}.`;
+}
+
 export function getUniqueName(baseName) {
     let name = baseName.replace(/\.[^/.]+$/, '');
     let counter = 2;
@@ -172,7 +294,8 @@ export async function updateAuthUI() {
         authBtnText.textContent = customName || 'Account';
         authBtn.classList.remove('bg-blue-600');
         authBtn.classList.add('bg-green-600');
-        syncHistoryWithCloud();
+        await syncHistoryWithCloud();
+        await loadGenerationCooldownState();
     } else {
         authBtnText.textContent = 'Puter Login';
         authBtn.classList.remove('bg-green-600');
@@ -220,6 +343,7 @@ export async function openAccountModal() {
     displayNameInput.value = customName || '';
     authBtnText.textContent = customName || 'Account';
 
+    await refreshCooldownPanel();
     accountModal.classList.remove('hidden');
 }
 

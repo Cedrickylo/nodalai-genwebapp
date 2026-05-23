@@ -18,7 +18,11 @@ import {
     handleDifficultyChange,
     handleCustomTypeChange,
     clearHistory,
-    customConfirm
+    customConfirm,
+    loadGenerationCooldownState,
+    getGenerationCooldownWarning,
+    recordGenerationEvent,
+    refreshCooldownPanel
 } from './helpers.js';
 
 const {
@@ -298,6 +302,12 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     let mc = 0, id = 0, en = 0, custType = null, custTypeShort = null;
     const totalQ = parseInt(qCountInput.value, 10);
 
+    if (!Number.isInteger(totalQ) || totalQ < constants.MIN_QUIZ_QUESTIONS || totalQ > constants.MAX_QUIZ_QUESTIONS) {
+        showToast(`Number of questions must be between ${constants.MIN_QUIZ_QUESTIONS} and ${constants.MAX_QUIZ_QUESTIONS}.`, 5000, 'warning');
+        if (!isRemedial) showView('start');
+        return;
+    }
+
     if (selDiff === 'custom') {
         custType = mainCustTypeSelect.value;
         if (custType === 'mixed') {
@@ -368,6 +378,14 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         showAnswersInSummaryOnly,
         isRemedial: isRemedial
     };
+
+    await loadGenerationCooldownState();
+    const cooldownWarning = getGenerationCooldownWarning();
+    if (cooldownWarning) {
+        showToast(cooldownWarning, 7000, 'error');
+        if (!isRemedial) showView('start');
+        return;
+    }
 
     // Apply the correct custom name prior to generating
     if (isRemedial) {
@@ -480,6 +498,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
         state.questions = allQs.slice(0, needed);
         saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
+        await recordGenerationEvent();
+        await refreshCooldownPanel();
         refreshHistory();
         startQuiz();
     } catch (err) {
