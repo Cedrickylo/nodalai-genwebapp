@@ -245,6 +245,7 @@ export function resetApp(clearProg = true) {
 }
 
 export async function handleQuizGeneration(isRemedial = false, skipStart = false) {
+    // 1. CUSTOMIZATION CHECK
     if (state.isCustomizingHistory && state.customizingQuizData && !isRemedial) {
         const newName = editQuizNameInput.value.trim() || state.customizingQuizData.fileName;
         state.questions = state.customizingQuizData.questions;
@@ -296,6 +297,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         return;
     }
 
+    // 2. UI PARSING & MATH LOGIC
     const qCountInput = isRemedial ? remedialQuestionCountInput : questionCountInput;
     const diffSelector = isRemedial ? 'input[name="remedial_difficulty"]:checked' : 'input[name="difficulty"]:checked';
     const timeToggle = isRemedial ? remedialTimeLimitToggle : timeLimitToggle;
@@ -371,11 +373,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     state.currentQuizConfig = {
         count: totalQ,
         difficulty: selDiff,
-        mc,
-        id,
-        en,
-        customType: custType,
-        customTypeShort: custTypeShort,
+        mc, id, en, customType, customTypeShort,
         isTimed: state.isTimedQuiz,
         totalTime: state.totalQuizTime,
         isAttemptLimited: state.isAttemptLimited,
@@ -392,13 +390,13 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         return;
     }
 
-    // Apply the correct custom name prior to generating
     if (isRemedial) {
         state.currentFileName = remedialQuizNameInput.value.trim() || (state.currentFileName + ' - Remedial');
     } else if (!state.isCustomizingHistory) {
         state.currentFileName = editQuizNameInput.value.trim() || state.currentFileName;
     }
 
+    // 3. DUPLICATE CHECK
     const settingsHash = CryptoJS.SHA256(JSON.stringify(state.currentQuizConfig)).toString();
     state.currentQuizKey = `${state.fileHash}-${settingsHash}`;
     const db = state.quizHistory;
@@ -426,11 +424,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     showView('loading');
     startLoadingAnimation();
 
-    let allQs = [];
-    let qSet = new Set();
-    let attempts = 0;
-    const needed = totalQ;
-
+    // 4. YOUR CUSTOM JSON PARSER (Kept Intact)
     function extractJsonArrayString(text) {
         const normalized = (typeof text === 'string' ? text : '').replace(/```json/gi, '').replace(/```/g, '').trim();
         if (!normalized) return '';
@@ -439,74 +433,85 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         const start = normalized.indexOf('[');
         if (start === -1) return normalized;
 
-        let depth = 0;
-        let inString = false;
-        let escaped = false;
+        let depth = 0, inString = false, escaped = false;
         for (let i = start; i < normalized.length; i++) {
             const char = normalized[i];
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (char === '\\') {
-                escaped = true;
-                continue;
-            }
-            if (char === '"') {
-                inString = !inString;
-                continue;
-            }
+            if (escaped) { escaped = false; continue; }
+            if (char === '\\') { escaped = true; continue; }
+            if (char === '"') { inString = !inString; continue; }
             if (inString) continue;
-            if (char === '[') {
-                depth++;
-            } else if (char === ']') {
+            if (char === '[') depth++;
+            else if (char === ']') {
                 depth--;
-                if (depth === 0) {
-                    return normalized.slice(start, i + 1).trim();
-                }
+                if (depth === 0) return normalized.slice(start, i + 1).trim();
             }
         }
         return normalized;
     }
 
+    // 5. THE NEW BATCHING LOGIC
+    let allQs = [];
+    let qSet = new Set();
+    const batchSize = 10; // Chunk into 10s to prevent Groq 429 Errors
+    const totalBatches = Math.ceil(totalQ / batchSize);
+
     try {
-        while (allQs.length < needed && attempts < MAX_GENERATION_ATTEMPTS) {
-            attempts++;
-            const sysP = `You are a strict JSON-only quiz generator. Output ONLY a valid JSON array with ${needed - allQs.length} objects and nothing else. No markdown fences, no explanatory text, no list numbers, no comments, no extra punctuation. Each object MUST include exactly these keys: "type", "question", "options", "answer", and "explanation". Each answer value must exactly match one of the option values.`;
-            const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${needed - allQs.length} multiple-choice questions from the document. Output must be only a valid JSON array and nothing else.`;
-
-            const rawText = await generateQuestionsFromAI(sysP, userQ);
-            const cleanJson = extractJsonArrayString(rawText);
-            console.log(`Attempt ${attempts} Cleaned JSON:`, cleanJson.substring(0, 300));
-
-            try {
-                const parsed = JSON.parse(cleanJson);
-                if (!Array.isArray(parsed)) {
-                    console.warn(`Attempt ${attempts}: Response is not an array:`, parsed);
-                    continue;
-                }
-                parsed.forEach(q => {
-                    if (q && q.question && q.answer && q.type && !qSet.has(q.question)) {
-                        allQs.push(q);
-                        qSet.add(q.question);
-                    }
-                });
-            } catch (e) {
-                console.error(`Attempt ${attempts} JSON Parse Error:`, e.message);
-                console.error(`Failed JSON string:`, cleanJson.substring(0, 500));
+        for (let i = 0; i < totalBatches; i++) {
+            const neededForBatch = Math.min(batchSize, totalQ - allQs.length);
+            
+            if (loadingMessage) {
+                loadingMessage.textContent = `Generating batch ${i + 1} of ${totalBatches}... Please wait.`;
             }
+
+            // Your strict prompt format applied to the batch size
+            const sysP = `You are a strict JSON-only quiz generator. Output ONLY a valid JSON array with ${neededForBatch} objects and nothing else. No markdown fences, no explanatory text, no list numbers, no comments, no extra punctuation. Each object MUST include exactly these keys: "type", "question", "options", "answer", and "explanation". Each answer value must exactly match one of the option values.`;
+            const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${neededForBatch} multiple-choice questions from the document. Output must be only a valid JSON array and nothing else.`;
+
+            let batchSuccess = false;
+            let attempts = 0;
+
+            // Retry loop strictly for the current batch
+            while (!batchSuccess && attempts < 3) {
+                attempts++;
+                try {
+                    const rawText = await generateQuestionsFromAI(sysP, userQ);
+                    const cleanJson = extractJsonArrayString(rawText);
+                    
+                    const parsed = JSON.parse(cleanJson);
+                    if (!Array.isArray(parsed)) throw new Error("Not an array");
+
+                    parsed.forEach(q => {
+                        if (q && q.question && q.answer && q.type && !qSet.has(q.question)) {
+                            allQs.push(q);
+                            qSet.add(q.question);
+                        }
+                    });
+                    batchSuccess = true; 
+                } catch (e) {
+                    console.error(`Batch ${i+1} Attempt ${attempts} Failed:`, e.message);
+                    if (attempts === 3) throw new Error(`Batch ${i+1} failed completely.`);
+                    await new Promise(r => setTimeout(r, 2000)); // wait before retry
+                }
+            }
+
+            // Pause slightly between successful batches to respect Rate Limits
+            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 2500)); 
         }
 
         if (allQs.length === 0) {
-            throw new Error('AI failed to return valid JSON format. Check browser console for details.');
+            throw new Error('AI failed to return valid JSON format after multiple attempts.');
         }
 
-        state.questions = allQs.slice(0, needed);
+        // 6. FINAL SAVE LOGIC
+        state.questions = allQs.slice(0, totalQ);
         saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
-        await recordGenerationEvent();
-        await refreshCooldownPanel();
+        
+        if (typeof recordGenerationEvent === 'function') await recordGenerationEvent();
+        if (typeof refreshCooldownPanel === 'function') await refreshCooldownPanel();
+        
         refreshHistory();
         startQuiz();
+
     } catch (err) {
         statusMessage.textContent = `Err: ${err.message}`;
         showView('start');
