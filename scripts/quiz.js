@@ -565,7 +565,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     // =====================================================================
     let allQs = [];
     let qSet = new Set();
-    const baseBatchSize = 5; 
+    const baseBatchSize = 15; 
     let batchCounter = 1;
     let apiCallCount = 0;
     const maxSafetyCalls = 30; 
@@ -639,7 +639,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             // const generatedTexts = Array.from(qSet).join(' | ');
 
             //DO NOT generate these questions (already exist): ${generatedTexts}. Ensure the mix reflects the requested counts for multiple-choice, identification, and enumeration.
-            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 15000)}. Identification questions should have specific, concise answers. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} multiple-choice, ${Math.round(neededForBatch * (id/totalQ))} identification, ${Math.round(neededForBatch * (en/totalQ))} enumeration.`;
+            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 7000)}. Identification questions should have specific, concise answers. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} multiple-choice, ${Math.round(neededForBatch * (id/totalQ))} identification, ${Math.round(neededForBatch * (en/totalQ))} enumeration.`;
             
             apiCallCount++;
             let currentBatchSuccess = false;
@@ -662,7 +662,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                                         </span>
                                     </div>
                                     <p class="text-xs text-gray-300 mt-2 font-medium leading-relaxed">
-                                        Server is still processing, please wait 30 seconds...
+                                        Server is still processing, please wait 60 seconds...
                                     </p>
                                     <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden border border-gray-700 mt-3">
                                         <div class="bg-yellow-500 h-2 rounded-full animation-pulse w-full"></div>
@@ -670,8 +670,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                                 </div>
                             `;
                         }
-                        // Pause application run thread execution path for exactly 30 seconds
-                        await new Promise(r => setTimeout(r, 30000));
+                        // Pause application run thread execution path for exactly 60 seconds
+                        await new Promise(r => setTimeout(r, 60000));
                     }
 
                     const rawText = await generateQuestionsFromAI(sysP, userQ);
@@ -718,7 +718,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
             if (allQs.length < totalQ) {
                 console.log("Cooling down token pool...");
-                await new Promise(r => setTimeout(r, 15500)); 
+                await new Promise(r => setTimeout(r, 20500)); 
             }
         }
 
