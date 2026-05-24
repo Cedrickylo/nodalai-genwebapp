@@ -638,7 +638,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             // Pass the qSet values to the AI so it knows what to avoid
             const generatedTexts = Array.from(qSet).join(' | ');
 
-            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 15000)}. DO NOT generate these questions (already exist): ${generatedTexts} Ensure the mix reflects the requested counts for MC, ID, and EN. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} MC, ${Math.round(neededForBatch * (id/totalQ))} ID, ${Math.round(neededForBatch * (en/totalQ))} EN.`;
+            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 15000)}. DO NOT generate these questions (already exist): ${generatedTexts} Ensure the mix reflects the requested counts for multiple-choice, identification, and enumeration. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} multiple-choice, ${Math.round(neededForBatch * (id/totalQ))} identification, ${Math.round(neededForBatch * (en/totalQ))} enumeration.`;
             
             apiCallCount++;
             let currentBatchSuccess = false;
