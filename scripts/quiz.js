@@ -468,12 +468,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         return normalized;
     }
 
-    // 5. THE NEW BATCHING LOGIC
-    let allQs = [];
-    let qSet = new Set();
-    const batchSize = 5; // Chunk into 10s to prevent Groq 429 Errors
-    const totalBatches = Math.ceil(totalQ / batchSize);
-
     try {
         for (let i = 0; i < totalBatches; i++) {
             const neededForBatch = Math.min(batchSize, totalQ - allQs.length);
