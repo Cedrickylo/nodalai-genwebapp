@@ -111,8 +111,18 @@ const clearFilesBtn = document.getElementById('clear-files-btn');
 
 // Handle clear files button click
 if (clearFilesBtn) {
-    clearFilesBtn.addEventListener('click', () => {
-        resetApp();
+    clearFilesBtn.addEventListener('click', async () => {
+        const confirmed = await customConfirm(
+            'Are you sure you want to clear the selected files? This action cannot be undone.',
+            'Clear Files',
+            'Clear',
+            'Cancel',
+            true // true makes the button red (destructive)
+        );
+
+        if (confirmed) {
+            resetApp();
+        }
     });
 }
 
