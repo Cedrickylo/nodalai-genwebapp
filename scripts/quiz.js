@@ -461,50 +461,45 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     }
 
     // =====================================================================
-    // 5. THE NEW BATCHING, EXACT PADDING & TIMED PROGRESS logic
+    // 5. THE NEW BATCHING, EXACT PADDING & ADVANCED RECOVERY logic
     // =====================================================================
     let allQs = [];
     let qSet = new Set();
-    const baseBatchSize = 5; // Stays at 5 questions to stay completely below limits
+    const baseBatchSize = 5; 
     let batchCounter = 1;
     let apiCallCount = 0;
-    const maxSafetyCalls = 30; // Prevents accidental loop issues if document lacks data
+    const maxSafetyCalls = 30; 
 
-    // Time estimation parameters
-    const avgEstApiTimePerBatch = 3.5; // Average inference and round-trip delay in seconds
-    const coolDownTimePerBatch = 15.5; // Your strict cool-down duration in seconds
+    // Time estimation constants
+    const avgEstApiTimePerBatch = 3.5; 
+    const coolDownTimePerBatch = 15.5; 
 
     try {
         while (allQs.length < totalQ && apiCallCount < maxSafetyCalls) {
             let neededForBatch = Math.min(baseBatchSize, totalQ - allQs.length);
             
-            // PADDING ENGINE: If short of total count, append 2 extra questions to ensure exact matches
             if (allQs.length > 0 && neededForBatch < baseBatchSize) {
                 neededForBatch = Math.min(baseBatchSize, neededForBatch + 2);
             }
 
-            // DYNAMIC DURATION ESTIMATION CALCULATIONS
             const currentBatchIndex = batchCounter - 1;
             const totalEstimatedBatches = Math.max(batchCounter, Math.ceil(totalQ / baseBatchSize));
             const remainingBatches = Math.max(1, totalEstimatedBatches - currentBatchIndex);
             
-            // Remaining Time = (Remaining API turns * 3.5s) + (Remaining cooldown slots * 15.5s)
             const estSecondsLeft = Math.ceil(
                 (remainingBatches * avgEstApiTimePerBatch) + 
                 (Math.max(0, remainingBatches - 1) * coolDownTimePerBatch)
             );
 
-            // Format raw remaining seconds into human-readable strings
             const estMinutes = Math.floor(estSecondsLeft / 60);
             const estSeconds = estSecondsLeft % 60;
             let timeRemainingText = estMinutes > 0 
                 ? `${estMinutes} minute${estMinutes > 1 ? 's' : ''} and ${estSeconds} second${estSeconds !== 1 ? 's' : ''} remaining`
                 : `${estSeconds} second${estSeconds !== 1 ? 's' : ''} remaining`;
 
-            // Calculate precise mathematical percentage progress completed
             const progressPercentage = Math.min(98, Math.round((allQs.length / totalQ) * 100));
 
-            // VISUAL INTERFACE COMPONENT INJECTION
+            // Default progress rendering block
             if (elements.loadingMessage) {
                 elements.loadingMessage.innerHTML = `
                     <div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-gray-700/50 shadow-xl mt-4">
@@ -516,13 +511,11 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                                 Batch ${batchCounter}
                             </span>
                         </div>
-                        
                         <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden border border-gray-700 my-2">
                             <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-700 ease-out" 
                                  style="width: ${progressPercentage}%">
                             </div>
                         </div>
-                        
                         <div class="flex justify-between items-center mt-3 text-xs">
                             <div class="flex items-center text-gray-400">
                                 <svg class="animate-spin h-3 w-3 mr-1.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -543,10 +536,36 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             apiCallCount++;
             let currentBatchSuccess = false;
             let singleBatchAttempts = 0;
+            const maxAllowedRetries = 3; // Strict 3 retry cap limit configuration
 
-            while (!currentBatchSuccess && singleBatchAttempts < 5) {
-                singleBatchAttempts++;
+            while (!currentBatchSuccess) {
                 try {
+                    // Force checking if this run is an active recovery retry loop sequence
+                    if (singleBatchAttempts > 0) {
+                        if (elements.loadingMessage) {
+                            elements.loadingMessage.innerHTML = `
+                                <div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-yellow-500/40 shadow-xl mt-4">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-sm font-bold text-yellow-400 flex items-center">
+                                            ⚠️ Rate Ceiling Detected
+                                        </span>
+                                        <span class="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full">
+                                            Retry ${singleBatchAttempts} / ${maxAllowedRetries}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-300 mt-2 font-medium leading-relaxed">
+                                        Server is still processing, please wait 30 seconds...
+                                    </p>
+                                    <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden border border-gray-700 mt-3">
+                                        <div class="bg-yellow-500 h-2 rounded-full animation-pulse w-full"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        // Pause application run thread execution path for exactly 30 seconds
+                        await new Promise(r => setTimeout(r, 30000));
+                    }
+
                     const rawText = await generateQuestionsFromAI(sysP, userQ);
                     const cleanJson = extractJsonArrayString(rawText);
                     
@@ -562,20 +581,78 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                     currentBatchSuccess = true;
                     batchCounter++;
                 } catch (e) {
-                    console.error(`Batch ${batchCounter} Fallback Attempt ${singleBatchAttempts} Failed:`, e.message);
-                    if (singleBatchAttempts === 5 && allQs.length === 0) {
-                        throw new Error(`AI processing failed on initialization connection.`);
+                    singleBatchAttempts++;
+                    console.warn(`Batch ${batchCounter} error context on attempt ${singleBatchAttempts}:`, e.message);
+                    
+                    // If 3 retries are exceeded (meaning 4 total attempts failed), crash intentionally to cancel
+                    if (singleBatchAttempts > maxAllowedRetries) {
+                        throw new Error("SERVER_LIMIT_EXCEEDED");
                     }
-                    await new Promise(r => setTimeout(r, 10000));
                 }
             }
 
-            // High precision interval delay (15.5 seconds) to cool down token budgets
             if (allQs.length < totalQ) {
                 console.log("Cooling down token pool...");
                 await new Promise(r => setTimeout(r, 15500)); 
             }
         }
+
+        if (allQs.length === 0) {
+            throw new Error('AI failed to parse any question arrays.');
+        }
+
+        if (elements.loadingMessage) {
+            elements.loadingMessage.innerHTML = `
+                <div class="w-full max-w-md mx-auto text-center bg-gray-900/60 p-5 rounded-xl border border-gray-700/50 shadow-xl mt-4">
+                    <div class="text-sm font-semibold text-emerald-400 mb-2">✓ Target Reached Successfully!</div>
+                    <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden border border-gray-700">
+                        <div class="bg-emerald-500 h-3 rounded-full w-full"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (allQs.length > totalQ) {
+            allQs = allQs.slice(0, totalQ);
+        }
+
+        // 6. FINAL SAVE LOGIC
+        state.questions = allQs;
+        saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
+        
+        if (typeof recordGenerationEvent === 'function') await recordGenerationEvent();
+        if (typeof refreshCooldownPanel === 'function') await refreshCooldownPanel();
+        
+        refreshHistory();
+        startQuiz();
+
+    } catch (err) {
+        // INTERCEPT FAILURE AND PRESENT CUSTOM PROMISE INTERFACE WINDOW
+        if (err.message === "SERVER_LIMIT_EXCEEDED") {
+            await customConfirm(
+                "Quiz generation has been canceled because the AI server is completely overloaded and too many request limits were reached. Please wait a few minutes and try again later.",
+                "Generation Canceled",
+                "Understand",
+                ""
+            );
+        } else {
+            // General parsing framework recovery alert fallback logic
+            await customConfirm(
+                `Quiz generation failed due to a processing structure breakdown: ${err.message}`,
+                "Process Failure",
+                "Back to Menu",
+                ""
+            );
+        }
+        
+        if (statusMessage) {
+            statusMessage.textContent = `Err: Generation stopped due to rate limits.`;
+        }
+        showView('start');
+    } finally {
+        stopLoadingAnimation();
+    }
+}
 
         if (allQs.length === 0) {
             throw new Error('AI failed to parse any question arrays.');
