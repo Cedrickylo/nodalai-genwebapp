@@ -207,7 +207,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             return;
         }
         statusMessage.textContent = 'Quiz found! Loading...';
-        setTimeout(() => {
+        setTimeout(async() => {
             const { handleHistoryClick } = await import('./quizHistory.js');
             handleHistoryClick({ target: { tagName: 'BUTTON', dataset: { key: state.currentQuizKey, action: 'load' } } });
         }, 1000);
