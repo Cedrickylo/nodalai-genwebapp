@@ -2,6 +2,7 @@ import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, 
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 
 async function initApp() {
+    if (window.puter) puter.quiet = true;
     try {
         // Bind a one-time user gesture to resume the AudioContext (Tone.js) when needed
         function bindUserGestureToStartAudio() {
