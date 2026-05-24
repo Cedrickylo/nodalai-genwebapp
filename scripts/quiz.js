@@ -1478,24 +1478,27 @@ function resetStartViewUI() {
     document.getElementById('customize-section').classList.add('hidden');
     
     // =====================================================================
-    // RESTORE INPUT VISIBILITY FIELDS
-    // Clear out custom overview badge and re-reveal selectors for new files
+    // RESTORE LAYOUT CONTROLS AND DISPLAY STATE
     // =====================================================================
     document.getElementById('quiz-custom-summary-banner')?.remove();
 
     const countGroup = document.getElementById('question-count-group') || questionCountInput.closest('.mb-4, .space-y-4, div');
-    const diffGroup = difficultyRadios[0]?.closest('.mb-4, .space-y-4, div');
+    const diffGroup = document.getElementById('difficulty-group') || 
+                      document.querySelector('.difficulty-section') || 
+                      difficultyRadios[0]?.closest('.mb-6, .mb-4, .space-y-4, div');
 
     if (countGroup) countGroup.classList.remove('hidden');
     if (diffGroup) diffGroup.classList.remove('hidden');
     
-    // Reset structural state restrictions
+    // Reset structural interaction restrictions back to standard execution configurations
     questionCountInput.readOnly = false;
     questionCountInput.classList.remove('locked-input');
+    
     difficultyRadios.forEach(radio => {
         radio.disabled = false;
         radio.closest('div')?.querySelector('label')?.classList.remove('locked-label');
     });
+    
     customQuestionTypeSelect.disabled = false;
     customQuestionTypeSelect.classList.remove('locked-input');
 }
