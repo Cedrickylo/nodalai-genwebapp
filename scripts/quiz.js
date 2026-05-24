@@ -107,6 +107,14 @@ const selectedFilesContainer = document.getElementById('selected-files-container
 const selectedFilesList = document.getElementById('selected-files-list');
 const addMoreFilesInput = document.getElementById('add-more-files-input');
 const remedialQuizNameInput = document.getElementById('remedial-quiz-name');
+const clearFilesBtn = document.getElementById('clear-files-btn');
+
+// Handle clear files button click
+if (clearFilesBtn) {
+    clearFilesBtn.addEventListener('click', () => {
+        resetApp();
+    });
+}
 
 const { MAX_GENERATION_ATTEMPTS, IN_PROGRESS_QUIZ_KEY } = constants;
 
@@ -124,6 +132,9 @@ function renderSelectedFilesList() {
     selectedFilesList.querySelectorAll('.delete-file-btn').forEach(btn => {
         btn.addEventListener('click', handleDeleteFile);
     });
+    
+    // Hide file-actions div when documents are selected
+    fileActionsDiv.classList.add('hidden');
 }
 
 // Handle file deletion with confirmation

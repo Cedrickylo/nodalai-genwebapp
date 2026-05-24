@@ -137,7 +137,8 @@ export const elements = {
     shareLinkInput: document.getElementById('share-link-input'),
     copyShareLinkBtn: document.getElementById('copy-share-link-btn'),
     disableShareBtn: document.getElementById('disable-share-btn'),
-    shareExpiryDisplay: document.getElementById('share-expiry-display')
+    shareExpiryDisplay: document.getElementById('share-expiry-display'),
+    clearFilesBtn: document.getElementById('clear-files-btn')
 };
 
 export const state = {
