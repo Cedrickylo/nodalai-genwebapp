@@ -331,9 +331,37 @@ export async function refreshCooldownPanel() {
 }
 
 export function getGenerationCooldownWarning() {
-    const info = getGenerationCooldownInfo();
-    if (info.isAllowed) return null;
-    return `Maximum of ${MAX_GENERATIONS_PER_WINDOW} quizzes generated in ${Math.floor(GENERATION_WINDOW_MS / 3600000)} hours. Next allowed generation in ${formatMsDuration(info.nextAvailableInMs)}.`;
+    if (!state.generationLog || state.generationLog.length === 0) {
+        return null;
+    }
+
+    // Sort the log so the latest generation event timestamp is last
+    const sortedLog = [...state.generationLog].sort((a, b) => a - b);
+    const lastGenerationTime = sortedLog[sortedLog.length - 1];
+    
+    const now = Date.now();
+    const threeMinutesMs = 3 * 60 * 1000; // 3 minutes in milliseconds
+    const timeElapsed = now - lastGenerationTime;
+
+    // RULE 1: Strict 3-minute cooldown since the last creation
+    if (timeElapsed < threeMinutesMs) {
+        const remainingMs = threeMinutesMs - timeElapsed;
+        const remainingMinutes = Math.floor(remainingMs / 60000);
+        const remainingSeconds = Math.ceil((remainingMs % 60000) / 1000);
+        
+        if (remainingMinutes > 0) {
+            return `Please wait ${remainingMinutes}m ${remainingSeconds}s before generating another quiz.`;
+        }
+        return `Please wait ${remainingSeconds} seconds before generating another quiz.`;
+    }
+
+    // RULE 2: Fallback to your sliding multi-generation block window (Optional)
+    const activeLogsInWindow = sortedLog.filter(timestamp => (now - timestamp) < constants.GENERATION_WINDOW_MS);
+    if (activeLogsInWindow.length >= constants.MAX_GENERATIONS_PER_WINDOW) {
+        return `Hourly rate limit reached. You can make ${constants.MAX_GENERATIONS_PER_WINDOW} quizzes every 3 hours.`;
+    }
+
+    return null;
 }
 
 export function getUniqueName(baseName) {

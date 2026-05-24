@@ -425,8 +425,23 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         return;
     }
 
+    // 1. Show the loading screen and start the base animation
     showView('loading');
     startLoadingAnimation();
+
+    // 2. ADD THIS FIX: Stop the 500ms background text-ticker 
+    // so it stops overwriting our batch progress!
+    if (state.loadingInterval) {
+        clearInterval(state.loadingInterval);
+        state.loadingInterval = null;
+    }
+
+    // 3. Your batching loop can now cleanly write to the screen:
+    let allQs = [];
+    let qSet = new Set();
+    const batchSize = 5;
+    const totalBatches = Math.ceil(totalQ / batchSize);
+
 
     // 4. YOUR CUSTOM JSON PARSER (Kept Intact)
     function extractJsonArrayString(text) {
@@ -499,7 +514,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             }
 
             // Pause slightly between successful batches to respect Rate Limits
-            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 25500)); 
+            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 15500)); 
         }
 
         if (allQs.length === 0) {
