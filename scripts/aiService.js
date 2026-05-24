@@ -22,7 +22,7 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'openai/gpt-oss-20b',
+                model: 'groq/compound-mini',
                 input: `${systemPrompt}\n\n${userPrompt}`
             })
         });
