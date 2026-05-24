@@ -955,7 +955,6 @@ export function displayNextQuestion() {
     }
 
     const qData = state.questions[nextIdx];
-    const questionType = (qData.type || '').toString().trim().toLowerCase();
     progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${state.questions.length}`;
     scoreEl.textContent = `Score: ${state.score}`;
     questionTextEl.textContent = qData.question;
