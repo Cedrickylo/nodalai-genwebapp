@@ -699,6 +699,8 @@ export function setupCustomizeView(config, name) {
     if (rawDiff === 'custom') {
         customQuestionTypeSelect.value = config.customType || 'mixed';
     }
+
+    validateAllInputs();
 }
 
 
