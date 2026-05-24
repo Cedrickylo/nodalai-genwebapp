@@ -631,16 +631,38 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             }
 
             // Define allowed types to ensure consistency
+            // Define allowed types to ensure consistency
             const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
 
-            const sysP = `You are a quiz generator. Output ONLY a valid JSON array. Each object must have: "type", "question", "options", "answer", "explanation". Do not include any conversational filler.`;
+            // 1. IMPROVED SYSTEM PROMPT: Strict instructions against duplication and rephrasing
+            const sysP = `You are an expert quiz generator. Output ONLY a valid JSON array. Each object must have: "type", "question", "options", "answer", "explanation".
+CRITICAL RULES:
+1. Every question must cover completely distinct concepts from the text.
+2. DO NOT repeat concepts, rephrase existing questions, or create near-duplicates.
+3. Strictly check the "EXCLUDED_QUESTIONS" list provided by the user. Do not generate anything covering those identical topics or answers.
+Do not include any conversational filler or markdown wrappers outside the raw JSON array.`;
 
-            // Pass the qSet values to the AI so it knows what to avoid
-            const generatedTexts = Array.from(qSet).join(' | ');
+            // 2. CLEAN BULLETED LIST: Format previous questions clearly for the AI context
+            const excludedQuestionsList = Array.from(qSet)
+                .map((qText, index) => `${index + 1}. ${qText}`)
+                .join('\n');
 
-            //DO NOT generate these questions (already exist): ${generatedTexts}. Ensure the mix reflects the requested counts for multiple-choice, identification, and enumeration.
-            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 15000)}. Identification questions should have specific and concise answers. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} multiple-choice, ${Math.round(neededForBatch * (id/totalQ))} identification, ${Math.round(neededForBatch * (en/totalQ))} enumeration.`;
+            // 3. FIXED USER PROMPT: Injected the list directly into the string payload
+            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 20000)}. 
             
+Identification questions should have specific and concise answers. Output ONLY raw JSON. 
+
+Mix requirement for this batch: 
+- Multiple-choice: ${Math.round(neededForBatch * (mc/totalQ))}
+- Identification: ${Math.round(neededForBatch * (id/totalQ))}
+- Enumeration: ${Math.round(neededForBatch * (en/totalQ))}
+
+CRITICAL - EXCLUDED_QUESTIONS (Do not generate questions on these topics/phrases):
+${excludedQuestionsList || "None. This is the first batch."}
+
+Remember to output ONLY the raw JSON array string.`;
+            
+            apiCallCount++;
             apiCallCount++;
             let currentBatchSuccess = false;
             let singleBatchAttempts = 0;
