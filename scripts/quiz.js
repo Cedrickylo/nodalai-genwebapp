@@ -1476,6 +1476,10 @@ function resetStartViewUI() {
     editQuizNameInput.value = ''; 
     
     document.getElementById('customize-section').classList.add('hidden');
+    fileActionsDiv.classList.remove('hidden');
+    cancelCustomizeBtn.classList.add('hidden');
+    generateQuizBtn.textContent = 'Generate Quiz';
+    validateAllInputs();
     
     // =====================================================================
     // RESTORE LAYOUT CONTROLS AND DISPLAY STATE
