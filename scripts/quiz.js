@@ -1301,55 +1301,58 @@ export function resumeQuiz(savedData) {
     }
 }
 
-export async function generateShareableLink(quizKey) {
+async function generateShareableLink(quizKey) {
     const quiz = state.quizHistory[quizKey];
     if (!quiz) return;
 
+    // Cache original loading template messages so we can restore them later
+    const originalTitle = elements.loadingTitle ? elements.loadingTitle.textContent : 'Generating Quiz...';
+    const originalMessage = elements.loadingMessage ? elements.loadingMessage.textContent : 'Contacting AI...';
+
     try {
-        // 1. Get expiry duration from the dropdown
+        // 1. Trigger the loading view screen and display custom sharing context text
+        showView('loading');
+        if (elements.loadingTitle) elements.loadingTitle.textContent = 'Link Share Creation';
+        if (elements.loadingMessage) elements.loadingMessage.textContent = 'Please wait, generating link...';
+
+        // 2. Get expiry duration from the dropdown
         const days = parseInt(elements.shareExpirySelect.value);
         const expiryTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
         
-        // 2. Prepare payload with metadata
+        // 3. Prepare payload with metadata
         const shareId = 'quiz-' + Math.random().toString(36).substring(2, 10) + '.json';
         const sharePayload = { 
             n: quiz.fileName, 
             c: quiz.config, 
             q: quiz.questions,
-            expiryTimestamp: expiryTimestamp // We embed the expiry for later validation
+            expiryTimestamp: expiryTimestamp
         };
         
-        // 3. Save to Puter (root directory to avoid 404s)
+        // 4. Save to Puter filesystem (root directory to avoid 404s)
         await puter.fs.write(shareId, JSON.stringify(sharePayload));
         
-        // 4. Generate URL
+        // 5. Generate public access URL
         const publicUrl = await puter.fs.getReadURL(shareId);
         const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
         
-        // 5. Update local state
+        // 6. Update local state and commit persistence matrices
         quiz.share = {
             isShared: true,
             shareId: shareId,
             shareUrl: shareUrl,
             expiryTimestamp: expiryTimestamp
         };
-
-        // =====================================================================
-        // FIX: Commit changes to local database & timestamp so cloud sync registers it
-        // =====================================================================
+        
         localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
         localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
-        // =====================================================================
         
-        // 6. Sync and UI Update
+        // 7. Sync history changes with Puter cloud profiles
         await syncHistoryWithCloud();
-        refreshHistory(); // Force immediate UI list re-render to reflect share icon
+        refreshHistory();
         
-        // Transition to Step 2 (Management View)
+        // 8. Populate management fields for Step 2 UI view transition
         elements.shareLinkInput.value = shareUrl;
-        
-        const daysLeft = days; 
-        elements.shareExpiryDisplay.textContent = `Expires in ${daysLeft} days`;
+        elements.shareExpiryDisplay.textContent = `Expires in ${days} days`;
         elements.shareExpiryDisplay.className = 'text-xs text-blue-300 mt-1';
         
         navigateToShareStep('manage');
@@ -1358,6 +1361,13 @@ export async function generateShareableLink(quizKey) {
     } catch (err) {
         console.error('Generation Error:', err);
         showToast('Failed to generate link.', 4000, 'error');
+    } finally {
+        // Clean up the text configurations so standard AI generations don't show the share notice
+        if (elements.loadingTitle) elements.loadingTitle.textContent = originalTitle;
+        if (elements.loadingMessage) elements.loadingMessage.textContent = originalMessage;
+        
+        // Return view focus back to home dashboard list layer (the modal remains open)
+        showView('start');
     }
 }
 
