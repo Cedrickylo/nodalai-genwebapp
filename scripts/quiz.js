@@ -1310,7 +1310,14 @@ async function generateShareableLink(quizKey) {
     const originalMessage = elements.loadingMessage ? elements.loadingMessage.textContent : 'Contacting AI...';
 
     try {
-        // 1. Trigger the loading view screen and display custom sharing context text
+        // =====================================================================
+        // STEP 1: Hide the modal immediately so it doesn't block the loader screen
+        // =====================================================================
+        if (elements.shareModal) {
+            elements.shareModal.classList.add('hidden');
+        }
+
+        // Trigger the loading view screen and display custom sharing context text
         showView('loading');
         if (elements.loadingTitle) elements.loadingTitle.textContent = 'Link Share Creation';
         if (elements.loadingMessage) elements.loadingMessage.textContent = 'Please wait, generating link...';
@@ -1328,7 +1335,7 @@ async function generateShareableLink(quizKey) {
             expiryTimestamp: expiryTimestamp
         };
         
-        // 4. Save to Puter filesystem (root directory to avoid 404s)
+        // 4. Save to Puter filesystem
         await puter.fs.write(shareId, JSON.stringify(sharePayload));
         
         // 5. Generate public access URL
@@ -1355,18 +1362,28 @@ async function generateShareableLink(quizKey) {
         elements.shareExpiryDisplay.textContent = `Expires in ${days} days`;
         elements.shareExpiryDisplay.className = 'text-xs text-blue-300 mt-1';
         
+        // =====================================================================
+        // STEP 2: Re-reveal the share modal now that the link text is ready!
+        // =====================================================================
+        if (elements.shareModal) {
+            elements.shareModal.classList.remove('hidden');
+        }
         navigateToShareStep('manage');
         showToast('Link generated!', 3000, 'success');
         
     } catch (err) {
         console.error('Generation Error:', err);
         showToast('Failed to generate link.', 4000, 'error');
+        // Bring back the menu if an error occurs so the user isn't stuck
+        if (elements.shareModal) {
+            elements.shareModal.classList.remove('hidden');
+        }
     } finally {
         // Clean up the text configurations so standard AI generations don't show the share notice
         if (elements.loadingTitle) elements.loadingTitle.textContent = originalTitle;
         if (elements.loadingMessage) elements.loadingMessage.textContent = originalMessage;
         
-        // Return view focus back to home dashboard list layer (the modal remains open)
+        // Return background view focus back to main dashboard layer
         showView('start');
     }
 }
