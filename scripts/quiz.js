@@ -724,8 +724,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                     batchCounter++;
 
                 } catch (e) {
-                    console.error("Parsing Failed. AI output was:", cleanJson); // This tells you exactly what the AI sent
-                    console.error("Error Details:", e.message);
                     singleBatchAttempts++;
                     console.warn(`Batch ${batchCounter} error context on attempt ${singleBatchAttempts}:`, e.message);
                     
