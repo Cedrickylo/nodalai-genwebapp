@@ -552,28 +552,25 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
     // 4. CUSTOM JSON PARSER (Kept Intact)
     function extractJsonArrayString(text) {
-        const normalized = (typeof text === 'string' ? text : '').replace(/```json/gi, '').replace(/```/g, '').trim();
-        if (!normalized) return '';
-        if (normalized[0] === '[') return normalized;
-
-        const start = normalized.indexOf('[');
-        if (start === -1) return normalized;
-
-        let depth = 0, inString = false, escaped = false;
-        for (let i = start; i < normalized.length; i++) {
-            const char = normalized[i];
-            if (escaped) { escaped = false; continue; }
-            if (char === '\\') { escaped = true; continue; }
-            if (char === '"') { inString = !inString; continue; }
-            if (inString) continue;
-            if (char === '[') depth++;
-            else if (char === ']') {
-                depth--;
-                if (depth === 0) return normalized.slice(start, i + 1).trim();
-            }
-        }
-        return normalized;
+    if (!text || typeof text !== 'string') return '';
+    
+    // 1. Remove markdown blocks entirely
+    let normalized = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    
+    // 2. Find the VERY FIRST '['
+    const start = normalized.indexOf('[');
+    // 3. Find the LAST ']'
+    const end = normalized.lastIndexOf(']');
+    
+    // 4. Validate that we found both
+    if (start === -1 || end === -1 || end <= start) {
+        console.warn("Failed to find valid JSON array boundaries. Raw output:", text);
+        return '';
     }
+    
+    // 5. Slice only the valid portion
+    return normalized.substring(start, end + 1).trim();
+}
 
     // =====================================================================
     // 5. THE NEW BATCHING, EXACT PADDING & ADVANCED RECOVERY logic
@@ -648,13 +645,9 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             // Define allowed types to ensure consistency
             const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
 
-            const sysP = `You are a strict JSON-only quiz generator.
-            1. Output ONLY a valid JSON array.
-            2. For each question, the "type" MUST be exactly one of: ${JSON.stringify(allowedTypes)}.
-            3. DO NOT include markdown, explanations outside the JSON, or conversational filler.
-            4. Each object MUST contain: "type", "question", "options" (for multiple-choice only, null for others), "answer", and "explanation".
-            5. For "identification" type, "answer" should be a simple string.
-            6. For "enumeration" type, "answer" should be an array of strings.`;
+            const sysP = `You are a strict API. Output ONLY a valid JSON array. 
+            DO NOT include any introductory or concluding text, markdown code blocks, or conversational filler. 
+            Failure to output raw JSON will break the application.`;    
 
             // Pass the specific breakdown to the AI so it knows what to generate
             const userQ = `Document: """${state.fileContent.substring(0, 8000)}"""
