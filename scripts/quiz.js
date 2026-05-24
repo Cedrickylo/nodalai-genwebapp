@@ -902,11 +902,7 @@ export function displayNextQuestion() {
     let nextIdx = -1;
     let found = false;
 
-    const questionType = (qData.type || '').toString().trim().toLowerCase();
-    if (!['multiple-choice', 'identification', 'enumeration'].includes(questionType)) {
-        console.error("AI generated an invalid question type:", questionType);
-        // Maybe default to identification or skip
-    }
+
 
     if (!state.inSkippedRound) {
         while (state.currentShuffledIndexPos < state.shuffledIndices.length) {
@@ -958,6 +954,12 @@ export function displayNextQuestion() {
     progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${state.questions.length}`;
     scoreEl.textContent = `Score: ${state.score}`;
     questionTextEl.textContent = qData.question;
+
+    const questionType = (qData.type || '').toString().trim().toLowerCase();
+    if (!['multiple-choice', 'identification', 'enumeration'].includes(questionType)) {
+        console.error("AI generated an invalid question type:", questionType);
+        // Maybe default to identification or skip
+    }
 
     if (!state.inSkippedRound) {
         skipQuestionBtn.classList.remove('hidden');
