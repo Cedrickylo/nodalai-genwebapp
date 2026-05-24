@@ -645,8 +645,25 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                 `;
             }
 
-            const sysP = `You are a strict JSON-only quiz generator. Output ONLY a valid JSON array with ${neededForBatch} objects and nothing else. No markdown fences, no conversational text, no list numbers, no comments, no extra punctuation. Each object MUST include exactly these keys: "type", "question", "options", "answer", and "explanation". Each answer value must exactly match one of the option values.`;
-            const userQ = `Document: """${state.fileContent.substring(0, 8000)}"""\n\nGenerate ${neededForBatch} multiple-choice questions from the document. Output must be only a valid JSON array and nothing else.`;
+            // Define allowed types to ensure consistency
+            const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
+
+            const sysP = `You are a strict JSON-only quiz generator.
+            1. Output ONLY a valid JSON array.
+            2. For each question, the "type" MUST be exactly one of: ${JSON.stringify(allowedTypes)}.
+            3. DO NOT include markdown, explanations outside the JSON, or conversational filler.
+            4. Each object MUST contain: "type", "question", "options" (for multiple-choice only, null for others), "answer", and "explanation".
+            5. For "identification" type, "answer" should be a simple string.
+            6. For "enumeration" type, "answer" should be an array of strings.`;
+
+            // Pass the specific breakdown to the AI so it knows what to generate
+            const userQ = `Document: """${state.fileContent.substring(0, 8000)}"""
+            Generate exactly ${neededForBatch} questions based on this document.
+            Ensure the mix reflects: 
+            - Multiple Choice: ${Math.round(neededForBatch * (mc/totalQ))}
+            - Identification: ${Math.round(neededForBatch * (id/totalQ))}
+            - Enumeration: ${Math.round(neededForBatch * (en/totalQ))}
+            Output only the JSON array.`;
 
             apiCallCount++;
             let currentBatchSuccess = false;
@@ -885,6 +902,12 @@ export function displayNextQuestion() {
     let nextIdx = -1;
     let found = false;
 
+    const questionType = (qData.type || '').toString().trim().toLowerCase();
+    if (!['multiple-choice', 'identification', 'enumeration'].includes(questionType)) {
+        console.error("AI generated an invalid question type:", questionType);
+        // Maybe default to identification or skip
+    }
+
     if (!state.inSkippedRound) {
         while (state.currentShuffledIndexPos < state.shuffledIndices.length) {
             const origIdx = state.shuffledIndices[state.currentShuffledIndexPos];
@@ -972,7 +995,7 @@ export function displayNextQuestion() {
             Unknown question type: ${qData.type}
         </div>
     `;
-}
+    }
 }
 
 export function skipQuestion() {
