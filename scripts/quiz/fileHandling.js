@@ -319,7 +319,7 @@ export function handleQuizImport(event) {
     reader.readAsText(file);
 }
 
-export function resumeQuiz(savedData) {
+export async function resumeQuiz(savedData) {
     state.questions = savedData.questions;
     state.currentQuizConfig = savedData.config;
     state.currentQuizKey = savedData.key;
