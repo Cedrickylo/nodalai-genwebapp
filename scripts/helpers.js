@@ -635,19 +635,23 @@ export function setupCustomizeView(config, name) {
     customizeToggleIcon.classList.add('rotate-180');
 
     // =====================================================================
-    // CLEAN CUSTOMIZATION UI OVERHAUL
-    // Hide the input fields blocks and show a clean text information badge
+    // CLEAN CUSTOMIZATION UI OVERHAUL (HIDES INACTIVE CONTROLS)
     // =====================================================================
     
-    // 1. Target parent component group rows to hide them from the view grid
+    // 1. Locate the top-most wrapper layout rows for both inputs
     const countGroup = document.getElementById('question-count-group') || questionCountInput.closest('.mb-4, .space-y-4, div');
-    const diffGroup = difficultyRadios[0]?.closest('.mb-4, .space-y-4, div');
     
+    // Target the main wrapper form block container enclosing the difficulty option items
+    const diffGroup = document.getElementById('difficulty-group') || 
+                      document.querySelector('.difficulty-section') || 
+                      difficultyRadios[0]?.closest('.mb-6, .mb-4, .space-y-4, div');
+    
+    // Hide all interactive configuration selectors from the form layout grid
     if (countGroup) countGroup.classList.add('hidden');
     if (diffGroup) diffGroup.classList.add('hidden');
     if (customOptionsDiv) customOptionsDiv.classList.add('hidden');
 
-    // 2. Parse values to produce human-readable status labels
+    // 2. Parse configuration attributes to build clean text summary labels
     const qCount = config.count || 10;
     const rawDiff = config.difficulty || 'easy';
     const capitalizedDiff = rawDiff.charAt(0).toUpperCase() + rawDiff.slice(1);
@@ -660,13 +664,13 @@ export function setupCustomizeView(config, name) {
         else if (customType === 'enumeration') typeText = 'Enumeration Only';
     }
 
-    // 3. Remove any previous overview banner badge if it exists to avoid duplicates
+    // 3. Prevent duplication by purging an existing summary banner instance
     document.getElementById('quiz-custom-summary-banner')?.remove();
 
-    // 4. Create and insert a beautiful metadata text row panel component
+    // 4. Construct and inject the custom metadata overview row container widget
     const summaryBanner = document.createElement('div');
     summaryBanner.id = 'quiz-custom-summary-banner';
-    summaryBanner.className = 'w-full bg-gray-800/80 border border-gray-700/60 rounded-xl p-4 mb-5 flex flex-wrap gap-4 items-center justify-around text-center shadow-md';
+    summaryBanner.className = 'w-full bg-gray-800/80 border border-gray-700/60 rounded-xl p-4 mb-5 flex flex-wrap gap-4 items-center justify-around text-center shadow-md animate-fade-in';
     summaryBanner.innerHTML = `
         <div class="flex flex-col px-2">
             <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Questions Count</span>
@@ -684,10 +688,10 @@ export function setupCustomizeView(config, name) {
         </div>
     `;
 
-    // Inject this banner right at the top of your customization form area
+    // Put our visual summary card right at the very top of your options panel view frame
     customizeContent.insertBefore(summaryBanner, customizeContent.firstChild);
 
-    // Keep backup values assigned to your native elements so backend calculations remain intact
+    // Keep form background element states assigned accurately so generation requests remain pristine
     questionCountInput.value = qCount;
     difficultyRadios.forEach(radio => {
         radio.checked = radio.value === rawDiff;
@@ -695,7 +699,7 @@ export function setupCustomizeView(config, name) {
     if (rawDiff === 'custom') {
         customQuestionTypeSelect.value = config.customType || 'mixed';
     }
-}   
+}
 
 
 
