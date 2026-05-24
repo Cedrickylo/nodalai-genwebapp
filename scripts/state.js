@@ -24,7 +24,7 @@ export const elements = {
     quizSyncDone: document.querySelector('#quiz-sync-indicator .sync-icon-done'),
     quizSyncLoad: document.querySelector('#quiz-sync-indicator .sync-icon-loading'),
     fileUploadInput: document.getElementById('file-upload-input'),
-    addmorefilesinput: document.getElementById('add-more-files-input'),?
+    addmorefilesinput: document.getElementById('add-more-files-input'),
     importQuizInput: document.getElementById('import-quiz-input'),
     fileNameDisplay: document.getElementById('file-name'),
     generateQuizBtn: document.getElementById('generate-quiz-btn'),
