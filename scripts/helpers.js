@@ -191,25 +191,39 @@ export async function syncHistoryWithCloud(manual = false) {
         if (manual) showToast('Sign in to Puter to sync history.', 4000, 'warning');
         return;
     }
+    
     if (manual) showToast('Started syncing...');
     setSyncing(true);
 
     try {
+        // 1. Get Cloud Data
         const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
         const cloudData = cloudRaw ? JSON.parse(cloudRaw) : { items: {}, updatedAt: 0 };
-        const localUpdatedAt = parseInt(localStorage.getItem(DB_NAME + '_ts') || '0');
 
-        if (localUpdatedAt > cloudData.updatedAt) {
-            await puter.kv.set(CLOUD_SYNC_KEY, JSON.stringify({ items: state.quizHistory, updatedAt: localUpdatedAt }));
-        } else if (cloudData.updatedAt > localUpdatedAt) {
-            state.quizHistory = cloudData.items;
-            localStorage.setItem(DB_NAME, JSON.stringify(state.quizHistory));
-            localStorage.setItem(DB_NAME + '_ts', cloudData.updatedAt.toString());
-            refreshHistory();
-        }
+        // 2. Get Local Data
+        const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
+        
+        // 3. MERGE: Combine local items with cloud items
+        // The spread operator {...a, ...b} ensures if keys overlap, local wins (or cloud, whichever you put last)
+        const mergedItems = { ...cloudData.items, ...localItems };
+        const now = Date.now();
+
+        // 4. Update State and LocalStorage
+        state.quizHistory = mergedItems;
+        localStorage.setItem(DB_NAME, JSON.stringify(mergedItems));
+        localStorage.setItem(DB_NAME + '_ts', now.toString());
+
+        // 5. Push the unified history back to the Cloud
+        await puter.kv.set(CLOUD_SYNC_KEY, JSON.stringify({ 
+            items: mergedItems, 
+            updatedAt: now 
+        }));
+
+        refreshHistory();
         if (manual) showToast('Done syncing!');
     } catch (e) {
         console.error('Sync error', e);
+        showToast('Sync failed. Please check your connection.', 3000, 'error');
     } finally {
         setSyncing(false);
     }
