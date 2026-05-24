@@ -932,6 +932,7 @@ export function displayNextQuestion() {
     }
 
     const qData = state.questions[nextIdx];
+    const questionType = (qData.type || '').toString().trim().toLowerCase();
     progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${state.questions.length}`;
     scoreEl.textContent = `Score: ${state.score}`;
     questionTextEl.textContent = qData.question;
@@ -952,19 +953,26 @@ export function displayNextQuestion() {
             optsCont.appendChild(btn);
         });
         answerAreaEl.appendChild(optsCont);
-    } else if (qData.type === 'identification') {
+    } else if (questionType  === 'identification') {
         answerAreaEl.innerHTML = `<input type="text" id="id-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"><button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>`;
         const idIn = document.getElementById('id-ans');
         document.getElementById('submit-btn').onclick = () => { checkAnswer(idIn.value); };
         idIn.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(e.target.value); });
         idIn.focus();
-    } else if (qData.type === 'enumeration') {
+    } else if (questionType === 'enumeration') {
         answerAreaEl.innerHTML = `<textarea id="en-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" rows="4" placeholder="List items, one per line..."></textarea><button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>`;
         const enIn = document.getElementById('en-ans');
         document.getElementById('submit-btn').onclick = () => { checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); };
         enIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); } });
         enIn.focus();
     }
+    else {
+    answerAreaEl.innerHTML = `
+        <div class="text-red-400 bg-red-900/20 border border-red-500 rounded-lg p-4">
+            Unknown question type: ${qData.type}
+        </div>
+    `;
+}
 }
 
 export function skipQuestion() {
