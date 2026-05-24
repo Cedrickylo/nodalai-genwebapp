@@ -60,7 +60,8 @@ import {
     handleHistoryClick,
     exportQuiz,
     exportQuizFromHistory,
-    generateShareableLink
+    generateShareableLink,
+    showAllHistoryFullScreen
 } from './quiz/quizHistory.js';
 
 import { 
@@ -96,7 +97,7 @@ export function attachQuizEventListeners() {
         homeBtn,
         saveQuizBtn,
         historyList,
-        clearHistoryBtn,
+        showAllHistoryBtn,
         syncCloudBtn,
         timeLimitToggle,
         timePresetRadios,
@@ -201,7 +202,18 @@ export function attachQuizEventListeners() {
     
     saveQuizBtn.addEventListener('click', saveCurrentQuiz);
     historyList.addEventListener('click', handleHistoryClick);
-    clearHistoryBtn.addEventListener('click', clearHistory);
+    showAllHistoryBtn?.addEventListener('click', () => showAllHistoryFullScreen());
+    // Full-screen history back button
+    elements.historyFullscreenBackBtn?.addEventListener('click', () => showView('start'));
+    // Mobile bottom nav
+    elements.mobileNavHomeBtn?.addEventListener('click', () => {
+        showView('start');
+        // ensure we scroll to top when returning home on mobile
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    elements.mobileNavHistoryBtn?.addEventListener('click', () => {
+        showAllHistoryFullScreen();
+    });
     syncCloudBtn.addEventListener('click', async () => {
         const { syncHistoryWithCloud } = await import('./helpers.js');
         syncHistoryWithCloud(true);
@@ -209,9 +221,72 @@ export function attachQuizEventListeners() {
     
     timeLimitToggle.addEventListener('change', handleTimeToggle);
     timePresetRadios.forEach(r => r.addEventListener('change', handleTimePresetChange));
-    customTimeLimitInput.addEventListener('input', validateAllInputs);
-    attemptLimitToggle.addEventListener('change', handleAttemptToggle);
-    attemptLimitInput.addEventListener('input', validateAllInputs);
+            // Mobile nav active state helper
+            function setMobileNavActive(key) {
+                const homeBtn = elements.mobileNavHomeBtn;
+                const histBtn = elements.mobileNavHistoryBtn;
+                if (homeBtn) {
+                    homeBtn.classList.toggle('text-white', key === 'home');
+                    homeBtn.classList.toggle('bg-blue-600', key === 'home');
+                    homeBtn.classList.toggle('text-gray-300', key !== 'home');
+                    homeBtn.setAttribute('aria-current', key === 'home' ? 'true' : 'false');
+                }
+                if (histBtn) {
+                    histBtn.classList.toggle('text-white', key === 'history');
+                    histBtn.classList.toggle('bg-blue-600', key === 'history');
+                    histBtn.classList.toggle('text-gray-300', key !== 'history');
+                    histBtn.setAttribute('aria-current', key === 'history' ? 'true' : 'false');
+                }
+            }
+
+            // Desktop nav active state helper
+            function setDesktopNavActive(key) {
+                const map = {
+                    home: elements.desktopNavHomeBtn,
+                    history: elements.desktopNavHistoryBtn,
+                    help: elements.desktopNavHelpBtn,
+                    about: elements.desktopNavAboutBtn,
+                    account: elements.desktopNavAccountBtn
+                };
+                Object.keys(map).forEach(k => {
+                    const btn = map[k];
+                    if (!btn) return;
+                    btn.classList.toggle('text-white', k === key);
+                    btn.classList.toggle('bg-blue-600', k === key);
+                    btn.classList.toggle('text-gray-300', k !== key);
+                    btn.setAttribute('aria-current', k === key ? 'true' : 'false');
+                });
+            }
+
+            elements.mobileNavHomeBtn?.addEventListener('click', () => {
+                setMobileNavActive('home'); setDesktopNavActive('home');
+                showView('start');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            elements.mobileNavHistoryBtn?.addEventListener('click', () => {
+                setMobileNavActive('history'); setDesktopNavActive('history');
+                showAllHistoryFullScreen();
+            });
+            // Menu open/close (mobile)
+            elements.mobileNavMenuBtn?.addEventListener('click', () => {
+                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.remove('hidden');
+            });
+            elements.mobileMenuCloseBtn?.addEventListener('click', () => {
+                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
+            });
+            elements.mobileMenuBackdrop?.addEventListener('click', () => {
+                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
+            });
+            elements.mobileMenuHelpBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showToast('Help: For assistance, visit docs or contact support.'); });
+            elements.mobileMenuAboutBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showToast('About: Nodal AI v1.'); });
+            elements.mobileMenuAccountBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); elements.accountModal?.classList.remove('hidden'); });
+
+            // Desktop nav handlers
+            elements.desktopNavHomeBtn?.addEventListener('click', () => { setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
+            elements.desktopNavHistoryBtn?.addEventListener('click', () => { setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
+            elements.desktopNavHelpBtn?.addEventListener('click', () => { setDesktopNavActive('help'); showToast('Help: For assistance, visit docs or contact support.'); });
+            elements.desktopNavAboutBtn?.addEventListener('click', () => { setDesktopNavActive('about'); showToast('About: Nodal AI v1.'); });
+            elements.desktopNavAccountBtn?.addEventListener('click', () => { setDesktopNavActive('account'); elements.accountModal?.classList.remove('hidden'); });
     
     cancelCustomizeBtn.addEventListener('click', async () => {
         const { hasUnsavedChanges, setupCustomizeView } = await import('./helpers.js');

@@ -21,13 +21,37 @@
         <div id="start-view" class="view active">
              <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative pt-16 sm:pt-12">
                 <div class="absolute top-4 right-4 flex items-center gap-3">
-                    <button id="puter-auth-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition shadow-md flex items-center gap-1.5">
+                    <button id="puter-auth-btn" class="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition shadow-md flex items-center gap-1.5">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         <span id="auth-btn-text">Puter Login</span>
                     </button>
                 </div>
 
+                <!-- Mobile Menu Modal -->
+                <div id="mobile-menu-modal" class="hidden fixed inset-0 z-60 flex items-end md:hidden">
+                    <div class="w-full bg-black/40 backdrop-blur-sm" id="mobile-menu-backdrop"></div>
+                    <div class="w-full bg-gray-800 p-4 rounded-t-xl shadow-xl border-t border-gray-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Menu</h3>
+                            <button id="mobile-menu-close-btn" class="text-gray-400 hover:text-white">Close</button>
+                        </div>
+                        <div class="space-y-3">
+                            <button id="mobile-menu-help-btn" class="w-full text-left px-4 py-3 rounded-md bg-gray-700/30 hover:bg-gray-700 transition-colors">Help</button>
+                            <button id="mobile-menu-about-btn" class="w-full text-left px-4 py-3 rounded-md bg-gray-700/30 hover:bg-gray-700 transition-colors">About</button>
+                            <button id="mobile-menu-account-btn" class="w-full text-left px-4 py-3 rounded-md bg-gray-700/30 hover:bg-gray-700 transition-colors">Account</button>
+                        </div>
+                    </div>
+                </div>
+
                 <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
+                <!-- Desktop Navigation -->
+                <div id="desktop-top-nav" class="hidden md:flex justify-center gap-3 mt-3">
+                    <button id="desktop-nav-home-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">Home</button>
+                    <button id="desktop-nav-history-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">History</button>
+                    <button id="desktop-nav-help-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">Help</button>
+                    <button id="desktop-nav-about-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">About</button>
+                    <button id="desktop-nav-account-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">Account</button>
+                </div>
                 <p id="start-subtitle" class="text-gray-400 mb-8 text-center">Transform your documents into tailored assessments instantly.</p>
                 
                 <div id="file-actions" class="grid grid-cols-2 gap-4 mb-6">
@@ -155,7 +179,7 @@
                 <button id="cancel-customize-btn" class="hidden w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Cancel</button>
                 <p id="status-message" class="text-center text-gray-400 mt-4 text-sm h-5"></p>
 
-                <div id="history-section" class="mt-8">
+                <div id="history-section" class="mt-8 hidden md:block">
                      <div class="flex justify-between items-center mb-4 border-t border-gray-700 pt-6">
                         <h3 class="text-lg font-semibold text-gray-300">Quiz History</h3>
                         <div class="flex items-center gap-3">
@@ -167,10 +191,107 @@
                                 <svg class="stroke-current text-blue-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 17.5A4.5 4.5 0 0 0 15.5 13H14a5 5 0 0 0-10 0 4.5 4.5 0 0 0 0 9h11.5A4.5 4.5 0 0 0 20 17.5Z"/></svg>
                                 <span class="hidden sm:inline">Cloud Sync</span>
                             </button>
-                            <button id="clear-history-btn" class="text-xs text-gray-400 hover:text-red-400 transition-colors">Clear History</button>
+                            <button id="show-all-history-btn" class="text-xs text-gray-400 hover:text-gray-200 transition-colors">Show All</button>
                         </div>
                      </div>
                      <div id="history-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+
+                <!-- Full-screen History View (navigable page, not overlay) -->
+                <div id="history-fullscreen-view" class="view">
+                    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
+                        <div class="absolute top-4 left-4">
+                            <button id="history-fullscreen-back-btn" class="hidden md:inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
+                        </div>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center">Full Quiz History</h2>
+                        <p class="text-sm text-gray-400 text-center mb-6">All generated quizzes across time.</p>
+                        <div id="history-full-list" class="space-y-3 max-h-[70vh] overflow-y-auto mt-4 pr-2"></div>
+                    </div>
+                </div>
+
+                <!-- Help View (navigable page) -->
+                <div id="help-view" class="view">
+                    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
+                        <div class="absolute top-4 left-4">
+                            <button id="help-back-btn" class="hidden md:inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
+                        </div>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center">Help</h2>
+                        <p class="text-sm text-gray-400 text-center mb-6">How to use Nodal AI Quiz Generator</p>
+                        <div class="prose prose-invert max-w-none text-sm text-gray-200">
+                            <h3>Quick Steps</h3>
+                            <ol class="list-decimal list-inside mb-4">
+                                <li>Select or upload documents using "Select Documents".</li>
+                                <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
+                                <li>Click "Generate Quiz" to create questions from your documents.</li>
+                                <li>Take the quiz, review results, and export or save to the cloud.</li>
+                            </ol>
+
+                            <h3>What this site does</h3>
+                            <p>It analyzes uploaded documents and generates assessment-style questions (multiple choice, identification, enumeration, or a mix) using on-device logic and cloud helpers. You can save quizzes to your Puter account or export them locally.</p>
+
+                            <h3>Limitations & Notes</h3>
+                            <ul class="list-disc list-inside mb-4">
+                                <li>Quality of questions depends on the clarity and structure of the source document.</li>
+                                <li>Processing large or scanned PDFs may be slower and may not extract text perfectly.</li>
+                                <li>There is a rate limit on quiz generation to prevent abuse (see account modal).</li>
+                                <li>Some features rely on Puter cloud services; offline behavior is limited.</li>
+                            </ul>
+
+                            <h3>Troubleshooting</h3>
+                            <p>If uploads fail or generation stalls, try re-uploading a simpler file, check your internet connection for cloud sync features, or refresh the page.</p>
+
+                            <h3>Privacy</h3>
+                            <p>Uploaded documents may be temporarily processed by Puter services when cloud features are enabled. Please avoid uploading sensitive personal data.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About View (navigable page) -->
+                <div id="about-view" class="view">
+                    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
+                        <div class="absolute top-4 left-4">
+                            <button id="about-back-btn" class="hidden md:inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
+                        </div>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center">About</h2>
+                        <p class="text-sm text-gray-400 text-center mb-6">Purpose, credits, and Terms of Service</p>
+                        <div class="prose prose-invert max-w-none text-sm text-gray-200">
+                            <h3>Purpose</h3>
+                            <p>Nodal AI Quiz Generator is a lightweight tool to convert learning materials into practice quizzes quickly. It's designed for educators and learners to create formative assessments from documents.</p>
+
+                            <h3>Creator</h3>
+                            <p>Created by the Nodal AI team (or contributor). For inquiries, contact the project owner listed in the repository.</p>
+
+                            <h3>Services & Credits</h3>
+                            <p>This project uses the following third-party services and libraries:</p>
+                            <ul class="list-disc list-inside mb-4">
+                                <li>Puter.js — cloud sync & user accounts (credits apply to some operations).</li>
+                                <li>mammoth.js — Word document parsing.</li>
+                                <li>pdf.js — PDF text extraction.</li>
+                                <li>tone.js — audio feedback (optional).</li>
+                                <li>crypto-js and lz-string — for local data handling and compression.</li>
+                            </ul>
+
+                            <h3>Terms of Service</h3>
+                            <p class="text-xs text-gray-400">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
+                            <p class="text-xs text-gray-400">For full terms, see the project repository or contact the developer for the official TOS document.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Bottom Navigation -->
+                <div id="mobile-bottom-nav" class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-gray-900/80 border border-gray-700 rounded-xl p-2 flex items-center justify-around md:hidden z-50">
+                    <button id="mobile-nav-home-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span class="text-xs">Home</span>
+                    </button>
+                    <button id="mobile-nav-history-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
+                                            <button id="mobile-nav-menu-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                                                <span class="text-xs">Menu</span>
+                                            </button>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"></path><path d="M21 21v-5h-5"></path><path d="M21 8a9 9 0 1 0 0 8"></path></svg>
+                        <span class="text-xs">History</span>
+                    </button>
                 </div>
 
                 <div id="api-key-editor" class="hidden mt-6 pt-4 border-t border-gray-700/50">

@@ -9,7 +9,7 @@ const {
     quizSyncLoad,
     statusMessage,
     historyList,
-    clearHistoryBtn,
+    showAllHistoryBtn,
     toastEl,
     toastMessageEl,
     startSubtitle,
@@ -570,13 +570,22 @@ export function refreshHistory() {
     
     if (sorted.length === 0) {
         elements.historyList.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
-        elements.clearHistoryBtn.classList.add('hidden');
+        elements.showAllHistoryBtn?.classList.add('hidden');
         return;
     }
-    
-    elements.clearHistoryBtn.classList.remove('hidden');
-    
-    sorted.forEach(([key, data]) => {
+
+    // If on desktop (>= 768px) only show the 3 most recent items in the compact history list
+    const isDesktop = window.innerWidth >= 768;
+    const displayItems = isDesktop ? sorted.slice(0, 3) : sorted;
+
+    // Show the "Show All" button only on desktop when there are more than 3 items
+    if (isDesktop && sorted.length > 3) {
+        elements.showAllHistoryBtn?.classList.remove('hidden');
+    } else {
+        elements.showAllHistoryBtn?.classList.add('hidden');
+    }
+
+    displayItems.forEach(([key, data]) => {
         const item = document.createElement('div');
         item.className = 'p-3 bg-gray-700/50 rounded-lg flex justify-between items-center';
         
