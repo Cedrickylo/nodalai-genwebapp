@@ -554,22 +554,30 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     function extractJsonArrayString(text) {
     if (!text || typeof text !== 'string') return '';
     
-    // 1. Remove Markdown code blocks
+    // 1. Remove common markdown artifacts
     let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
     
     // 2. Find the index of the first '[' and the LAST ']'
-    // This effectively cuts off "Here is your JSON" (at the start) 
-    // and "Let me know if you need more" (at the end)
+    // This ignores everything before the first [ and after the last ]
     const startIndex = cleaned.indexOf('[');
     const endIndex = cleaned.lastIndexOf(']');
     
     if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-        console.error("Critical: Could not isolate JSON array from AI response:", text);
+        console.error("Critical: Could not isolate JSON array. AI output:", text);
         return '';
     }
     
-    return cleaned.substring(startIndex, endIndex + 1).trim();
+    // 3. Extract just the array
+    const extracted = cleaned.substring(startIndex, endIndex + 1).trim();
+    
+    // 4. Final safety check: ensure it actually looks like an array
+    if (!extracted.startsWith('[') || !extracted.endsWith(']')) {
+        console.error("Critical: Extracted text is malformed:", extracted);
+        return '';
     }
+    
+    return extracted;
+}
 
     // =====================================================================
     // 5. THE NEW BATCHING, EXACT PADDING & ADVANCED RECOVERY logic
@@ -646,10 +654,10 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
             const sysP = `You are a data generation API. 
             Rules:
-            1. Output ONLY a raw JSON array.
-            2. DO NOT include any conversational text, introductory remarks, or concluding sentences.
-            3. DO NOT use markdown code blocks (no \`\`\`json).
-            4. If the JSON is not pure, the system will crash. Return only the array.`; 
+            1. You MUST output ONLY valid JSON.
+            2. The output MUST start with '[' and end with ']'.
+            3. Do not include any conversational filler (no "Here is the JSON", no "I hope this helps", no concluding sentences).
+            4. If you include any text outside the '[' and ']' characters, the system will CRASH.`;
 
             // Pass the qSet values to the AI so it knows what to avoid
             const generatedTexts = Array.from(qSet).join(' | ');
