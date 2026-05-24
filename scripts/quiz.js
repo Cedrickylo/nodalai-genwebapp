@@ -1504,6 +1504,7 @@ async function generateShareableLink(quizKey) {
 }
 
 export async function handleHistoryClick(e) {
+    console.log("Button clicked:", e.target); // Check if this logs
     if (e.target.tagName === 'BUTTON') {
         const key = e.target.dataset.key;
         const action = e.target.dataset.action;

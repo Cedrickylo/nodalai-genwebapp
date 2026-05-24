@@ -884,9 +884,20 @@ export function openShareModal(quizKey) {
 }
 
 export function closeShareModal() {
-    elements.shareModal.classList.add('hidden');
-    state.currentShareQuizKey = null;
-    elements.statusMessage.textContent = ''; // clear any toasts
+    // 1. Hide the modal container
+    if (elements.shareModal) {
+        elements.shareModal.classList.add('hidden');
+    }
+
+    // 2. IMPORTANT: If you have an overlay div (the dark background), 
+    // make sure it is hidden too, or it will block the entire page.
+    const shareOverlay = document.getElementById('share-modal-overlay'); // Adjust ID as needed
+    if (shareOverlay) {
+        shareOverlay.classList.add('hidden');
+    }
+    
+    // 3. Reset any internal modal state
+    console.log("Share modal closed and state reset.");
 }
 
 export function navigateToShareStep(step) {
