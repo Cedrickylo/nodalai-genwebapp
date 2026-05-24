@@ -646,17 +646,19 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
 
             const sysP = `You are a strict API. Output ONLY a valid JSON array. 
-            DO NOT include any introductory or concluding text, markdown code blocks, or conversational filler. 
-            Failure to output raw JSON will break the application.`;    
+            Rules:
+            1. Do not include any conversational text or markdown.
+            2. Every question must be 100% unique. 
+            3. If I have asked for batches, do not repeat questions from previous batches.
+            4. If you run out of unique topics, ask about sub-details or alternative perspectives.`;
 
-            // Pass the specific breakdown to the AI so it knows what to generate
+            // Pass the qSet values to the AI so it knows what to avoid
+            const generatedTexts = Array.from(qSet).join(' | ');
+
             const userQ = `Document: """${state.fileContent.substring(0, 8000)}"""
-            Generate exactly ${neededForBatch} questions based on this document.
-            Ensure the mix reflects: 
-            - Multiple Choice: ${Math.round(neededForBatch * (mc/totalQ))}
-            - Identification: ${Math.round(neededForBatch * (id/totalQ))}
-            - Enumeration: ${Math.round(neededForBatch * (en/totalQ))}
-            Output only the JSON array.`;
+            Generate exactly ${neededForBatch} unique questions.
+            DO NOT generate these questions (already exist): ${generatedTexts}
+            Mix: ${Math.round(neededForBatch * (mc/totalQ))} MC, ${Math.round(neededForBatch * (id/totalQ))} ID, ${Math.round(neededForBatch * (en/totalQ))} EN.`;
 
             apiCallCount++;
             let currentBatchSuccess = false;
@@ -695,16 +697,33 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                     const cleanJson = extractJsonArrayString(rawText);
                     
                     const parsed = JSON.parse(cleanJson);
+
                     if (!Array.isArray(parsed)) throw new Error("Not an array");
 
+                    // Use a temporary counter to track how many UNIQUE items we actually got
+                    let addedInThisBatch = 0;
+
                     parsed.forEach(q => {
-                        if (q && q.question && q.answer && q.type && !qSet.has(q.question)) {
+                        // Normalize text for strict comparison
+                        const qText = (q.question || '').trim().toLowerCase();
+                        
+                        // Check for validity AND existence in the master qSet
+                        if (q && q.question && q.answer && q.type && !qSet.has(qText)) {
                             allQs.push(q);
-                            qSet.add(q.question);
+                            qSet.add(qText); // Add to the master set
+                            addedInThisBatch++;
+                        } else {
+                            console.warn("Duplicate or invalid question ignored:", q.question);
                         }
                     });
+
+                    // IMPORTANT: If the AI was lazy and gave us all duplicates, 
+                    // the loop will continue naturally because allQs.length won't have increased.
+                    // The next 'neededForBatch' calculation will automatically request more to compensate.
+
                     currentBatchSuccess = true;
                     batchCounter++;
+
                 } catch (e) {
                     singleBatchAttempts++;
                     console.warn(`Batch ${batchCounter} error context on attempt ${singleBatchAttempts}:`, e.message);
