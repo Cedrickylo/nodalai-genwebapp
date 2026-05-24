@@ -110,6 +110,99 @@ const remedialQuizNameInput = document.getElementById('remedial-quiz-name');
 
 const { MAX_GENERATION_ATTEMPTS, IN_PROGRESS_QUIZ_KEY } = constants;
 
+// Render the selected files list with delete buttons
+function renderSelectedFilesList() {
+    if (!state.currentFiles || state.currentFiles.length === 0) {
+        selectedFilesList.innerHTML = '';
+        return;
+    }
+    selectedFilesList.innerHTML = state.currentFiles
+        .map((f, idx) => `<li class="flex items-center gap-2 group"><button class="delete-file-btn text-red-400 hover:text-red-300 font-bold text-lg transition flex-shrink-0" data-file-index="${idx}" title="Delete this file">×</button><span class="truncate">• ${f.name}</span></li>`)
+        .join('');
+    
+    // Attach delete handlers
+    selectedFilesList.querySelectorAll('.delete-file-btn').forEach(btn => {
+        btn.addEventListener('click', handleDeleteFile);
+    });
+}
+
+// Handle file deletion with confirmation
+async function handleDeleteFile(event) {
+    event.stopPropagation();
+    const fileIndex = parseInt(event.target.getAttribute('data-file-index'), 10);
+    const fileName = state.currentFiles[fileIndex]?.name || 'this file';
+    
+    const confirmed = await customConfirm(`Remove "${fileName}" from the list?`);
+    if (!confirmed) return;
+    
+    // Remove the file from currentFiles
+    state.currentFiles.splice(fileIndex, 1);
+    
+    // If no files left, reset the UI
+    if (state.currentFiles.length === 0) {
+        resetApp();
+        return;
+    }
+    
+    // Re-render the list
+    renderSelectedFilesList();
+    
+    // Update file content by re-processing remaining files
+    statusMessage.textContent = `Analyzing ${state.currentFiles.length} document(s)...`;
+    statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
+    state.fileContent = '';
+    state.fileHash = '';
+    validateAllInputs();
+    
+    // Re-process all files
+    try {
+        let combinedText = '';
+        for (const file of state.currentFiles) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            let txt = '';
+            if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json'].includes(ext)) {
+                txt = await file.text();
+            } else if (ext === 'docx') {
+                const ab = await file.arrayBuffer();
+                const res = await mammoth.extractRawText({ arrayBuffer: ab });
+                txt = res.value;
+            } else if (ext === 'pdf') {
+                const ab = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(ab).promise;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const tc = await page.getTextContent();
+                    txt += tc.items.map(it => it.str).join(' ') + '\n';
+                }
+            } else {
+                txt = await file.text();
+            }
+            combinedText += `\n[SOURCE: ${file.name}]\n${txt}\n`;
+        }
+        
+        if (combinedText.trim().length < 10) {
+            throw new Error('Not enough text extracted.');
+        }
+        
+        state.fileContent = combinedText;
+        state.fileHash = CryptoJS.SHA256(state.fileContent).toString();
+        statusMessage.textContent = 'Documents ready!';
+        statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+        
+        // Update the file name if needed
+        if (state.currentFiles.length === 1) {
+            state.currentFileName = state.currentFiles[0].name;
+            editQuizNameInput.value = state.currentFileName;
+        }
+        validateAllInputs();
+    } catch (err) {
+        console.error('File processing error:', err);
+        statusMessage.textContent = `Error: ${err.message}`;
+        statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
+        state.fileContent = '';
+    }
+}
+
 export async function handleFileSelect(event) {
     if (state.isCustomizingHistory) resetStartViewUI();
 
@@ -132,7 +225,7 @@ export async function handleFileSelect(event) {
 
     // UI Updates for the accumulated files
     selectedFilesContainer.classList.remove('hidden');
-    selectedFilesList.innerHTML = state.currentFiles.map(f => `<li class="truncate">• ${f.name}</li>`).join('');
+    renderSelectedFilesList();
     fileNameDisplay.textContent = 'Clear & upload new files';
     
     // Auto-generate generic name based on file count if not explicitly set
