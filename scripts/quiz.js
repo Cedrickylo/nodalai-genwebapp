@@ -654,46 +654,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     }
 }
 
-        if (allQs.length === 0) {
-            throw new Error('AI failed to parse any question arrays.');
-        }
-
-        // Final UI confirmation flush right before entry
-        if (elements.loadingMessage) {
-            elements.loadingMessage.innerHTML = `
-                <div class="w-full max-w-md mx-auto text-center bg-gray-900/60 p-5 rounded-xl border border-gray-700/50 shadow-xl mt-4">
-                    <div class="text-sm font-semibold text-emerald-400 mb-2">✓ Target Reached Successfully!</div>
-                    <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden border border-gray-700">
-                        <div class="bg-emerald-500 h-3 rounded-full w-full"></div>
-                    </div>
-                    <div class="text-xs text-gray-400 mt-2">Assembling final reviewer configuration matrix...</div>
-                </div>
-            `;
-        }
-
-        // EXACT SLICING: If padded loop generated excess, slice down exactly to selection match
-        if (allQs.length > totalQ) {
-            allQs = allQs.slice(0, totalQ);
-        }
-
-        // 6. FINAL SAVE LOGIC
-        state.questions = allQs;
-        saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
-        
-        if (typeof recordGenerationEvent === 'function') await recordGenerationEvent();
-        if (typeof refreshCooldownPanel === 'function') await refreshCooldownPanel();
-        
-        refreshHistory();
-        startQuiz();
-
-    } catch (err) {
-        statusMessage.textContent = `Err: ${err.message}`;
-        showView('start');
-    } finally {
-        stopLoadingAnimation();
-    }
-}
-
 export function startQuiz() {
     state.score = 0;
     state.userAnswers = [];
