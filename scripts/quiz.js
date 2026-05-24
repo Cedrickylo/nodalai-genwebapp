@@ -1583,6 +1583,8 @@ function resetStartViewUI() {
     state.customizingQuizData = null;
     state.initialCustomizeState = {};
     state.currentFiles = []; 
+
+    startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
     
     renameContainer.classList.add('hidden');
     selectedFilesContainer.classList.add('hidden');
