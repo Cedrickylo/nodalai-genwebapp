@@ -147,6 +147,27 @@ export function attachQuizEventListeners() {
         showToast('Link copied to clipboard!', 2000, 'success');
     };
 
+    // Fix: Navbar Account Button
+    if (elements.navAccountBtn) {
+        elements.navAccountBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            // Call the same function that your main button uses
+            await openAccountModal(); 
+        });
+    }
+
+    // Fix: Navbar History Button
+    if (elements.navHistoryBtn) {
+        elements.navHistoryBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showView('start'); 
+            refreshHistory();
+            
+            // Smooth scroll to history if needed
+            document.getElementById('history-section')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+
     // Disable Share Button
     elements.disableShareBtn.onclick = async () => {
         const quiz = state.quizHistory[state.currentShareQuizKey];
