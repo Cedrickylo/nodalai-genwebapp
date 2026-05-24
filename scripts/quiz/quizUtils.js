@@ -1,4 +1,5 @@
 import { elements, state, constants } from '../state.js';
+import { stopQuizTimer } from './quizExecution.js'; //  FIX: Added static import here
 import {
     showView,
     showToast,
@@ -50,8 +51,10 @@ const {
 
 export function resetApp(clearProg = true) {
     if (clearProg) clearInProgressQuiz();
-    const { stopQuizTimer } = require('./quizExecution.js');
+    
+    //  FIX: Removed the broken 'require' line and called the function directly
     stopQuizTimer();
+    
     resetStartViewUI();
     state.fileContent = '';
     state.fileHash = '';
