@@ -1504,62 +1504,52 @@ async function generateShareableLink(quizKey) {
 }
 
 export async function handleHistoryClick(e) {
-    console.log("Button clicked:", e.target); // Check if this logs
-    if (e.target.tagName === 'BUTTON') {
-        const key = e.target.dataset.key;
-        const action = e.target.dataset.action;
-        const quizData = state.quizHistory[key];
-        if (!quizData) return;
+    // Find the closest button element, even if the user clicked the inner SVG icon or text span
+    const btn = e.target.closest('button');
+    if (!btn) return;
 
-        if (action === 'load') {
-            if (state.savedProgress?.key === key && (state.savedProgress.shuffledIndexPos < state.savedProgress.shuffledIndices?.length || state.savedProgress.inSkippedRound)) {
-                const doResume = await customConfirm(
-                    'Do you want to resume where you left off, or start over from the beginning?',
-                    'Resume Quiz',
-                    'Resume',
-                    'Start Over'
-                );
-                if (doResume) {
-                    resumeQuiz(state.savedProgress);
-                    return;
-                }
+    const key = btn.dataset.key;
+    const action = btn.dataset.action;
+    const quizData = state.quizHistory[key];
+    if (!quizData) return;
+
+    if (action === 'load') {
+        if (state.savedProgress?.key === key && (state.savedProgress.shuffledIndexPos < state.savedProgress.shuffledIndices?.length || state.savedProgress.inSkippedRound)) {
+            const doResume = await customConfirm(
+                'Do you want to resume where you left off, or start over from the beginning?',
+                'Resume Quiz',
+                'Resume',
+                'Start Over'
+            );
+            if (doResume) {
+                resumeQuiz(state.savedProgress);
+                return;
             }
-            clearInProgressQuiz();
-            state.questions = quizData.questions;
-            state.currentQuizConfig = quizData.config;
-            state.currentQuizKey = key;
-            state.currentFileName = quizData.fileName;
-            state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
-            state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
-            state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
-            state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
-            statusMessage.textContent = `Loaded "${state.currentFileName}".`;
-            statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
-            startQuiz();
-        } else if (action === 'export') {
-            exportQuizFromHistory(quizData, key);
-        } else if (action === 'customize') {
-            state.customizingQuizData = { ...quizData, key };
-            setupCustomizeView(quizData.config, quizData.fileName);
-            showView('start');
         }
-        // ADD THIS NEW BLOCK RIGHT BELOW IT:
-        // Inside your handleHistoryClick function
-else if (action === 'share') {
-    const quiz = state.quizHistory[key];
-    if (!quiz) return;
-    
-    // Store the key of the quiz we are currently interacting with
-    state.currentShareQuizKey = key;
-    
-    // If already shared, go directly to management view (Step 2)
-    if (quiz.share && quiz.share.isShared) {
+        clearInProgressQuiz();
+        state.questions = quizData.questions;
+        state.currentQuizConfig = quizData.config;
+        state.currentQuizKey = key;
+        state.currentFileName = quizData.fileName;
+        state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
+        state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
+        state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
+        state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
+        statusMessage.textContent = `Loaded "${state.currentFileName}".`;
+        statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
+        startQuiz();
+    } else if (action === 'export') {
+        exportQuizFromHistory(quizData, key);
+    } else if (action === 'customize') {
+        state.customizingQuizData = { ...quizData, key };
+        setupCustomizeView(quizData.config, quizData.fileName);
+        showView('start');
+    } else if (action === 'share') {
+        // Store the key of the quiz we are currently interacting with
+        state.currentShareQuizKey = key;
+        
+        // Open the share modal seamlessly
         openShareModal(key);
-    } else {
-        // Otherwise, open the menu (Step 0)
-        openShareModal(key);
-    }
-}
     }
 }
 
