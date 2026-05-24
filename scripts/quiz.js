@@ -636,10 +636,10 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             const sysP = `You are a quiz generator. Output ONLY a valid JSON array. Each object must have: "type", "question", "options", "answer", "explanation". Do not include any conversational filler.`;
 
             // Pass the qSet values to the AI so it knows what to avoid
-            // const generatedTexts = Array.from(qSet).join(' | ');
+            const generatedTexts = Array.from(qSet).join(' | ');
 
             //DO NOT generate these questions (already exist): ${generatedTexts}. Ensure the mix reflects the requested counts for multiple-choice, identification, and enumeration.
-            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 7000)}. Identification questions should have specific, concise answers. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} multiple-choice, ${Math.round(neededForBatch * (id/totalQ))} identification, ${Math.round(neededForBatch * (en/totalQ))} enumeration.`;
+            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 15000)}. DO NOT generate these questions (already exist): ${generatedTexts}. Identification questions should have specific, concise answers. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} multiple-choice, ${Math.round(neededForBatch * (id/totalQ))} identification, ${Math.round(neededForBatch * (en/totalQ))} enumeration.`;
             
             apiCallCount++;
             let currentBatchSuccess = false;
