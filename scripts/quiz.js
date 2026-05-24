@@ -1333,9 +1333,17 @@ export async function generateShareableLink(quizKey) {
             shareUrl: shareUrl,
             expiryTimestamp: expiryTimestamp
         };
+
+        // =====================================================================
+        // FIX: Commit changes to local database & timestamp so cloud sync registers it
+        // =====================================================================
+        localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+        localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
+        // =====================================================================
         
         // 6. Sync and UI Update
         await syncHistoryWithCloud();
+        refreshHistory(); // Force immediate UI list re-render to reflect share icon
         
         // Transition to Step 2 (Management View)
         elements.shareLinkInput.value = shareUrl;
@@ -1506,6 +1514,14 @@ export function attachQuizEventListeners() {
                 
                 // Reset metadata
                 quiz.share = { isShared: false };
+
+                // =====================================================================
+                // FIX: Save state & update timestamp so cloud removes the file link copy
+                // =====================================================================
+                localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+                localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
+                // =====================================================================
+
                 await syncHistoryWithCloud();
                 
                 refreshHistory();
