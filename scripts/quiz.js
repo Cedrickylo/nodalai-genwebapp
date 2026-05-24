@@ -376,8 +376,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         mc, 
         id, 
         en, 
-        customType: custType, // <--- FIXED HERE
-        customtypeshort: custTypeShort,
+        customType: custType, 
+        customTypeShort: custTypeShort,
         isTimed: state.isTimedQuiz,
         totalTime: state.totalQuizTime,
         isAttemptLimited: state.isAttemptLimited,
@@ -425,25 +425,17 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         return;
     }
 
-    // 1. Show the loading screen and start the base animation
     showView('loading');
     startLoadingAnimation();
 
-    // 2. ADD THIS FIX: Stop the 500ms background text-ticker 
-    // so it stops overwriting our batch progress!
+    // CLEAR THE INTERVAL TIMER IMMEDIATELY
+    // Stops "Contacting AI..." ticker from wiping out your progress reports
     if (state.loadingInterval) {
         clearInterval(state.loadingInterval);
         state.loadingInterval = null;
     }
 
-    // 3. Your batching loop can now cleanly write to the screen:
-    let allQs = [];
-    let qSet = new Set();
-    const batchSize = 5;
-    const totalBatches = Math.ceil(totalQ / batchSize);
-
-
-    // 4. YOUR CUSTOM JSON PARSER (Kept Intact)
+    // 4. CUSTOM JSON PARSER (Kept Intact)
     function extractJsonArrayString(text) {
         const normalized = (typeof text === 'string' ? text : '').replace(/```json/gi, '').replace(/```/g, '').trim();
         if (!normalized) return '';
@@ -468,24 +460,92 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         return normalized;
     }
 
+    // =====================================================================
+    // 5. THE NEW BATCHING, EXACT PADDING & TIMED PROGRESS logic
+    // =====================================================================
+    let allQs = [];
+    let qSet = new Set();
+    const baseBatchSize = 5; // Stays at 5 questions to stay completely below limits
+    let batchCounter = 1;
+    let apiCallCount = 0;
+    const maxSafetyCalls = 30; // Prevents accidental loop issues if document lacks data
+
+    // Time estimation parameters
+    const avgEstApiTimePerBatch = 3.5; // Average inference and round-trip delay in seconds
+    const coolDownTimePerBatch = 15.5; // Your strict cool-down duration in seconds
+
     try {
-        for (let i = 0; i < totalBatches; i++) {
-            const neededForBatch = Math.min(batchSize, totalQ - allQs.length);
+        while (allQs.length < totalQ && apiCallCount < maxSafetyCalls) {
+            let neededForBatch = Math.min(baseBatchSize, totalQ - allQs.length);
             
-            if (loadingMessage) {
-                loadingMessage.textContent = `Generating batch ${i + 1} of ${totalBatches}... Please wait.`;
+            // PADDING ENGINE: If short of total count, append 2 extra questions to ensure exact matches
+            if (allQs.length > 0 && neededForBatch < baseBatchSize) {
+                neededForBatch = Math.min(baseBatchSize, neededForBatch + 2);
             }
 
-            // Your strict prompt format applied to the batch size
-            const sysP = `You are a strict JSON-only quiz generator. Output ONLY a valid JSON array with ${neededForBatch} objects and nothing else. No markdown fences, no explanatory text, no list numbers, no comments, no extra punctuation. Each object MUST include exactly these keys: "type", "question", "options", "answer", and "explanation". Each answer value must exactly match one of the option values.`;
-            const userQ = `Document: """${state.fileContent.substring(0, 15000)}"""\n\nGenerate ${neededForBatch} multiple-choice questions from the document. Output must be only a valid JSON array and nothing else.`;
+            // DYNAMIC DURATION ESTIMATION CALCULATIONS
+            const currentBatchIndex = batchCounter - 1;
+            const totalEstimatedBatches = Math.max(batchCounter, Math.ceil(totalQ / baseBatchSize));
+            const remainingBatches = Math.max(1, totalEstimatedBatches - currentBatchIndex);
+            
+            // Remaining Time = (Remaining API turns * 3.5s) + (Remaining cooldown slots * 15.5s)
+            const estSecondsLeft = Math.ceil(
+                (remainingBatches * avgEstApiTimePerBatch) + 
+                (Math.max(0, remainingBatches - 1) * coolDownTimePerBatch)
+            );
 
-            let batchSuccess = false;
-            let attempts = 0;
+            // Format raw remaining seconds into human-readable strings
+            const estMinutes = Math.floor(estSecondsLeft / 60);
+            const estSeconds = estSecondsLeft % 60;
+            let timeRemainingText = estMinutes > 0 
+                ? `${estMinutes} minute${estMinutes > 1 ? 's' : ''} and ${estSeconds} second${estSeconds !== 1 ? 's' : ''} remaining`
+                : `${estSeconds} second${estSeconds !== 1 ? 's' : ''} remaining`;
 
-            // Retry loop strictly for the current batch
-            while (!batchSuccess && attempts < 5) {
-                attempts++;
+            // Calculate precise mathematical percentage progress completed
+            const progressPercentage = Math.min(98, Math.round((allQs.length / totalQ) * 100));
+
+            // VISUAL INTERFACE COMPONENT INJECTION
+            if (elements.loadingMessage) {
+                elements.loadingMessage.innerHTML = `
+                    <div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-gray-700/50 shadow-xl mt-4">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm font-semibold text-gray-200">
+                                Progress: ${allQs.length} / ${totalQ} questions
+                            </span>
+                            <span class="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                Batch ${batchCounter}
+                            </span>
+                        </div>
+                        
+                        <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden border border-gray-700 my-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-700 ease-out" 
+                                 style="width: ${progressPercentage}%">
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mt-3 text-xs">
+                            <div class="flex items-center text-gray-400">
+                                <svg class="animate-spin h-3 w-3 mr-1.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Est. time: <span class="text-blue-400 font-medium ml-1">${timeRemainingText}</span>
+                            </div>
+                            <span class="font-bold text-gray-300">${progressPercentage}%</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const sysP = `You are a strict JSON-only quiz generator. Output ONLY a valid JSON array with ${neededForBatch} objects and nothing else. No markdown fences, no conversational text, no list numbers, no comments, no extra punctuation. Each object MUST include exactly these keys: "type", "question", "options", "answer", and "explanation". Each answer value must exactly match one of the option values.`;
+            const userQ = `Document: """${state.fileContent.substring(0, 8000)}"""\n\nGenerate ${neededForBatch} multiple-choice questions from the document. Output must be only a valid JSON array and nothing else.`;
+
+            apiCallCount++;
+            let currentBatchSuccess = false;
+            let singleBatchAttempts = 0;
+
+            while (!currentBatchSuccess && singleBatchAttempts < 5) {
+                singleBatchAttempts++;
                 try {
                     const rawText = await generateQuestionsFromAI(sysP, userQ);
                     const cleanJson = extractJsonArrayString(rawText);
@@ -499,24 +559,48 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                             qSet.add(q.question);
                         }
                     });
-                    batchSuccess = true; 
+                    currentBatchSuccess = true;
+                    batchCounter++;
                 } catch (e) {
-                    console.error(`Batch ${i+1} Attempt ${attempts} Failed:`, e.message);
-                    if (attempts === 5) throw new Error(`Batch ${i+1} failed completely.`);
-                    await new Promise(r => setTimeout(r, 10000)); // wait before retry
+                    console.error(`Batch ${batchCounter} Fallback Attempt ${singleBatchAttempts} Failed:`, e.message);
+                    if (singleBatchAttempts === 5 && allQs.length === 0) {
+                        throw new Error(`AI processing failed on initialization connection.`);
+                    }
+                    await new Promise(r => setTimeout(r, 10000));
                 }
             }
 
-            // Pause slightly between successful batches to respect Rate Limits
-            if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 15500)); 
+            // High precision interval delay (15.5 seconds) to cool down token budgets
+            if (allQs.length < totalQ) {
+                console.log("Cooling down token pool...");
+                await new Promise(r => setTimeout(r, 15500)); 
+            }
         }
 
         if (allQs.length === 0) {
-            throw new Error('AI failed to return valid JSON format after multiple attempts.');
+            throw new Error('AI failed to parse any question arrays.');
+        }
+
+        // Final UI confirmation flush right before entry
+        if (elements.loadingMessage) {
+            elements.loadingMessage.innerHTML = `
+                <div class="w-full max-w-md mx-auto text-center bg-gray-900/60 p-5 rounded-xl border border-gray-700/50 shadow-xl mt-4">
+                    <div class="text-sm font-semibold text-emerald-400 mb-2">✓ Target Reached Successfully!</div>
+                    <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden border border-gray-700">
+                        <div class="bg-emerald-500 h-3 rounded-full w-full"></div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-2">Assembling final reviewer configuration matrix...</div>
+                </div>
+            `;
+        }
+
+        // EXACT SLICING: If padded loop generated excess, slice down exactly to selection match
+        if (allQs.length > totalQ) {
+            allQs = allQs.slice(0, totalQ);
         }
 
         // 6. FINAL SAVE LOGIC
-        state.questions = allQs.slice(0, totalQ);
+        state.questions = allQs;
         saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
         
         if (typeof recordGenerationEvent === 'function') await recordGenerationEvent();
