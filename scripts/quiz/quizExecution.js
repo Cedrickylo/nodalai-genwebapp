@@ -5,6 +5,8 @@ import {
     saveInProgressQuiz,
     clearInProgressQuiz
 } from '../helpers.js';
+//  FIX: Added browser-compatible ES Module import here
+import { showResults, displayExplanation } from './quizResults.js';
 
 const {
     nextQuestionBtn,
@@ -125,7 +127,7 @@ export function handleTimeUp() {
     nextQuestionBtn.classList.add('hidden');
     skipQuestionBtn.classList.add('hidden');
     setTimeout(() => {
-        const { showResults } = require('./quizResults.js');
+        //  FIX: Removed inline require
         showResults();
     }, 1500);
 }
@@ -158,7 +160,7 @@ export function displayNextQuestion() {
                 state.currentSkippedItemIndex = 0;
                 state.currentSkippedArray = Array.from(state.skippedOriginalIndices);
             } else {
-                const { showResults } = require('./quizResults.js');
+                //  FIX: Removed inline require
                 showResults();
                 return;
             }
@@ -178,7 +180,7 @@ export function displayNextQuestion() {
             }
             found = true;
         } else {
-            const { showResults } = require('./quizResults.js');
+            //  FIX: Removed inline require
             showResults();
             return;
         }
@@ -186,7 +188,7 @@ export function displayNextQuestion() {
 
     if (!found || nextIdx === -1) {
         console.error('Failed to find next question index.');
-        const { showResults } = require('./quizResults.js');
+        //  FIX: Removed inline require
         showResults();
         return;
     }
@@ -321,7 +323,7 @@ export function checkAnswer(userAnswer) {
                     currentAttempts: state.currentAttempts
                 });
                 setTimeout(() => {
-                    const { showResults } = require('./quizResults.js');
+                    //  FIX: Removed inline require
                     showResults();
                 }, 1500);
                 return;
@@ -350,6 +352,7 @@ export function checkAnswer(userAnswer) {
         state.currentShuffledIndexPos++;
     }
     scoreEl.textContent = `Score: ${state.score}`;
-    const { displayExplanation } = require('./quizResults.js');
+    
+    //  FIX: Removed inline require and called the imported function directly
     displayExplanation(qData, isCorrect);
 }
