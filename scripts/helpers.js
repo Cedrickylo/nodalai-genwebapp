@@ -769,16 +769,20 @@ export function validateAllInputs() {
     const hasSource = typeof state.fileContent === 'string' && state.fileContent.trim().length > 0;
     const hasCustomize = !!state.customizingQuizData || state.isCustomizingHistory;
     const totalCount = parseInt(questionCountInput.value, 10) || 0;
-    let enabled = (hasSource || hasCustomize) && totalCount > 0;
+    // Fix: If editing an existing quiz from history, bypass the count > 0 requirement
+    let enabled = state.isCustomizingHistory ? hasCustomize : ((hasSource || hasCustomize) && totalCount > 0);
 
-    const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value;
-    if (difficulty === 'custom') {
-        const type = customQuestionTypeSelect.value;
-        if (type === 'mixed') {
-            const mc = parseInt(document.getElementById('mc-count').value, 10) || 0;
-            const id = parseInt(document.getElementById('id-count').value, 10) || 0;
-            const en = parseInt(document.getElementById('en-count').value, 10) || 0;
-            enabled = enabled && mc + id + en === totalCount && totalCount > 0;
+    // Fix: Wrap the question structure checks so they only run for NEW quizzes
+    if (!state.isCustomizingHistory) {
+        const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value;
+        if (difficulty === 'custom') {
+            const type = customQuestionTypeSelect.value;
+            if (type === 'mixed') {
+                const mc = parseInt(document.getElementById('mc-count').value, 10) || 0;
+                const id = parseInt(document.getElementById('id-count').value, 10) || 0;
+                const en = parseInt(document.getElementById('en-count').value, 10) || 0;
+                enabled = enabled && mc + id + en === totalCount && totalCount > 0;
+            }
         }
     }
 

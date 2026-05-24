@@ -1590,6 +1590,37 @@ function resetStartViewUI() {
     fileActionsDiv.classList.remove('hidden');
     cancelCustomizeBtn.classList.add('hidden');
     generateQuizBtn.textContent = 'Generate Quiz';
+    
+    // =====================================================================
+    // ADD THIS LOGIC TO RESET FIELDS AND INPUTS ON CANCELLATION/RESET
+    // =====================================================================
+    questionCountInput.value = '10';
+    if (difficultyRadios && difficultyRadios.length > 0) {
+        difficultyRadios.forEach((radio, idx) => {
+            radio.checked = (idx === 0); // Resets back to default 'easy'
+        });
+    }
+    customQuestionTypeSelect.value = 'multiple-choice';
+    
+    const mcInput = document.getElementById('mc-count');
+    const idInput = document.getElementById('id-count');
+    const enInput = document.getElementById('en-count');
+    if (mcInput) mcInput.value = '';
+    if (idInput) idInput.value = '';
+    if (enInput) enInput.value = '';
+    
+    timeLimitToggle.checked = false;
+    attemptLimitToggle.checked = false;
+    summaryOnlyToggle.checked = false;
+    customTimeLimitInput.value = '';
+    attemptLimitInput.value = '';
+
+    // Automatically trigger visibility toggles to re-hide conditional sub-menus
+    handleTimeToggle();
+    handleAttemptToggle();
+    handleDifficultyChange();
+    // =====================================================================
+
     validateAllInputs();
     
     // =====================================================================
