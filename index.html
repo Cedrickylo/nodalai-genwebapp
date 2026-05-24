@@ -37,10 +37,16 @@
                 </div>
 
                 <div id="customize-section" class="hidden mb-6">
-                    <button id="customize-toggle-btn" class="w-full flex justify-between items-center bg-gray-700 p-4 rounded-lg text-gray-300 font-semibold hover:bg-gray-600 transition">
-                        <span>Customize Quiz Settings</span>
-                        <svg id="customize-toggle-icon" class="w-5 h-5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
+                    <div class="flex flex-col-reverse sm:flex-row sm:items-center gap-2">
+                        <button id="customize-toggle-btn" class="w-full sm:flex-1 flex justify-between items-center bg-gray-700 p-4 rounded-lg text-gray-300 font-semibold hover:bg-gray-600 transition">
+                            <span>Customize Quiz Settings</span>
+                            <svg id="customize-toggle-icon" class="w-5 h-5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <button id="delete-customize-btn" class="hidden w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-3 px-4 rounded-lg transition shadow-md">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14"></path></svg>
+                            <span>Delete</span>
+                        </button>
+                    </div>
                     
                     <div id="customize-content" class="hidden mt-4 space-y-6 bg-gray-800 border border-gray-700 p-5 rounded-lg shadow-inner">
                         

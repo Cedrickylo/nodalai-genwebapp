@@ -36,6 +36,7 @@ const {
     customizeSection,
     customizeContent,
     customizeToggleIcon,
+    deleteCustomizeBtn,
     renameContainer,
     editQuizNameInput,
     authBtn,
@@ -583,7 +584,7 @@ export function refreshHistory() {
             </div>
             <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
                 <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="share" title="Share / Export">Share</button>
-                <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="customize" title="Customize">Cust</button>
+                <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="customize" title="Edit">Edit</button>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded" data-key="${key}" data-action="load" title="Load">Load</button>
             </div>
         `;      
@@ -626,6 +627,7 @@ export function setupCustomizeView(config, name) {
     startSubtitle.textContent = `Customizing: "${name || 'quiz'}" (Options only)`;
     generateQuizBtn.textContent = 'Start Customized Quiz';
     cancelCustomizeBtn.classList.remove('hidden');
+    deleteCustomizeBtn.classList.remove('hidden');
     fileActionsDiv.classList.add('hidden');
 
     elements.resumeQuizBtn.classList.add('hidden');

@@ -76,6 +76,7 @@ const {
     resumeQuizBtn,
     resultsActions,
     cancelCustomizeBtn,
+    deleteCustomizeBtn,
     createRemedialBtn,
     remedialOptionsView,
     cancelRemedialBtn,
@@ -1476,6 +1477,7 @@ function resetStartViewUI() {
     editQuizNameInput.value = ''; 
     
     document.getElementById('customize-section').classList.add('hidden');
+    deleteCustomizeBtn.classList.add('hidden');
     fileActionsDiv.classList.remove('hidden');
     cancelCustomizeBtn.classList.add('hidden');
     generateQuizBtn.textContent = 'Generate Quiz';
@@ -1601,6 +1603,24 @@ export function attachQuizEventListeners() {
                 return;
             }
         }
+        resetApp(true);
+    });
+    deleteCustomizeBtn.addEventListener('click', async () => {
+        if (!state.isCustomizingHistory || !state.customizingQuizData) return;
+
+        const confirmed = await customConfirm(
+            'Delete this quiz from history? This action cannot be undone.',
+            'Delete Quiz',
+            'Delete',
+            'Cancel',
+            true
+        );
+        if (!confirmed) return;
+
+        delete state.quizHistory[state.customizingQuizData.key];
+        localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+        refreshHistory();
+        showToast('Quiz deleted.', 3000, 'success');
         resetApp(true);
     });
 

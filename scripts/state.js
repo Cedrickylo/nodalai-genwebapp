@@ -76,6 +76,7 @@ export const elements = {
     editQuizNameInput: document.getElementById('edit-quiz-name'),
     customizeSection: document.getElementById('customize-section'),
     customizeToggleBtn: document.getElementById('customize-toggle-btn'),
+    deleteCustomizeBtn: document.getElementById('delete-customize-btn'),
     customizeContent: document.getElementById('customize-content'),
     customizeToggleIcon: document.getElementById('customize-toggle-icon'),
     resultsActions: document.getElementById('results-actions'),
