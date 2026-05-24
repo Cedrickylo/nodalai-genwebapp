@@ -1464,7 +1464,9 @@ async function generateShareableLink(quizKey) {
             shareUrl: shareUrl,
             expiryTimestamp: expiryTimestamp
         };
-        
+        // ADD THIS LINE: Updates individual quiz timestamp for sync tracking
+        quiz.timestamp = Date.now();
+
         localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
         localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
         
@@ -1649,6 +1651,8 @@ export function attachQuizEventListeners() {
                 
                 // Reset metadata
                 quiz.share = { isShared: false };
+
+                quiz.timestamp = Date.now();
 
                 // =====================================================================
                 // FIX: Save state & update timestamp so cloud removes the file link copy

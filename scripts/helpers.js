@@ -203,10 +203,31 @@ export async function syncHistoryWithCloud(manual = false) {
         // 2. Get Local Data
         const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
         
-        // 3. MERGE: Combine local items with cloud items
-        // The spread operator {...a, ...b} ensures if keys overlap, local wins (or cloud, whichever you put last)
-        const mergedItems = { ...cloudData.items, ...localItems };
-        const now = Date.now();
+// 3. MERGE: Quiz-by-quiz timestamp comparison (Last-Write-Wins)
+const mergedItems = {};
+
+// Combine all unique quiz keys from both cloud and local history
+const allKeys = new Set([...Object.keys(cloudData.items), ...Object.keys(localItems)]);
+
+for (const key of allKeys) {
+    const cloudQuiz = cloudData.items[key];
+    const localQuiz = localItems[key];
+    
+    if (cloudQuiz && localQuiz) {
+        // Both exist, choose the version with the newer internal timestamp
+        if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
+            mergedItems[key] = cloudQuiz;
+        } else {
+            mergedItems[key] = localQuiz;
+        }
+    } else if (cloudQuiz) {
+        mergedItems[key] = cloudQuiz;
+    } else if (localQuiz) {
+        mergedItems[key] = localQuiz;
+    }
+}
+
+const now = Date.now();
 
         // 4. Update State and LocalStorage
         state.quizHistory = mergedItems;
