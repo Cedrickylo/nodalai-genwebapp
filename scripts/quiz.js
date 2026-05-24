@@ -550,34 +550,15 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         state.loadingInterval = null;
     }
 
-    // 4. CUSTOM JSON PARSER (Kept Intact)
+// 4. CUSTOM JSON PARSER (This is your safety net)
     function extractJsonArrayString(text) {
-    if (!text || typeof text !== 'string') return '';
-    
-    // 1. Remove common markdown artifacts
-    let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-    
-    // 2. Find the index of the first '[' and the LAST ']'
-    // This ignores everything before the first [ and after the last ]
-    const startIndex = cleaned.indexOf('[');
-    const endIndex = cleaned.lastIndexOf(']');
-    
-    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-        console.error("Critical: Could not isolate JSON array. AI output:", text);
-        return '';
+        if (!text || typeof text !== 'string') return '';
+        let normalized = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const start = normalized.indexOf('[');
+        const end = normalized.lastIndexOf(']');
+        if (start === -1 || end === -1 || end <= start) return '';
+        return normalized.substring(start, end + 1).trim();
     }
-    
-    // 3. Extract just the array
-    const extracted = cleaned.substring(startIndex, endIndex + 1).trim();
-    
-    // 4. Final safety check: ensure it actually looks like an array
-    if (!extracted.startsWith('[') || !extracted.endsWith(']')) {
-        console.error("Critical: Extracted text is malformed:", extracted);
-        return '';
-    }
-    
-    return extracted;
-}
 
     // =====================================================================
     // 5. THE NEW BATCHING, EXACT PADDING & ADVANCED RECOVERY logic
@@ -652,20 +633,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             // Define allowed types to ensure consistency
             const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
 
-            const sysP = `You are a data generation API. 
-            Rules:
-            1. You MUST output ONLY valid JSON.
-            2. The output MUST start with '[' and end with ']'.
-            3. Do not include any conversational filler (no "Here is the JSON", no "I hope this helps", no concluding sentences).
-            4. If you include any text outside the '[' and ']' characters, the system will CRASH.`;
-
-            // Pass the qSet values to the AI so it knows what to avoid
-            const generatedTexts = Array.from(qSet).join(' | ');
-
-            const userQ = `Document: """${state.fileContent.substring(0, 8000)}"""
-            Generate exactly ${neededForBatch} unique questions.
-            DO NOT generate these questions (already exist): ${generatedTexts}
-            Mix: ${Math.round(neededForBatch * (mc/totalQ))} MC, ${Math.round(neededForBatch * (id/totalQ))} ID, ${Math.round(neededForBatch * (en/totalQ))} EN.`;
+            const sysP = `You are a quiz generator. Output ONLY a valid JSON array. Each object must have: "type", "question", "options", "answer", "explanation". Do not include any conversational filler.`;
+            const userQ = `Generate ${state.currentQuizConfig.count} questions based on this document: ${state.fileContent.substring(0, 15000)}. Ensure the mix reflects the requested counts for MC, ID, and EN. Output ONLY raw JSON.`;
 
             apiCallCount++;
             let currentBatchSuccess = false;
