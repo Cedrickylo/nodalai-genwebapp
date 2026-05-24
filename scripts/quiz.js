@@ -633,21 +633,13 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             // Define allowed types to ensure consistency
             const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
 
-            const sysP = `You are a data generation API. 
-            Rules:
-            1. You MUST output ONLY valid JSON.
-            2. The output MUST start with '[' and end with ']'.
-            3. Do not include any conversational filler (no "Here is the JSON", no "I hope this helps", no concluding sentences).
-            4. If you include any text outside the '[' and ']' characters, the system will CRASH.`;
+            const sysP = `You are a quiz generator. Output ONLY a valid JSON array. Each object must have: "type", "question", "options", "answer", "explanation". Do not include any conversational filler.`;
 
             // Pass the qSet values to the AI so it knows what to avoid
             const generatedTexts = Array.from(qSet).join(' | ');
 
-            const userQ = `Document: """${state.fileContent.substring(0, 8000)}"""
-            Generate exactly ${neededForBatch} unique questions.
-            DO NOT generate these questions (already exist): ${generatedTexts}
-            Mix: ${Math.round(neededForBatch * (mc/totalQ))} MC, ${Math.round(neededForBatch * (id/totalQ))} ID, ${Math.round(neededForBatch * (en/totalQ))} EN.`;
-
+            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 15000)}. DO NOT generate these questions (already exist): ${generatedTexts} Ensure the mix reflects the requested counts for MC, ID, and EN. Output ONLY raw JSON. Mix: ${Math.round(neededForBatch * (mc/totalQ))} MC, ${Math.round(neededForBatch * (id/totalQ))} ID, ${Math.round(neededForBatch * (en/totalQ))} EN.`;
+            
             apiCallCount++;
             let currentBatchSuccess = false;
             let singleBatchAttempts = 0;
