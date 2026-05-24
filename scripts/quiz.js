@@ -554,23 +554,22 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     function extractJsonArrayString(text) {
     if (!text || typeof text !== 'string') return '';
     
-    // 1. Remove markdown blocks entirely
-    let normalized = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    // 1. Remove Markdown code blocks
+    let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
     
-    // 2. Find the VERY FIRST '['
-    const start = normalized.indexOf('[');
-    // 3. Find the LAST ']'
-    const end = normalized.lastIndexOf(']');
+    // 2. Find the index of the first '[' and the LAST ']'
+    // This effectively cuts off "Here is your JSON" (at the start) 
+    // and "Let me know if you need more" (at the end)
+    const startIndex = cleaned.indexOf('[');
+    const endIndex = cleaned.lastIndexOf(']');
     
-    // 4. Validate that we found both
-    if (start === -1 || end === -1 || end <= start) {
-        console.warn("Failed to find valid JSON array boundaries. Raw output:", text);
+    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+        console.error("Critical: Could not isolate JSON array from AI response:", text);
         return '';
     }
     
-    // 5. Slice only the valid portion
-    return normalized.substring(start, end + 1).trim();
-}
+    return cleaned.substring(startIndex, endIndex + 1).trim();
+    }
 
     // =====================================================================
     // 5. THE NEW BATCHING, EXACT PADDING & ADVANCED RECOVERY logic
@@ -645,12 +644,12 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             // Define allowed types to ensure consistency
             const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
 
-            const sysP = `You are a strict API. Output ONLY a valid JSON array. 
+            const sysP = `You are a data generation API. 
             Rules:
-            1. Do not include any conversational text or markdown.
-            2. Every question must be 100% unique. 
-            3. If I have asked for batches, do not repeat questions from previous batches.
-            4. If you run out of unique topics, ask about sub-details or alternative perspectives.`;
+            1. Output ONLY a raw JSON array.
+            2. DO NOT include any conversational text, introductory remarks, or concluding sentences.
+            3. DO NOT use markdown code blocks (no \`\`\`json).
+            4. If the JSON is not pure, the system will crash. Return only the array.`; 
 
             // Pass the qSet values to the AI so it knows what to avoid
             const generatedTexts = Array.from(qSet).join(' | ');
@@ -725,6 +724,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                     batchCounter++;
 
                 } catch (e) {
+                    console.error("Parsing Failed. AI output was:", cleanJson); // This tells you exactly what the AI sent
+                    console.error("Error Details:", e.message);
                     singleBatchAttempts++;
                     console.warn(`Batch ${batchCounter} error context on attempt ${singleBatchAttempts}:`, e.message);
                     
