@@ -1520,7 +1520,7 @@ export function attachQuizEventListeners() {
         if (quiz && quiz.share && quiz.share.shareId) {
             try {
                 // Delete from Puter FS
-                await puter.fs.unlink(quiz.share.shareId);
+                await puter.fs.delete(quiz.share.shareId);
                 
                 // Reset metadata
                 quiz.share = { isShared: false };
