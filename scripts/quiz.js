@@ -696,12 +696,84 @@ Remember to output ONLY the raw JSON array string.`;
                         await new Promise(r => setTimeout(r, 60000));
                     }
 
-                    const rawText = await generateQuestionsFromAI(sysP, userQ);
-                    const cleanJson = extractJsonArrayString(rawText);
-                    
-                    const parsed = JSON.parse(cleanJson);
+                    // First: call the AI API and treat failures here as API/server errors
+                    let rawText;
+                    try {
+                        rawText = await generateQuestionsFromAI(sysP, userQ);
+                    } catch (apiErr) {
+                        // API/network/server problem -> increment ceiling attempt counter
+                        singleBatchAttempts++;
+                        console.warn(`Batch ${batchCounter} API error on attempt ${singleBatchAttempts}:`, apiErr.message || apiErr);
+                        if (singleBatchAttempts > maxAllowedRetries) {
+                            throw new Error("SERVER_LIMIT_EXCEEDED");
+                        }
+                        // continue to next retry loop iteration
+                        continue;
+                    }
 
-                    if (!Array.isArray(parsed)) throw new Error("Not an array");
+                    // Second: attempt to extract & parse JSON. Parsing issues are treated separately
+                    const cleanJson = extractJsonArrayString(rawText);
+                    if (!cleanJson) {
+                        console.warn(`Batch ${batchCounter} parse error: no JSON found in AI response.`);
+                        // Do not increment rate-limit attempts for parse failures.
+                        // Show a non-rate UI to inform user about parse problems (no ceiling message)
+                        if (elements.loadingMessage) {
+                            elements.loadingMessage.innerHTML = `
+                                <div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-red-500/40 shadow-xl mt-4">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-sm font-bold text-red-400 flex items-center">
+                                            ⚠️ Response Parse Error
+                                        </span>
+                                        <span class="text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                                            Parsing Failed
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-300 mt-2 font-medium leading-relaxed">
+                                        The AI returned content that couldn't be interpreted as JSON. Trying again without counting this as a rate-limit retry.
+                                    </p>
+                                </div>
+                            `;
+                        }
+                        // Small backoff before continuing, but do NOT increment singleBatchAttempts
+                        await new Promise(r => setTimeout(r, 1500));
+                        continue;
+                    }
+
+                    let parsed;
+                    try {
+                        parsed = JSON.parse(cleanJson);
+                    } catch (parseErr) {
+                        console.warn(`Batch ${batchCounter} JSON.parse error:`, parseErr.message);
+                        if (elements.loadingMessage) {
+                            elements.loadingMessage.innerHTML = `
+                                <div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-red-500/40 shadow-xl mt-4">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-sm font-bold text-red-400 flex items-center">
+                                            ⚠️ Response Parse Error
+                                        </span>
+                                        <span class="text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                                            JSON Parsing Failed
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-300 mt-2 font-medium leading-relaxed">
+                                        The AI produced malformed JSON. This will not be counted as a rate-limit attempt.
+                                    </p>
+                                </div>
+                            `;
+                        }
+                        // Small backoff and continue without incrementing singleBatchAttempts
+                        await new Promise(r => setTimeout(r, 1500));
+                        continue;
+                    }
+
+                    if (!Array.isArray(parsed)) {
+                        console.warn(`Batch ${batchCounter} parse result was not an array.`);
+                        if (elements.loadingMessage) {
+                            elements.loadingMessage.innerHTML = `<div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-red-500/40 shadow-xl mt-4"><p class="text-xs text-gray-300 mt-2">AI returned a non-array payload. Retrying without counting as a rate-limit attempt.</p></div>`;
+                        }
+                        await new Promise(r => setTimeout(r, 1500));
+                        continue;
+                    }
 
                     // Use a temporary counter to track how many UNIQUE items we actually got
                     let addedInThisBatch = 0;
@@ -716,25 +788,24 @@ Remember to output ONLY the raw JSON array string.`;
                             qSet.add(qText); // Add to the master set
                             addedInThisBatch++;
                         } else {
-                            console.warn("Duplicate or invalid question ignored:", q.question);
+                            console.warn("Duplicate or invalid question ignored:", q && q.question);
                         }
                     });
-
-                    // IMPORTANT: If the AI was lazy and gave us all duplicates, 
-                    // the loop will continue naturally because allQs.length won't have increased.
-                    // The next 'neededForBatch' calculation will automatically request more to compensate.
 
                     currentBatchSuccess = true;
                     batchCounter++;
 
                 } catch (e) {
+                    // If SERVER_LIMIT_EXCEEDED was thrown, rethrow to abort outer flow
+                    if (e && e.message === "SERVER_LIMIT_EXCEEDED") throw e;
+                    // Other unexpected errors: log and increment the API retry counter conservatively
+                    console.warn(`Batch ${batchCounter} unexpected error:`, e && e.message ? e.message : e);
                     singleBatchAttempts++;
-                    console.warn(`Batch ${batchCounter} error context on attempt ${singleBatchAttempts}:`, e.message);
-                    
-                    // If 3 retries are exceeded (meaning 4 total attempts failed), crash intentionally to cancel
                     if (singleBatchAttempts > maxAllowedRetries) {
                         throw new Error("SERVER_LIMIT_EXCEEDED");
                     }
+                    // small backoff
+                    await new Promise(r => setTimeout(r, 1500));
                 }
             }
 
@@ -775,25 +846,30 @@ Remember to output ONLY the raw JSON array string.`;
 
     } catch (err) {
         // INTERCEPT FAILURE AND PRESENT CUSTOM PROMISE INTERFACE WINDOW
-        if (err.message === "SERVER_LIMIT_EXCEEDED") {
+        if (err && err.message === "SERVER_LIMIT_EXCEEDED") {
             await customConfirm(
                 "Quiz generation has been canceled because the AI server is completely overloaded and too many request limits were reached. Please wait a few minutes and try again later.",
                 "Generation Canceled",
                 "Understand",
                 ""
             );
+            if (statusMessage) {
+                statusMessage.textContent = `Err: Generation stopped due to rate limits.`;
+                statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
+            }
         } else {
-            // General parsing framework recovery alert fallback logic
+            // Parsing or other non-rate-limit failures
+            const msg = err && err.message ? err.message : 'Unknown error during generation.';
             await customConfirm(
-                `Quiz generation failed due to a processing structure breakdown: ${err.message}`,
+                `Quiz generation failed: ${msg}`,
                 "Process Failure",
                 "Back to Menu",
                 ""
             );
-        }
-        
-        if (statusMessage) {
-            statusMessage.textContent = `Err: Generation stopped due to rate limits.`;
+            if (statusMessage) {
+                statusMessage.textContent = `Err: ${msg}`;
+                statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
+            }
         }
         showView('start');
     } finally {
