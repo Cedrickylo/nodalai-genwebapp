@@ -634,70 +634,68 @@ export function setupCustomizeView(config, name) {
     customizeContent.classList.remove('hidden');
     customizeToggleIcon.classList.add('rotate-180');
 
-    questionCountInput.value = config.count || 10;
-    questionCountInput.readOnly = true;
-    questionCountInput.classList.add('locked-input');
-    document.getElementById('question-count-group')?.querySelector('label')?.classList.add('locked-label');
+    // =====================================================================
+    // CLEAN CUSTOMIZATION UI OVERHAUL
+    // Hide the input fields blocks and show a clean text information badge
+    // =====================================================================
     
-    const diffValue = config.difficulty || 'easy';
-    difficultyRadios.forEach(radio => {
-        radio.checked = radio.value === diffValue;
-        radio.disabled = true;
-        radio.closest('div')?.querySelector('label')?.classList.add('locked-label');
-    });
+    // 1. Target parent component group rows to hide them from the view grid
+    const countGroup = document.getElementById('question-count-group') || questionCountInput.closest('.mb-4, .space-y-4, div');
+    const diffGroup = difficultyRadios[0]?.closest('.mb-4, .space-y-4, div');
     
-    if (diffValue === 'custom') {
-        customOptionsDiv.classList.remove('hidden');
+    if (countGroup) countGroup.classList.add('hidden');
+    if (diffGroup) diffGroup.classList.add('hidden');
+    if (customOptionsDiv) customOptionsDiv.classList.add('hidden');
+
+    // 2. Parse values to produce human-readable status labels
+    const qCount = config.count || 10;
+    const rawDiff = config.difficulty || 'easy';
+    const capitalizedDiff = rawDiff.charAt(0).toUpperCase() + rawDiff.slice(1);
+    
+    let typeText = 'Mixed Types';
+    if (rawDiff === 'custom') {
         const customType = config.customType || 'mixed';
-        customQuestionTypeSelect.value = customType;
-        customQuestionTypeSelect.disabled = true;
-        customQuestionTypeSelect.classList.add('locked-input');
-        customTypeGroup.querySelector('label').classList.add('locked-label');
-        if (customType === 'mixed') {
-            customMixedCountsDiv.classList.remove('hidden');
-            document.getElementById('mc-count').value = config.mc || 0;
-            document.getElementById('id-count').value = config.id || 0;
-            document.getElementById('en-count').value = config.en || 0;
-            customCountInputs.forEach(input => {
-                input.readOnly = true;
-                input.classList.add('locked-input');
-                input.closest('div')?.querySelector('label')?.classList.add('locked-label');
-            });
-            customTotalFeedback.textContent = 'Counts match total.';
-            customTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400';
-        } else {
-            customMixedCountsDiv.classList.add('hidden');
-        }
-    } else {
-        customOptionsDiv.classList.add('hidden');
+        if (customType === 'multiple-choice') typeText = 'Multiple Choice Only';
+        else if (customType === 'identification') typeText = 'Identification Only';
+        else if (customType === 'enumeration') typeText = 'Enumeration Only';
     }
 
-    timeLimitToggle.checked = config.isTimed || false;
-    handleTimeToggle();
-    if (config.isTimed) {
-        const totalMinutes = config.totalTime / 60;
-        let foundPreset = false;
-        timePresetRadios.forEach(radio => {
-            if (radio.value !== 'custom' && parseInt(radio.value, 10) === totalMinutes) {
-                radio.checked = true;
-                foundPreset = true;
-            }
-        });
-        if (!foundPreset) {
-            document.getElementById('time-custom').checked = true;
-            customTimeLimitInput.value = totalMinutes;
-        }
-        handleTimePresetChange();
-    } else {
-        document.getElementById('time-10m').checked = true;
-        handleTimePresetChange();
-    }
-    
-    attemptLimitToggle.checked = config.isAttemptLimited || false;
-    attemptLimitInput.value = config.maxAttempts || 3;
+    // 3. Remove any previous overview banner badge if it exists to avoid duplicates
+    document.getElementById('quiz-custom-summary-banner')?.remove();
 
-    validateAllInputs();
-}
+    // 4. Create and insert a beautiful metadata text row panel component
+    const summaryBanner = document.createElement('div');
+    summaryBanner.id = 'quiz-custom-summary-banner';
+    summaryBanner.className = 'w-full bg-gray-800/80 border border-gray-700/60 rounded-xl p-4 mb-5 flex flex-wrap gap-4 items-center justify-around text-center shadow-md';
+    summaryBanner.innerHTML = `
+        <div class="flex flex-col px-2">
+            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Questions Count</span>
+            <span class="text-base font-bold text-blue-400 mt-0.5">${qCount} Items</span>
+        </div>
+        <div class="h-8 w-px bg-gray-700/50 hidden sm:block"></div>
+        <div class="flex flex-col px-2">
+            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Difficulty Mode</span>
+            <span class="text-base font-bold text-indigo-400 mt-0.5">${capitalizedDiff}</span>
+        </div>
+        <div class="h-8 w-px bg-gray-700/50 hidden sm:block"></div>
+        <div class="flex flex-col px-2">
+            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Question Structure</span>
+            <span class="text-base font-bold text-purple-400 mt-0.5">${typeText}</span>
+        </div>
+    `;
+
+    // Inject this banner right at the top of your customization form area
+    customizeContent.insertBefore(summaryBanner, customizeContent.firstChild);
+
+    // Keep backup values assigned to your native elements so backend calculations remain intact
+    questionCountInput.value = qCount;
+    difficultyRadios.forEach(radio => {
+        radio.checked = radio.value === rawDiff;
+    });
+    if (rawDiff === 'custom') {
+        customQuestionTypeSelect.value = config.customType || 'mixed';
+    }
+}   
 
 
 

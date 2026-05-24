@@ -1467,45 +1467,37 @@ function resetStartViewUI() {
     state.isCustomizingHistory = false;
     state.customizingQuizData = null;
     state.initialCustomizeState = {};
-    state.currentFiles = []; // Clear active files pool
+    state.currentFiles = []; 
     
     renameContainer.classList.add('hidden');
     selectedFilesContainer.classList.add('hidden');
     selectedFilesList.innerHTML = '';
     addMoreFilesInput.value = '';
-    editQuizNameInput.value = ''; // Clear the input so it defaults to blank
+    editQuizNameInput.value = ''; 
     
     document.getElementById('customize-section').classList.add('hidden');
-    document.getElementById('customize-content').classList.add('hidden');
-    document.getElementById('customize-toggle-icon').classList.remove('rotate-180');
-    startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
     
-    generateQuizBtn.textContent = 'Generate Quiz';
-    generateQuizBtn.disabled = true; 
+    // =====================================================================
+    // RESTORE INPUT VISIBILITY FIELDS
+    // Clear out custom overview badge and re-reveal selectors for new files
+    // =====================================================================
+    document.getElementById('quiz-custom-summary-banner')?.remove();
+
+    const countGroup = document.getElementById('question-count-group') || questionCountInput.closest('.mb-4, .space-y-4, div');
+    const diffGroup = difficultyRadios[0]?.closest('.mb-4, .space-y-4, div');
+
+    if (countGroup) countGroup.classList.remove('hidden');
+    if (diffGroup) diffGroup.classList.remove('hidden');
     
-    elements.cancelCustomizeBtn.classList.add('hidden');
-    fileActionsDiv.classList.remove('hidden');
+    // Reset structural state restrictions
     questionCountInput.readOnly = false;
     questionCountInput.classList.remove('locked-input');
-    questionCountInput.closest('div')?.querySelector('label')?.classList.remove('locked-label');
     difficultyRadios.forEach(radio => {
         radio.disabled = false;
         radio.closest('div')?.querySelector('label')?.classList.remove('locked-label');
     });
     customQuestionTypeSelect.disabled = false;
     customQuestionTypeSelect.classList.remove('locked-input');
-    document.getElementById('custom-type-group')?.querySelector('label')?.classList.remove('locked-label');
-    customCountInputs.forEach(input => {
-        input.readOnly = false;
-        input.classList.remove('locked-input');
-        input.closest('div')?.querySelector('label')?.classList.remove('locked-label');
-    });
-    const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
-    customOptionsDiv.classList.toggle('hidden', selectedDifficulty !== 'custom');
-    if (selectedDifficulty === 'custom') handleCustomTypeChange();
-    validateAllInputs();
-    
-    prepareResumeButton();
 }
 
 export function attachQuizEventListeners() {
