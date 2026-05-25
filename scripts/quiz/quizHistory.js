@@ -204,18 +204,22 @@ export function showAllHistoryFullScreen() {
     sorted.forEach(([key, data]) => {
         const item = document.createElement('div');
         item.className = 'p-3 bg-gray-700/50 rounded-lg flex justify-between items-center';
-        const tInfo = formatTime(data.config.totalTime);
-        let diffTxt = data.config.difficulty ? `(${data.config.difficulty}` : '(';
-        if (data.config.difficulty === 'custom' && data.config.customTypeShort) {
-            diffTxt += `: ${data.config.customTypeShort})`;
-        } else if (data.config.difficulty) {
+        
+        // Add this fallback to prevent crashes from older quizzes
+        const config = data.config || {};
+        
+        const tInfo = formatTime(config.totalTime);
+        let diffTxt = config.difficulty ? `(${config.difficulty}` : '(';
+        if (config.difficulty === 'custom' && config.customTypeShort) {
+            diffTxt += `: ${config.customTypeShort})`;
+        } else if (config.difficulty) {
             diffTxt += ')';
         } else {
-            diffTxt += `${data.config.type || 'mixed'})`;
+            diffTxt += `${config.type || 'mixed'})`;
         }
 
-        const attInfo = data.config.isAttemptLimited ? `(${data.config.maxAttempts} att)` : '';
-        const summaryInfo = data.config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
+        const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
+        const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
 
         const isShared = data.share && data.share.isShared;
         const shareIconHTML = isShared ? `
