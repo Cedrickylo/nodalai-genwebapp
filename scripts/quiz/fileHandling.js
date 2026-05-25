@@ -379,6 +379,17 @@ export async function loadSharedQuiz(publicUrl) {
         state.questions = data.q;
         state.currentQuizConfig = data.c;
         state.currentFileName = data.n;
+
+        // ADDED: Generate a temporary key so it behaves like a saved history item
+        state.currentQuizKey = 'shared-' + Date.now();
+        
+        // ADDED: Register this as an existing quiz to bypass AI generation logic
+        state.customizingQuizData = {
+            key: state.currentQuizKey,
+            questions: state.questions,
+            config: state.currentQuizConfig,
+            fileName: state.currentFileName
+        };
         
         // Setup view and toast
         setupCustomizeView(state.currentQuizConfig, state.currentFileName);

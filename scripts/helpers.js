@@ -153,6 +153,7 @@ export function handleDifficultyChange() {
 export async function handleLogout() {
     const isConfirmed = await customConfirm('Are you sure you want to log out?', 'Sign Out', 'Sign Out', 'Cancel', true);
     if (isConfirmed) {
+        if (elements.accountModalOverlay) elements.accountModalOverlay.classList.add('hidden');
         // 1. Sign out of Puter
         await puter.auth.signOut();
         // accountModal.classList.add('hidden');
@@ -840,6 +841,17 @@ export function setupCustomizeView(config, name) {
     });
     if (rawDiff === 'custom') {
         customQuestionTypeSelect.value = config.customType || 'mixed';
+
+        // ADDED: Explicitly populate the hidden custom inputs from the loaded config
+        if (config.customType === 'mixed') {
+            const mcInput = document.getElementById('mc-count');
+            const idInput = document.getElementById('id-count');
+            const enInput = document.getElementById('en-count');
+            
+            if (mcInput) mcInput.value = config.mc || 0;
+            if (idInput) idInput.value = config.id || 0;
+            if (enInput) enInput.value = config.en || 0;
+        }
     }
 
     validateAllInputs();
