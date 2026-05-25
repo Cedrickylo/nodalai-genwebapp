@@ -142,6 +142,12 @@ export function attachQuizEventListeners() {
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn.addEventListener('click', exportQuiz);
     elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
+    // Help and About back buttons
+    elements.helpBackBtn?.addEventListener('click', () => showView('start'));
+    elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
+    
+    // ADD THIS NEW LINE:
+    document.getElementById('account-mobile-back-btn')?.addEventListener('click', () => showView('start'));
     
     // Copy Link Button
     elements.copyShareLinkBtn.onclick = () => {

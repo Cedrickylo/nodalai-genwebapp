@@ -24,7 +24,7 @@
         aside::-webkit-scrollbar-thumb:hover { background: #6B7280; }
         
         /* Toast and Modal positioning to avoid navbar overlap */
-        #toast-notification { bottom: 110px; }
+        #toast-notification { bottom: 120px; z-index: 9999; }
         @media (min-width: 768px) {
             #toast-notification { bottom: 40px; }
         }
