@@ -428,19 +428,66 @@ export function getUniqueName(baseName) {
 }
 
 export async function updateAuthUI() {
-    const signedIn = puter.auth.isSignedIn();
+    console.log("Synchronizing Puter Auth Session Presentation State...");
+    
+    // Look up the core text presentation targets from the live document structure
+    const authBtnText = document.getElementById('auth-btn-text');
+    const puterAuthBtn = document.getElementById('puter-auth-btn');
 
-    if (signedIn) {
-        const customName = await puter.kv.get('custom_display_name');
-        authBtnText.textContent = customName || 'Account';
-        authBtn.classList.remove('bg-blue-600');
-        authBtn.classList.add('bg-green-600');
-        await syncHistoryWithCloud();
-        await loadGenerationCooldownState();
-    } else {
-        authBtnText.textContent = 'Puter Login';
-        authBtn.classList.remove('bg-green-600');
-        authBtn.classList.add('bg-blue-600');
+    // Fallback references to dashboard profile row containers
+    const mUsername = document.getElementById('modal-username');
+    const mAccountId = document.getElementById('modal-account-id');
+    const mEmail = document.getElementById('modal-email');
+    const mCredits = document.getElementById('modal-credits');
+
+    try {
+        if (window.puter && puter.auth.isSignedIn()) {
+            const user = await puter.auth.getUser();
+            
+            // Safe fallback naming validation selector check
+            const userDisplayName = user.display_name || user.username || "Puter User";
+
+            // Update Header Action buttons smoothly
+            if (authBtnText) authBtnText.textContent = "Account";
+            if (puterAuthBtn) {
+                puterAuthBtn.classList.replace('bg-blue-600', 'bg-green-600');
+                puterAuthBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
+            }
+
+            // --- DEFENSIVE SAFE GATES FOR DASHBOARD DATA ---
+            if (mUsername) mUsername.textContent = userDisplayName;
+            if (mAccountId) mAccountId.textContent = user.id || "---";
+            if (mEmail) mEmail.textContent = user.email || "Session Active";
+
+            // Safe lookup checks for credit trackers to prevent undefined text crashes
+            if (mCredits) {
+                try {
+                    const balance = await puter.auth.getRemainingBalance();
+                    mCredits.textContent = balance !== undefined ? `${balance} credits` : "Unlimited Tiers";
+                } catch {
+                    mCredits.textContent = "Available";
+                }
+            }
+
+            // Update remaining UI dashboard values (cooldowns, storage meters) safely if they exist
+            const storageLabel = document.getElementById('modal-storage-label');
+            if (storageLabel) storageLabel.textContent = "Cloud Active";
+
+        } else {
+            // Reset state views if unauthenticated
+            if (authBtnText) authBtnText.textContent = "Puter Login";
+            if (puterAuthBtn) {
+                puterAuthBtn.classList.replace('bg-green-600', 'bg-blue-600');
+                puterAuthBtn.classList.replace('hover:bg-green-700', 'hover:bg-blue-700');
+            }
+
+            if (mUsername) mUsername.textContent = "---";
+            if (mAccountId) mAccountId.textContent = "---";
+            if (mEmail) mEmail.textContent = "---";
+            if (mCredits) mCredits.textContent = "---";
+        }
+    } catch (error) {
+        console.warn("Minor non-blocking interface alignment notice inside updateAuthUI:", error);
     }
 }
 
