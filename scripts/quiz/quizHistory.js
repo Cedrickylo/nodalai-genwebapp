@@ -191,13 +191,16 @@ export async function handleHistoryClick(e) {
 export function showAllHistoryFullScreen() {
     const db = state.quizHistory;
     const sorted = Object.entries(db).sort(([, a], [, b]) => b.timestamp - a.timestamp);
-    const container = elements.historyFullList || document.getElementById('history-full-list');
+    
+    // Explicit lookup targeting the exact container ID declared in the DOM template architecture
+    const container = document.getElementById('history-full-list');
     if (!container) return;
     container.innerHTML = '';
 
     if (sorted.length === 0) {
         container.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
-        showView('history-fullscreen');
+        // Corrected destination ID matching the view element property definition keys
+        showView('history-fullscreen-view');
         return;
     }
 
@@ -257,8 +260,6 @@ export function showAllHistoryFullScreen() {
         container.appendChild(item);
     });
 
-    // Attach click handler for delegated actions inside full-list
     container.onclick = handleHistoryClick;
-
-    showView('history-fullscreen');
+    showView('history-fullscreen-view');
 }

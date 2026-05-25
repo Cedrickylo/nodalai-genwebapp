@@ -11,12 +11,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://js.puter.com/v2/"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-900 text-white flex min-h-screen p-4">
-    <!-- Left Sidebar Navigation -->
+<body class="bg-gray-900 text-white flex min-h-screen p-4 mobile-pad-bottom">
     <aside class="hidden md:flex md:w-56 md:flex-col md:bg-gray-800 md:rounded-xl md:shadow-2xl md:p-6 md:mr-4 md:h-fit md:sticky md:top-4 md:border md:border-gray-700">
         <div class="md:space-y-4">
             <h2 class="text-xl font-bold text-blue-400 mb-6">Menu</h2>
@@ -40,10 +38,9 @@
                     </button>
                 </div>
 
-                <!-- Mobile Menu Modal -->
                 <div id="mobile-menu-modal" class="hidden fixed inset-0 z-40 flex flex-col md:hidden">
                     <div class="flex-1 bg-black/60 backdrop-blur-sm" id="mobile-menu-backdrop"></div>
-                    <div class="w-full bg-gray-800 p-4 rounded-t-xl shadow-xl border-t border-gray-700">
+                    <div class="w-full bg-gray-800 p-4 rounded-t-xl shadow-xl border-t border-gray-700 mobile-pad-bottom">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold">Menu</h3>
                             <button id="mobile-menu-close-btn" class="text-gray-400 hover:text-white">Close</button>
@@ -78,7 +75,6 @@
                     </div>
                     
                     <div id="customize-content" class="hidden mt-4 space-y-6 bg-gray-800 border border-gray-700 p-5 rounded-lg shadow-inner">
-                        
                         <div id="rename-container" class="hidden">
                             <label for="edit-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Quiz Name</label>
                             <input type="text" id="edit-quiz-name" class="w-full bg-gray-700 border border-blue-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter quiz name...">
@@ -199,104 +195,7 @@
                             <button id="show-all-history-btn" class="text-xs text-gray-400 hover:text-gray-200 transition-colors">Show All</button>
                         </div>
                      </div>
-                     <div id="history-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
-                </div>
-
-                <!-- Full-screen History View (navigable page, not overlay) -->
-                <div id="history-fullscreen-view" class="view">
-                    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
-                        <div class="absolute top-4 left-4">
-                            <button id="history-fullscreen-back-btn" class="hidden md:inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
-                        </div>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center">Full Quiz History</h2>
-                        <p class="text-sm text-gray-400 text-center mb-6">All generated quizzes across time.</p>
-                        <div id="history-full-list" class="space-y-3 max-h-[70vh] overflow-y-auto mt-4 pr-2"></div>
-                    </div>
-                </div>
-
-                <!-- Help View (navigable page) -->
-                <div id="help-view" class="view">
-                    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
-                        <div class="absolute top-4 left-4">
-                            <button id="help-back-btn" class="hidden md:inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
-                        </div>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center">Help</h2>
-                        <p class="text-sm text-gray-400 text-center mb-6">How to use Nodal AI Quiz Generator</p>
-                        <div class="prose prose-invert max-w-none text-sm text-gray-200">
-                            <h3>Quick Steps</h3>
-                            <ol class="list-decimal list-inside mb-4">
-                                <li>Select or upload documents using "Select Documents".</li>
-                                <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
-                                <li>Click "Generate Quiz" to create questions from your documents.</li>
-                                <li>Take the quiz, review results, and export or save to the cloud.</li>
-                            </ol>
-
-                            <h3>What this site does</h3>
-                            <p>It analyzes uploaded documents and generates assessment-style questions (multiple choice, identification, enumeration, or a mix) using on-device logic and cloud helpers. You can save quizzes to your Puter account or export them locally.</p>
-
-                            <h3>Limitations & Notes</h3>
-                            <ul class="list-disc list-inside mb-4">
-                                <li>Quality of questions depends on the clarity and structure of the source document.</li>
-                                <li>Processing large or scanned PDFs may be slower and may not extract text perfectly.</li>
-                                <li>There is a rate limit on quiz generation to prevent abuse (see account modal).</li>
-                                <li>Some features rely on Puter cloud services; offline behavior is limited.</li>
-                            </ul>
-
-                            <h3>Troubleshooting</h3>
-                            <p>If uploads fail or generation stalls, try re-uploading a simpler file, check your internet connection for cloud sync features, or refresh the page.</p>
-
-                            <h3>Privacy</h3>
-                            <p>Uploaded documents may be temporarily processed by Puter services when cloud features are enabled. Please avoid uploading sensitive personal data.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- About View (navigable page) -->
-                <div id="about-view" class="view">
-                    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
-                        <div class="absolute top-4 left-4">
-                            <button id="about-back-btn" class="hidden md:inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
-                        </div>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center">About</h2>
-                        <p class="text-sm text-gray-400 text-center mb-6">Purpose, credits, and Terms of Service</p>
-                        <div class="prose prose-invert max-w-none text-sm text-gray-200">
-                            <h3>Purpose</h3>
-                            <p>Nodal AI Quiz Generator is a lightweight tool to convert learning materials into practice quizzes quickly. It's designed for educators and learners to create formative assessments from documents.</p>
-
-                            <h3>Creator</h3>
-                            <p>Created by the Nodal AI team (or contributor). For inquiries, contact the project owner listed in the repository.</p>
-
-                            <h3>Services & Credits</h3>
-                            <p>This project uses the following third-party services and libraries:</p>
-                            <ul class="list-disc list-inside mb-4">
-                                <li>Puter.js — cloud sync & user accounts (credits apply to some operations).</li>
-                                <li>mammoth.js — Word document parsing.</li>
-                                <li>pdf.js — PDF text extraction.</li>
-                                <li>tone.js — audio feedback (optional).</li>
-                                <li>crypto-js and lz-string — for local data handling and compression.</li>
-                            </ul>
-
-                            <h3>Terms of Service</h3>
-                            <p class="text-xs text-gray-400">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
-                            <p class="text-xs text-gray-400">For full terms, see the project repository or contact the developer for the official TOS document.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mobile Bottom Navigation -->
-                <div id="mobile-bottom-nav" class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-gray-900/80 border border-gray-700 rounded-xl p-2 flex items-center justify-around md:hidden z-50">
-                    <button id="mobile-nav-home-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                        <span class="text-xs">Home</span>
-                    </button>
-                    <button id="mobile-nav-history-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"></path><path d="M21 21v-5h-5"></path><path d="M21 8a9 9 0 1 0 0 8"></path></svg>
-                        <span class="text-xs">History</span>
-                    </button>
-                    <button id="mobile-nav-menu-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                        <span class="text-xs">Menu</span>
-                    </button>
+                     <div id="history-list" class="space-y-2"></div>
                 </div>
 
                 <div id="api-key-editor" class="hidden mt-6 pt-4 border-t border-gray-700/50">
@@ -305,18 +204,65 @@
             </div>
         </div>
 
+        <div id="history-fullscreen-view" class="view w-full max-w-2xl">
+            <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh] mobile-pad-bottom">
+                <div class="absolute top-4 left-4">
+                    <button id="history-fullscreen-back-btn" class="text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
+                </div>
+                <h2 class="text-2xl font-bold text-blue-400 text-center mt-4">Full Quiz History</h2>
+                <p class="text-sm text-gray-400 text-center mb-6">All generated quizzes across time.</p>
+                <div id="history-full-list" class="space-y-3 max-h-[70vh] overflow-y-auto mt-4 pr-2"></div>
+            </div>
+        </div>
+
+        <div id="help-view" class="view w-full max-w-2xl">
+            <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh] mobile-pad-bottom">
+                <div class="absolute top-4 left-4">
+                    <button id="help-back-btn" class="text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
+                </div>
+                <h2 class="text-2xl font-bold text-blue-400 text-center mt-4">Help</h2>
+                <p class="text-sm text-gray-400 text-center mb-6">How to use Nodal AI Quiz Generator</p>
+                <div class="prose prose-invert max-w-none text-sm text-gray-200">
+                    <h3>Quick Steps</h3>
+                    <ol class="list-decimal list-inside mb-4">
+                        <li>Select or upload documents using "Select Documents".</li>
+                        <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
+                        <li>Click "Generate Quiz" to create questions from your documents.</li>
+                        <li>Take the quiz, review results, and export or save to the cloud.</li>
+                    </ol>
+                    <h3>What this site does</h3>
+                    <p>It analyzes uploaded documents and generates assessment-style questions using on-device logic and cloud helpers.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="about-view" class="view w-full max-w-2xl">
+            <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative min-h-[60vh] mobile-pad-bottom">
+                <div class="absolute top-4 left-4">
+                    <button id="about-back-btn" class="text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
+                </div>
+                <h2 class="text-2xl font-bold text-blue-400 text-center mt-4">About</h2>
+                <p class="text-sm text-gray-400 text-center mb-6">Purpose, credits, and Terms of Service</p>
+                <div class="prose prose-invert max-w-none text-sm text-gray-200">
+                    <h3>Purpose</h3>
+                    <p>Nodal AI Quiz Generator is a lightweight tool to convert learning materials into practice quizzes quickly.</p>
+                </div>
+            </div>
+        </div>
+
         <div id="loading-view" class="view">
-             <div class="bg-gray-800 p-8 rounded-xl shadow-2xl text-center">
+             <div class="bg-gray-800 p-8 rounded-xl shadow-2xl text-center mobile-pad-bottom">
                 <div class="flex justify-center items-center mb-6"><svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
                 <h2 id="loading-title" class="text-2xl font-semibold text-blue-400">Generating Quiz...</h2>
                 <p id="loading-message" class="text-gray-400 mt-2 min-h-[20px]"></p>
             </div>
         </div>
 
-        <div id="quiz-view" class="view">
-             <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl relative">
+        <div id="quiz-view" class="view w-full max-w-2xl">
+             <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl relative mobile-pad-bottom">
                 <div id="visual-timer-container" class="hidden w-full h-2 bg-gray-700 rounded-full overflow-hidden mb-4"><div id="visual-timer-bar" class="h-2 bg-blue-500 transition-colors duration-300" style="width: 100%;"></div></div>
-                <div class="flex justify-between items-center mb-6 flex-wrap gap-y-2"> <div id="progress" class="text-sm font-medium text-gray-300"></div>
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-y-2"> 
+                    <div id="progress" class="text-sm font-medium text-gray-300"></div>
                     <div class="flex items-center gap-x-3 sm:gap-x-4"> 
                         <div id="quiz-sync-indicator" title="Cloud Status">
                             <svg class="sync-icon-done hidden text-green-500" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><polyline points="7 12 10 15 17 8"/></svg>
@@ -327,10 +273,10 @@
                         <div id="score" class="text-sm font-medium bg-blue-500 text-white px-3 py-1 rounded-full"></div>
                         <div class="flex gap-x-3">
                              <button id="save-quiz-btn" title="Save and Sync" class="text-gray-400 hover:text-white transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                              </button>
                              <button id="home-btn" title="Save and Go Home" class="text-gray-400 hover:text-white transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                              </button>
                         </div>
                     </div>
@@ -345,8 +291,8 @@
             </div>
         </div>
 
-        <div id="results-view" class="view">
-             <div class="bg-gray-800 p-8 rounded-xl shadow-2xl">
+        <div id="results-view" class="view w-full max-w-2xl">
+             <div class="bg-gray-800 p-8 rounded-xl shadow-2xl mobile-pad-bottom">
                 <h2 class="text-3xl font-bold mb-4 text-center text-blue-400">Quiz Complete!</h2>
                 <div class="text-center mb-8"><p class="text-2xl font-semibold" id="final-percentage"></p><p class="text-lg text-gray-300" id="final-message"></p></div>
                 <h3 class="text-lg font-semibold text-gray-300 mb-4">Review Answers:</h3>
@@ -359,272 +305,50 @@
                 <div id="remedial-container" class="mt-4">
                     <button id="create-remedial-btn" class="hidden w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg transition">Create Remedial Quiz from Incorrect Answers</button>
                 </div>
-
-                <div id="remedial-options-view" class="hidden mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-2xl font-bold mb-4 text-center text-yellow-400">Remedial Quiz Setup</h3>
-                     <p class="text-gray-400 mb-6 text-center text-sm">Generating a new quiz based on the topics of the questions you answered incorrectly.</p>
-
-                    <div id="remedial-rename-container" class="mb-6">
-                        <label for="remedial-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Remedial Quiz Name</label>
-                        <input type="text" id="remedial-quiz-name" class="w-full bg-gray-700 border border-yellow-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Enter remedial quiz name...">
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label for="remedial-question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>
-                            <input type="number" id="remedial-question-count" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" value="10" min="5" max="100">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="remedial-difficulty-group">
-                                <div><input type="radio" id="remedial-difficulty-easy" name="remedial_difficulty" value="easy" class="hidden peer" checked><label for="remedial-difficulty-easy" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Easy</label></div>
-                                <div><input type="radio" id="remedial-difficulty-medium" name="remedial_difficulty" value="medium" class="hidden peer"><label for="remedial-difficulty-medium" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Medium</label></div>
-                                <div><input type="radio" id="remedial-difficulty-hard" name="remedial_difficulty" value="hard" class="hidden peer"><label for="remedial-difficulty-hard" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Hard</label></div>
-                                <div><input type="radio" id="remedial-difficulty-custom" name="remedial_difficulty" value="custom" class="hidden peer"><label for="remedial-difficulty-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Custom</label></div>
-                            </div>
-                        </div>
-                    </div>
-                     
-                     <div id="remedial-custom-options" class="hidden bg-gray-700/50 p-4 rounded-lg mb-6 space-y-4">
-                         <div id="remedial-custom-type-group">
-                            <label for="remedial-custom-question-type" class="block text-sm font-medium text-gray-300 mb-2">Custom Question Type</label>
-                            <select id="remedial-custom-question-type" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                                <option value="multiple-choice">Multiple Choice</option>
-                                <option value="identification">Identification</option>
-                                <option value="enumeration">Enumeration</option>
-                                <option value="mixed" selected>Mixed</option>
-                            </select>
-                        </div>
-                        <div id="remedial-custom-mixed-counts" class="hidden">
-                            <p class="text-sm font-medium text-gray-300 mb-3 text-center">Specify counts for mixed type:</p>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div><label for="remedial-mc-count" class="block text-xs text-gray-400">Multiple Choice</label><input type="number" id="remedial-mc-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="4" min="0"></div>
-                                <div><label for="id-count" class="block text-xs text-gray-400">Identification</label><input type="number" id="id-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="3" min="0"></div>
-                                <div><label for="remedial-en-count" class="block text-xs text-gray-400">Enumeration</label><input type="number" id="remedial-en-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="3" min="0"></div>
-                            </div>
-                            <p id="remedial-custom-total-feedback" class="text-xs text-center mt-3 h-4"></p>
-                        </div>
-                    </div>
-
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="remedial-time-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600">
-                                <label for="remedial-time-limit-toggle" class="font-medium text-gray-300">Enable Timed Quiz</label>
-                            </div>
-                            <div id="remedial-time-limit-options" class="hidden space-y-3 pt-2">
-                                <label class="block text-sm font-medium text-gray-300">Select Duration:</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <div><input type="radio" id="remedial-time-5m" name="remedial_time_preset" value="5" class="hidden peer"><label for="remedial-time-5m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">5m</label></div>
-                                    <div><input type="radio" id="remedial-time-10m" name="remedial_time_preset" value="10" class="hidden peer" checked><label for="remedial-time-10m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">10m</label></div>
-                                    <div><input type="radio" id="remedial-time-30m" name="remedial_time_preset" value="30" class="hidden peer"><label for="remedial-time-30m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">30m</label></div>
-                                    <div><input type="radio" id="remedial-time-1h" name="remedial_time_preset" value="60" class="hidden peer"><label for="remedial-time-1h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">1h</label></div>
-                                    <div><input type="radio" id="remedial-time-2h" name="remedial_time_preset" value="120" class="hidden peer"><label for="remedial-time-2h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">2h</label></div>
-                                    <div><input type="radio" id="remedial-time-custom" name="remedial_time_preset" value="custom" class="hidden peer"><label for="remedial-time-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Custom</label></div>
-                                </div>
-                                <div id="remedial-custom-time-input-container" class="hidden flex items-center gap-2 pt-2">
-                                    <input type="number" id="remedial-custom-time-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="15" min="1">
-                                    <label for="remedial-custom-time-limit-input" class="text-sm text-gray-400">minutes</label>
-                                </div>
-                            </div>
-                            </div>
-                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="remedial-attempt-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600">
-                                <label for="remedial-attempt-limit-toggle" class="font-medium text-gray-300">Enable Attempt Limit</label>
-                            </div>
-                            <div id="remedial-attempt-limit-options" class="hidden flex items-center gap-2 pt-2">
-                                <label for="remedial-attempt-limit-input" class="text-sm font-medium text-gray-300">Max Attempts:</label>
-                                <input type="number" id="remedial-attempt-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="3" min="1">
-                            </div>
-                            </div>
-                    </div>
-                    <div class="bg-gray-700/50 p-4 rounded-lg space-y-3 mb-6">
-                        <div class="flex items-center gap-2"><input type="checkbox" id="remedial-summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600"><label for="remedial-summary-only-toggle" class="font-medium text-gray-300">Show Answers in Summary Only</label></div>
-                    </div>
-                     <div class="flex gap-4 mt-6">
-                        <button id="cancel-remedial-btn" class="w-1/3 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Cancel</button>
-                        <button id="generate-remedial-quiz-btn" class="flex-grow bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg transition" disabled>Generate Remedial Quiz</button>
-                     </div>
-                </div>
             </div>
         </div>
     </div>
 
-    <div id="toast-notification" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg transition-all ease-in-out duration-300"><span id="toast-message"></span></div>
+    <div id="mobile-bottom-nav" class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-gray-900/80 border border-gray-700 rounded-xl p-2 flex items-center justify-around md:hidden z-50 backdrop-blur-md">
+        <button id="mobile-nav-home-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span class="text-xs">Home</span>
+        </button>
+        <button id="mobile-nav-history-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"></path><path d="M21 21v-5h-5"></path><path d="M21 8a9 9 0 1 0 0 8"></path></svg>
+            <span class="text-xs">History</span>
+        </button>
+        <button id="mobile-nav-menu-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <span class="text-xs">Menu</span>
+        </button>
+    </div>
+
+    <div id="toast-notification" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg transition-all ease-in-out duration-300 z-[300]"><span id="toast-message"></span></div>
 
     <div id="account-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
-        <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-            <h3 class="text-xl font-bold text-blue-400">Puter Account</h3>
-            <button id="close-account-modal" class="text-gray-400 hover:text-white transition-colors">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        <div class="p-6 space-y-6">
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-gray-500 uppercase">Puter Username</label>
-                <p id="modal-username" class="text-lg font-medium text-white truncate">---</p>
+        <div class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-y-auto max-h-[85vh] mobile-pad-bottom p-6 space-y-6">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-4">
+                <h3 class="text-xl font-bold text-blue-400">Puter Account</h3>
+                <button id="close-account-modal" class="text-gray-400 hover:text-white"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-gray-500 uppercase">Account ID</label>
-                <p id="modal-account-id" class="text-sm text-gray-300 truncate">---</p>
-            </div>
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-gray-500 uppercase">Email / Session</label>
-                <p id="modal-email" class="text-sm text-gray-300 truncate">---</p>
-            </div>
-            <div id="modal-credit-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div class="flex justify-between items-end mb-2">
-                    <label class="text-xs font-semibold text-gray-400 uppercase">Available Credits</label>
-                    <span id="modal-credits" class="text-sm font-bold text-green-400">Loading...</span>
-                </div>
-                <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
-                    <div id="credit-progress" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-                <p class="text-[10px] text-gray-500 mt-2 italic">Credits are used for AI quiz generation.</p>
-                <button id="buy-credits-btn" class="mt-4 w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-lg transition">Buy More Credits</button>
-            </div>
-
-            <div id="modal-storage-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div class="flex justify-between items-end mb-2">
-                    <label class="text-xs font-semibold text-gray-400 uppercase">Puter Storage</label>
-                    <span id="modal-storage-label" class="text-sm font-bold text-green-400">Free</span>
-                </div>
-                <p class="text-[10px] text-gray-500 mt-2 italic">Your Puter cloud storage is included for syncing and saving quizzes.</p>
-            </div>
-
-            <div id="modal-cooldown-panel" class="hidden bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div class="flex justify-between items-end mb-2">
-                    <label class="text-xs font-semibold text-gray-400 uppercase">Quiz Generation Cooldown</label>
-                    <span id="modal-cooldown-status" class="text-sm font-bold text-green-400">Loading...</span>
-                </div>
-                <p id="modal-cooldown-detail" class="text-[10px] text-gray-500 mt-2 italic">You can generate up to 5 quizzes every 3 hours. This is synced across devices for your Puter account.</p>
-            </div>
-
-            <div class="space-y-3">
-                <label for="display-name-input" class="text-xs font-semibold text-gray-400 uppercase">Custom Display Name</label>
-                <div class="flex gap-2">
-                    <input type="text" id="display-name-input" class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter preferred name">
-                    <button id="save-display-name-btn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold text-sm transition shadow-lg">Save</button>
-                </div>
-            </div>
-
-            <button id="logout-btn" class="w-full bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/50 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-4">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="stroke-current text-red-500"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="18"></line></svg>
-                <span class="hidden sm:inline">Sign Out</span>
-            </button>
+            <div class="space-y-1"><label class="text-xs font-semibold text-gray-500 uppercase">Puter Username</label><p id="modal-username" class="text-lg font-medium text-white truncate">---</p></div>
+            <div class="space-y-1"><label class="text-xs font-semibold text-gray-500 uppercase">Account ID</label><p id="modal-account-id" class="text-sm text-gray-300 truncate">---</p></div>
+            <div class="space-y-1"><label class="text-xs font-semibold text-gray-500 uppercase">Email / Session</label><p id="modal-email" class="text-sm text-gray-300 truncate">---</p></div>
+            <button id="logout-btn" class="w-full bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/50 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">Sign Out</button>
         </div>
     </div>
-</div>
-<div id="share-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300">
-    <div class="bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300 flex flex-col max-h-[90vh]">
-        
-        <div class="p-4 border-b border-gray-700 flex justify-between items-center relative">
-            <button id="share-back-btn" class="hidden text-gray-400 hover:text-white transition-colors flex items-center gap-1 absolute left-4">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-                <span class="text-sm font-medium">Back</span>
-            </button>
-            
-            <h3 class="text-lg font-bold text-white w-full text-center" id="share-modal-title">Share Quiz</h3>
-            
-            <button id="close-share-modal-btn" class="text-gray-400 hover:text-white transition-colors absolute right-4">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
 
-        <div class="p-6 overflow-y-auto">
-            
+    <div id="share-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 overflow-y-auto max-h-[85vh] mobile-pad-bottom p-6 flex flex-col">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-4 mb-4">
+                <h3 class="text-lg font-bold text-white">Share Quiz</h3>
+                <button id="close-share-modal-btn" class="text-gray-400 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </div>
             <div id="share-step-menu" class="space-y-3">
-                <p class="text-gray-400 text-sm text-center mb-4">Choose how you want to share or save this quiz.</p>
-                
-                <button id="share-menu-link-btn" class="w-full flex items-center justify-between p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors border border-gray-600 group">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                        </div>
-                        <div class="text-left">
-                            <h4 class="text-white font-medium">Share via Link</h4>
-                            <p class="text-xs text-gray-400">Generate a public link</p>
-                        </div>
-                    </div>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-500"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-
-                <button id="share-menu-export-btn" class="w-full flex items-center justify-between p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors border border-gray-600 group">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-emerald-500/20 rounded-lg text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        </div>
-                        <div class="text-left">
-                            <h4 class="text-white font-medium">Export as JSON</h4>
-                            <p class="text-xs text-gray-400">Download to your device</p>
-                        </div>
-                    </div>
-                </button>
-            </div>
-
-            <div id="share-step-config" class="hidden space-y-4">
-                <p class="text-gray-300 text-sm mb-2">Create a public link for this quiz. You can specify how long the link will remain active.</p>
-                <div>
-                    <label class="block text-xs font-medium text-gray-400 mb-1">Link Expiration</label>
-                    <div class="relative">
-                        <select id="share-expiry-select" class="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-3 appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
-                            <option value="1">Expires in 1 Day</option>
-                            <option value="3">Expires in 3 Days</option>
-                            <option value="7" selected>Expires in 7 Days</option>
-                            <option value="30">Expires in 1 Month</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                        </div>
-                    </div>
-                </div>
-                <button id="generate-share-link-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg px-4 py-3 transition-colors mt-2 flex justify-center items-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                    Generate Link
-                </button>
-            </div>
-
-            <div id="share-step-manage" class="hidden space-y-4">
-                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center mb-4">
-                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white mb-2">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-                    </span>
-                    <h4 class="text-blue-400 font-medium text-sm">Link is Live!</h4>
-                    <p id="share-expiry-display" class="text-xs text-blue-300 mt-1">Calculating expiration...</p>
-                </div>
-
-                <div class="relative">
-                    <input type="text" id="share-link-input" readonly class="w-full bg-gray-900 border border-gray-600 text-gray-300 rounded-lg pl-3 pr-12 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors cursor-text" value="">
-                    <button id="copy-share-link-btn" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors" title="Copy to clipboard">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    </button>
-                </div>
-
-                <div class="pt-4 border-t border-gray-700 mt-4">
-                    <button id="disable-share-btn" class="w-full flex items-center justify-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 py-2.5 rounded-lg transition-colors text-sm font-medium">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                        Stop Sharing Access
-                    </button>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-<div id="custom-confirm-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300">
-        <div class="bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300">
-            <div class="p-6">
-                <h3 class="text-xl font-bold text-white mb-3" id="confirm-title">Confirm</h3>
-                <p id="confirm-message" class="text-gray-300 text-sm leading-relaxed mb-6"></p>
-                <div class="flex gap-3 justify-end">
-                    <button id="cancel-confirm-btn" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-lg transition-colors">Cancel</button>
-                    <button id="accept-confirm-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition shadow-lg">OK</button>
-                </div>
+                <button id="share-menu-link-btn" class="w-full p-4 bg-gray-700 hover:bg-gray-600 rounded-xl text-left border border-gray-600 text-white font-medium">Share via Link</button>
             </div>
         </div>
-    </div>
     </div>
 
     <script type="module" src="scripts/main.js"></script>
