@@ -218,13 +218,13 @@ export function setSyncing(status) {
 
 export async function syncHistoryWithCloud(manual = false) {
     if (!window.puter || !puter.auth.isSignedIn()) {
-        setSyncing('offline');
+        setSyncing('offline'); // Set offline if not logged in
         if (manual) showToast('Sign in to Puter to sync history.', 4000, 'warning');
         return;
     }
     
     if (manual) showToast('Started syncing...');
-    setSyncing(true);
+    setSyncing('syncing'); // CHANGED FROM true
 
     try {
         // 1. Get Cloud Data
@@ -279,7 +279,10 @@ export async function syncHistoryWithCloud(manual = false) {
         setSyncing('offline');
         showToast('Sync failed. Please check your connection.', 3000, 'error');
     } finally {
-        setSyncing(false);
+        // CHANGED FROM false
+        if (window.puter && puter.auth.isSignedIn()) {
+            setSyncing('synced'); 
+        }
     }
 }
 
@@ -459,6 +462,9 @@ export async function updateAuthUI() {
         authBtnText.textContent = 'Puter Login';
         authBtn.classList.remove('bg-green-600');
         authBtn.classList.add('bg-blue-600');
+        
+        // ADD THIS LINE: Force the icon to show "Can't Sync" when logged out
+        setSyncing('offline'); 
     }
 }
 
