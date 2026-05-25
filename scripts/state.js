@@ -110,6 +110,7 @@ export const elements = {
     remedialOptionsView: document.getElementById('remedial-options-view'),
     cancelRemedialBtn: document.getElementById('cancel-remedial-btn'),
     generateRemedialQuizBtn: document.getElementById('generate-remedial-quiz-btn'),
+    remedialQuizNameInput: document.getElementById('remedial-quiz-name'),
     remedialQuestionCountInput: document.getElementById('remedial-question-count'),
     remedialDifficultyRadios: document.querySelectorAll('input[name="remedial_difficulty"]'),
     remedialCustomOptionsDiv: document.getElementById('remedial-custom-options'),
