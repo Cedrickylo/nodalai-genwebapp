@@ -189,13 +189,33 @@ export async function clearHistory() {
     }
 }
 
-export function setSyncing(isSyncing) {
-    [globalSyncDone, quizSyncDone].forEach(el => el?.classList.toggle('hidden', isSyncing));
-    [globalSyncLoad, quizSyncLoad].forEach(el => el?.classList.toggle('hidden', !isSyncing));
+export function setSyncing(status) {
+    // Determine if the user is completely offline/logged out
+    const isOffline = !window.puter || !puter.auth.isSignedIn();
+    const finalStatus = isOffline ? 'offline' : status;
+
+    // 1. Target Global Sync Icons
+    const globalDone = document.getElementById('sync-icon-done');
+    const globalLoad = document.getElementById('sync-icon-loading');
+    const globalOffline = document.getElementById('sync-icon-offline');
+
+    if (globalDone) globalDone.classList.toggle('hidden', finalStatus !== 'synced');
+    if (globalLoad) globalLoad.classList.toggle('hidden', finalStatus !== 'syncing');
+    if (globalOffline) globalOffline.classList.toggle('hidden', finalStatus !== 'offline');
+
+    // 2. Target Quiz Sync Icons
+    const quizDone = document.querySelector('#quiz-sync-indicator .sync-icon-done');
+    const quizLoad = document.querySelector('#quiz-sync-indicator .sync-icon-loading');
+    const quizOffline = document.querySelector('#quiz-sync-indicator .sync-icon-offline');
+
+    if (quizDone) quizDone.classList.toggle('hidden', finalStatus !== 'synced');
+    if (quizLoad) quizLoad.classList.toggle('hidden', finalStatus !== 'syncing');
+    if (quizOffline) quizOffline.classList.toggle('hidden', finalStatus !== 'offline');
 }
 
 export async function syncHistoryWithCloud(manual = false) {
-    if (!puter.auth.isSignedIn()) {
+    if (!window.puter || !puter.auth.isSignedIn()) {
+        setSyncing('offline');
         if (manual) showToast('Sign in to Puter to sync history.', 4000, 'warning');
         return;
     }
@@ -211,31 +231,31 @@ export async function syncHistoryWithCloud(manual = false) {
         // 2. Get Local Data
         const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
         
-// 3. MERGE: Quiz-by-quiz timestamp comparison (Last-Write-Wins)
-const mergedItems = {};
+        // 3. MERGE: Quiz-by-quiz timestamp comparison (Last-Write-Wins)
+        const mergedItems = {};
 
-// Combine all unique quiz keys from both cloud and local history
-const allKeys = new Set([...Object.keys(cloudData.items), ...Object.keys(localItems)]);
+        // Combine all unique quiz keys from both cloud and local history
+        const allKeys = new Set([...Object.keys(cloudData.items), ...Object.keys(localItems)]);
 
-for (const key of allKeys) {
-    const cloudQuiz = cloudData.items[key];
-    const localQuiz = localItems[key];
-    
-    if (cloudQuiz && localQuiz) {
-        // Both exist, choose the version with the newer internal timestamp
-        if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
-            mergedItems[key] = cloudQuiz;
-        } else {
-            mergedItems[key] = localQuiz;
+        for (const key of allKeys) {
+            const cloudQuiz = cloudData.items[key];
+            const localQuiz = localItems[key];
+            
+            if (cloudQuiz && localQuiz) {
+                // Both exist, choose the version with the newer internal timestamp
+                if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
+                    mergedItems[key] = cloudQuiz;
+                } else {
+                    mergedItems[key] = localQuiz;
+                }
+            } else if (cloudQuiz) {
+                mergedItems[key] = cloudQuiz;
+            } else if (localQuiz) {
+                mergedItems[key] = localQuiz;
+            }
         }
-    } else if (cloudQuiz) {
-        mergedItems[key] = cloudQuiz;
-    } else if (localQuiz) {
-        mergedItems[key] = localQuiz;
-    }
-}
 
-const now = Date.now();
+        const now = Date.now();
 
         // 4. Update State and LocalStorage
         state.quizHistory = mergedItems;
@@ -249,9 +269,11 @@ const now = Date.now();
         }));
 
         refreshHistory();
+        setSyncing('synced');
         if (manual) showToast('Done syncing!');
     } catch (e) {
         console.error('Sync error', e);
+        setSyncing('offline');
         showToast('Sync failed. Please check your connection.', 3000, 'error');
     } finally {
         setSyncing(false);
