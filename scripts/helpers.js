@@ -116,19 +116,31 @@ export function toggleContainerVisibility(containerId, isVisible) {
 // --- Consolidated Toggle Functions ---
 
 export function handleTimeToggle() {
-    // Show/hide the entire options container
-    timeLimitOptions.classList.toggle('hidden', !timeLimitToggle.checked);
-    
-    if (timeLimitToggle.checked) {
-        handleTimePresetChange(); // Show specific sub-option if enabled
-    } else {
-        customTimeInputContainer.classList.add('hidden');
+    // Dynamically retrieve the live toggle input and container panel elements from the current layout context
+    const timeLimitToggle = document.getElementById('time-limit-toggle');
+    const timeLimitOptions = document.getElementById('time-limit-options');
+
+    if (timeLimitToggle && timeLimitOptions) {
+        if (timeLimitToggle.checked) {
+            timeLimitOptions.classList.remove('hidden');
+        } else {
+            timeLimitOptions.classList.add('hidden');
+        }
     }
 }
 
 export function handleAttemptToggle() {
-    // Show/hide the attempt limit container based on checkbox state
-    attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
+    // Dynamically retrieve the live attempt toggle input and options element block
+    const attemptLimitToggle = document.getElementById('attempt-limit-toggle');
+    const attemptLimitOptions = document.getElementById('attempt-limit-options');
+
+    if (attemptLimitToggle && attemptLimitOptions) {
+        if (attemptLimitToggle.checked) {
+            attemptLimitOptions.classList.remove('hidden');
+        } else {
+            attemptLimitOptions.classList.add('hidden');
+        }
+    }
 }
 
 export function handleDifficultyChange() {
