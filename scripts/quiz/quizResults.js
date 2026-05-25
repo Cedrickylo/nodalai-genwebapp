@@ -76,7 +76,7 @@ export function displayExplanation(qData, isCorrect) {
     });
 }
 
-export function showResults() {
+export async function showResults() {
     const { stopQuizTimer } = await import('./quizExecution.js');
     stopQuizTimer();
     clearInProgressQuiz();
