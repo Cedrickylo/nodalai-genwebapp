@@ -658,7 +658,7 @@ export function refreshHistory() {
 
     displayItems.forEach(([key, data]) => {
         const item = document.createElement('div');
-        item.className = 'p-3 bg-gray-700/50 rounded-lg flex justify-between items-center';
+        item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
         
         const tInfo = formatTime(data.config.totalTime);
         let diffTxt = data.config.difficulty ? `(${data.config.difficulty}` : '(';

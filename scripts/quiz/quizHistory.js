@@ -203,7 +203,7 @@ export function showAllHistoryFullScreen() {
 
     sorted.forEach(([key, data]) => {
         const item = document.createElement('div');
-        item.className = 'p-3 bg-gray-700/50 rounded-lg flex justify-between items-center';
+        item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
         
         // Add this fallback to prevent crashes from older quizzes
         const config = data.config || {};
