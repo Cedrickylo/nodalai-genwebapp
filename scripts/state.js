@@ -180,7 +180,7 @@ export const state = {
     loadingInterval: null,
     toastTimeout: null,
     quizTimerInterval: null,
-    quizHistory: JSON.parse(localStorage.getItem(constants.DB_NAME) || '{}'),
+    quizHistory: (function() { try { const raw = localStorage.getItem(constants.DB_NAME); return raw ? JSON.parse(raw) : {}; } catch (e) { console.warn("Invalid local quiz DB, resetting", e); localStorage.removeItem(constants.DB_NAME); return {}; } })(),
     generationLog: [],
     savedProgress: null,
     timeRemaining: 0,
