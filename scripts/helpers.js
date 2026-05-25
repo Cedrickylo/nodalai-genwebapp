@@ -66,7 +66,10 @@ const {
     accountModalOverlay,
     accountViewContainer,
     accountCard,
-    closeAccountBtn
+    closeAccountBtn,
+    accountLoggedInContent,
+    accountLoggedOutContent,
+    accountLoginBtn
 } = elements;
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS } = constants;
@@ -447,7 +450,20 @@ export async function openAccountAsView() {
 }
 
 export async function populateAccountData() {
-    if (!window.puter || !puter.auth.isSignedIn()) return;
+    const loggedInContent = document.getElementById('account-logged-in-content');
+    const loggedOutContent = document.getElementById('account-logged-out-content');
+
+    if (!window.puter || !puter.auth.isSignedIn()) {
+        // Show login prompt if they open account page while logged out
+        if (loggedInContent) loggedInContent.classList.add('hidden');
+        if (loggedOutContent) loggedOutContent.classList.remove('hidden');
+        return;
+    }
+
+    // Hide prompt, show data
+    if (loggedInContent) loggedInContent.classList.remove('hidden');
+    if (loggedOutContent) loggedOutContent.classList.add('hidden');
+
     const user = await puter.auth.getUser();
     elements.modalUsername.textContent = user.username;
 
@@ -946,6 +962,21 @@ export function attachAuthHandlers() {
     // 4. Smart Close Button for the Card
     if (closeAccountBtn) {
         closeAccountBtn.onclick = closeAccountHandler;
+    }
+
+    // 5. NEW: Login Button inside the Logged-Out Account View
+    const accountLoginBtn = document.getElementById('account-login-btn');
+    if (accountLoginBtn) {
+        accountLoginBtn.onclick = async () => {
+            try {
+                await puter.auth.signIn();
+                await updateAuthUI(); 
+                syncHistoryWithCloud();
+                await populateAccountData(); // Refresh the account view immediately
+            } catch (e) {
+                console.error("Sign in failed", e);
+            }
+        };
     }
 }
 

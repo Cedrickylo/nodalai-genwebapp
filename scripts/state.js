@@ -167,7 +167,11 @@ export const elements = {
     copyShareLinkBtn: document.getElementById('copy-share-link-btn'),
     disableShareBtn: document.getElementById('disable-share-btn'),
     shareExpiryDisplay: document.getElementById('share-expiry-display'),
-    clearFilesBtn: document.getElementById('clear-files-btn')
+    clearFilesBtn: document.getElementById('clear-files-btn'),
+    // --- NEW ACCOUNT ELEMENTS ADDED HERE ---
+    accountLoggedInContent: document.getElementById('account-logged-in-content'),
+    accountLoggedOutContent: document.getElementById('account-logged-out-content'),
+    accountLoginBtn: document.getElementById('account-login-btn')
 };
 
 export const state = {

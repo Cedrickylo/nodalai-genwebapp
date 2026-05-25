@@ -458,61 +458,71 @@
     <div id="toast-notification" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg transition-all ease-in-out duration-300 z-[200]"><span id="toast-message"></span></div>
 <div id="account-modal-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
     
-    <div id="account-card" class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden relative">
-        <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-            <h3 class="text-xl font-bold text-blue-400">Puter Account</h3>
-            <button id="close-account-btn" class="text-gray-400 hover:text-white transition-colors">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        <div class="p-6 space-y-6">
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-gray-500 uppercase">Puter Username</label>
-                <p id="modal-username" class="text-lg font-medium text-white truncate">---</p>
-            </div>
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-gray-500 uppercase">Account ID</label>
-                <p id="modal-account-id" class="text-sm text-gray-300 truncate">---</p>
-            </div>
-            <div class="space-y-1">
-                <label class="text-xs font-semibold text-gray-500 uppercase">Email / Session</label>
-                <p id="modal-email" class="text-sm text-gray-300 truncate">---</p>
-            </div>
-            <div id="modal-credit-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div class="flex justify-between items-end mb-2">
-                    <label class="text-xs font-semibold text-gray-400 uppercase">Available Credits</label>
-                    <span id="modal-credits" class="text-sm font-bold text-green-400">Loading...</span>
-                </div>
-                <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
-                    <div id="credit-progress" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-                <button id="buy-credits-btn" class="mt-4 w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-lg transition">Buy More Credits</button>
-            </div>
-            <div id="modal-storage-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div class="flex justify-between items-end mb-2">
-                    <label class="text-xs font-semibold text-gray-400 uppercase">Puter Storage</label>
-                    <span id="modal-storage-label" class="text-sm font-bold text-green-400">Free</span>
-                </div>
-            </div>
-            <div id="modal-cooldown-panel" class="hidden bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div class="flex justify-between items-end mb-2">
-                    <label class="text-xs font-semibold text-gray-400 uppercase">Generation Cooldown</label>
-                    <span id="modal-cooldown-status" class="text-sm font-bold text-green-400">Loading...</span>
-                </div>
-                <p id="modal-cooldown-detail" class="text-[10px] text-gray-500 mt-2 italic"></p>
-            </div>
-            <div class="space-y-3">
-                <label for="display-name-input" class="text-xs font-semibold text-gray-400 uppercase">Custom Display Name</label>
-                <div class="flex gap-2">
-                    <input type="text" id="display-name-input" class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white outline-none" placeholder="Enter preferred name">
-                    <button id="save-display-name-btn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold text-sm transition">Save</button>
-                </div>
-            </div>
-            <button id="logout-btn" class="w-full bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/50 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-4">
-                <span>Sign Out</span>
-            </button>
-        </div>
+<div id="account-card" class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden relative">
+    <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+        <h3 class="text-xl font-bold text-blue-400">Puter Account</h3>
+        <button id="close-account-btn" class="text-gray-400 hover:text-white transition-colors">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
     </div>
+    
+    <div id="account-logged-in-content" class="p-6 space-y-6">
+        <div class="space-y-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase">Puter Username</label>
+            <p id="modal-username" class="text-lg font-medium text-white truncate">---</p>
+        </div>
+        <div class="space-y-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase">Account ID</label>
+            <p id="modal-account-id" class="text-sm text-gray-300 truncate">---</p>
+        </div>
+        <div class="space-y-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase">Email / Session</label>
+            <p id="modal-email" class="text-sm text-gray-300 truncate">---</p>
+        </div>
+        <div id="modal-credit-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+            <div class="flex justify-between items-end mb-2">
+                <label class="text-xs font-semibold text-gray-400 uppercase">Available Credits</label>
+                <span id="modal-credits" class="text-sm font-bold text-green-400">Loading...</span>
+            </div>
+            <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                <div id="credit-progress" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <button id="buy-credits-btn" class="mt-4 w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-lg transition">Buy More Credits</button>
+        </div>
+        <div id="modal-storage-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+            <div class="flex justify-between items-end mb-2">
+                <label class="text-xs font-semibold text-gray-400 uppercase">Puter Storage</label>
+                <span id="modal-storage-label" class="text-sm font-bold text-green-400">Free</span>
+            </div>
+        </div>
+        <div id="modal-cooldown-panel" class="hidden bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+            <div class="flex justify-between items-end mb-2">
+                <label class="text-xs font-semibold text-gray-400 uppercase">Generation Cooldown</label>
+                <span id="modal-cooldown-status" class="text-sm font-bold text-green-400">Loading...</span>
+            </div>
+            <p id="modal-cooldown-detail" class="text-[10px] text-gray-500 mt-2 italic"></p>
+        </div>
+        <div class="space-y-3">
+            <label for="display-name-input" class="text-xs font-semibold text-gray-400 uppercase">Custom Display Name</label>
+            <div class="flex gap-2">
+                <input type="text" id="display-name-input" class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white outline-none" placeholder="Enter preferred name">
+                <button id="save-display-name-btn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold text-sm transition">Save</button>
+            </div>
+        </div>
+        <button id="logout-btn" class="w-full bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/50 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-4">
+            <span>Sign Out</span>
+        </button>
+    </div>
+
+    <div id="account-logged-out-content" class="hidden p-8 text-center space-y-6">
+        <svg class="mx-auto w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        <div class="space-y-2">
+            <h4 class="text-lg font-bold text-white">Login Required</h4>
+            <p class="text-sm text-gray-400">Sign in to view your account details, sync history across devices, and manage your generation limits.</p>
+        </div>
+        <button id="account-login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg">Log In / Sign Up</button>
+    </div>
+</div>
 </div>
 
 <div id="share-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300">
