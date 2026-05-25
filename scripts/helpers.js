@@ -132,14 +132,17 @@ export function handleAttemptToggle() {
 }
 
 export function handleDifficultyChange() {
-    const selected = document.querySelector('input[name="difficulty"]:checked')?.value;
-    const isCustom = selected === 'custom';
+    // Look up live difficulty radio inputs directly from the current active DOM layout
+    const activeRadio = document.querySelector('input[name="difficulty"]:checked');
+    const customOptionsDiv = document.getElementById('custom-options');
     
-    // Hide/show the Custom Options box entirely
-    customOptionsDiv.classList.toggle('hidden', !isCustom);
-    
-    if (isCustom) {
-        handleCustomTypeChange();
+    if (activeRadio && customOptionsDiv) {
+        // Safely toggle the visibility state of custom mix menus without crashing
+        if (activeRadio.value === 'custom') {
+            customOptionsDiv.classList.remove('hidden');
+        } else {
+            customOptionsDiv.classList.add('hidden');
+        }
     }
 }
 
@@ -672,90 +675,66 @@ export function hasUnsavedChanges() {
         current.summaryOnly !== state.initialCustomizeState.summaryOnly;
 }
 
-export function setupCustomizeView(config, name) {
-    state.isCustomizingHistory = true;
-    renameContainer.classList.remove('hidden');
-    editQuizNameInput.value = name || '';
+export function setupCustomizeView(config, fileName) {
+    if (!config) return;
 
-    startSubtitle.textContent = `Customizing: "${name || 'quiz'}" (Options only)`;
-    generateQuizBtn.textContent = 'Start Customized Quiz';
-    cancelCustomizeBtn.classList.remove('hidden');
-    deleteCustomizeBtn.classList.remove('hidden');
-    fileActionsDiv.classList.add('hidden');
+    // 1. Restore question counts input smoothly
+    const qCountInput = document.getElementById('question-count');
+    if (qCountInput) qCountInput.value = config.count || 10;
 
-    elements.resumeQuizBtn.classList.add('hidden');
+    // 2. Restore title renaming fields safely
+    const renameInput = document.getElementById('edit-quiz-name');
+    if (renameInput) renameInput.value = fileName || '';
 
-    customizeSection.classList.remove('hidden');
-    customizeContent.classList.remove('hidden');
-    customizeToggleIcon.classList.add('rotate-180');
-
-    // =====================================================================
-    // CLEAN CUSTOMIZATION UI OVERHAUL (HIDES INACTIVE CONTROLS)
-    // =====================================================================
-    
-    // 1. Locate the top-most wrapper layout rows for both inputs
-    const countGroup = document.getElementById('question-count-group') || questionCountInput.closest('.mb-4, .space-y-4, div');
-    
-    // Target the main wrapper form block container enclosing the difficulty option items
-    const diffGroup = document.getElementById('difficulty-group') || 
-                      document.querySelector('.difficulty-section') || 
-                      difficultyRadios[0]?.closest('.mb-6, .mb-4, .space-y-4, div');
-    
-    // Hide all interactive configuration selectors from the form layout grid
-    if (countGroup) countGroup.classList.add('hidden');
-    if (diffGroup) diffGroup.classList.add('hidden');
-    if (customOptionsDiv) customOptionsDiv.classList.add('hidden');
-
-    // 2. Parse configuration attributes to build clean text summary labels
-    const qCount = config.count || 10;
-    const rawDiff = config.difficulty || 'easy';
-    const capitalizedDiff = rawDiff.charAt(0).toUpperCase() + rawDiff.slice(1);
-    
-    let typeText = 'Mixed Types';
-    if (rawDiff === 'custom') {
-        const customType = config.customType || 'mixed';
-        if (customType === 'multiple-choice') typeText = 'Multiple Choice Only';
-        else if (customType === 'identification') typeText = 'Identification Only';
-        else if (customType === 'enumeration') typeText = 'Enumeration Only';
+    // 3. Dynamically trace and select matching difficulty targets
+    if (config.difficulty) {
+        const targetRadio = document.querySelector(`input[name="difficulty"][value="${config.difficulty}"]`);
+        if (targetRadio) {
+            targetRadio.checked = true;
+            // Fire the updated change checker to update custom fields layout positions
+            handleDifficultyChange();
+        }
     }
 
-    // 3. Prevent duplication by purging an existing summary banner instance
-    document.getElementById('quiz-custom-summary-banner')?.remove();
-
-    // 4. Construct and inject the custom metadata overview row container widget
-    const summaryBanner = document.createElement('div');
-    summaryBanner.id = 'quiz-custom-summary-banner';
-    summaryBanner.className = 'w-full bg-gray-800/80 border border-gray-700/60 rounded-xl p-4 mb-5 flex flex-wrap gap-4 items-center justify-around text-center shadow-md animate-fade-in';
-    summaryBanner.innerHTML = `
-        <div class="flex flex-col px-2">
-            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Questions Count</span>
-            <span class="text-base font-bold text-blue-400 mt-0.5">${qCount} Items</span>
-        </div>
-        <div class="h-8 w-px bg-gray-700/50 hidden sm:block"></div>
-        <div class="flex flex-col px-2">
-            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Difficulty Mode</span>
-            <span class="text-base font-bold text-indigo-400 mt-0.5">${capitalizedDiff}</span>
-        </div>
-        <div class="h-8 w-px bg-gray-700/50 hidden sm:block"></div>
-        <div class="flex flex-col px-2">
-            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Question Structure</span>
-            <span class="text-base font-bold text-purple-400 mt-0.5">${typeText}</span>
-        </div>
-    `;
-
-    // Put our visual summary card right at the very top of your options panel view frame
-    customizeContent.insertBefore(summaryBanner, customizeContent.firstChild);
-
-    // Keep form background element states assigned accurately so generation requests remain pristine
-    questionCountInput.value = qCount;
-    difficultyRadios.forEach(radio => {
-        radio.checked = radio.value === rawDiff;
-    });
-    if (rawDiff === 'custom') {
-        customQuestionTypeSelect.value = config.customType || 'mixed';
+    // 4. Handle structural mixed categories layout fields
+    const customTypeSelect = document.getElementById('custom-question-type');
+    const customMixedCounts = document.getElementById('custom-mixed-counts');
+    if (customTypeSelect) {
+        customTypeSelect.value = config.customType || 'mixed';
+        if (customMixedCounts) {
+            customMixedCounts.classList.toggle('hidden', customTypeSelect.value !== 'mixed');
+        }
     }
 
-    validateAllInputs();
+    // 5. Populate explicit custom category numbers safely if they exist
+    const mcInput = document.getElementById('mc-count');
+    const idInput = document.getElementById('id-count');
+    const enInput = document.getElementById('en-count');
+    if (mcInput) mcInput.value = config.mc || 0;
+    if (idInput) idInput.value = config.id || 0;
+    if (enInput) enInput.value = config.en || 0;
+
+    // 6. Restore time limits configurations layout properties
+    const timeToggle = document.getElementById('time-limit-toggle');
+    const timeOptions = document.getElementById('time-limit-options');
+    if (timeToggle) {
+        timeToggle.checked = !!config.isTimedQuiz;
+        if (timeOptions) timeOptions.classList.toggle('hidden', !timeToggle.checked);
+    }
+
+    // 7. Restore attempt settings cards parameters checks
+    const attemptToggle = document.getElementById('attempt-limit-toggle');
+    const attemptOptions = document.getElementById('attempt-limit-options');
+    const attemptInput = document.getElementById('attempt-limit-input');
+    if (attemptToggle) {
+        attemptToggle.checked = !!config.isAttemptLimited;
+        if (attemptOptions) attemptOptions.classList.toggle('hidden', !attemptToggle.checked);
+        if (attemptInput && config.maxAttempts) attemptInput.value = config.maxAttempts;
+    }
+
+    // 8. Restore summary checkbox parameters values
+    const summaryToggle = document.getElementById('summary-only-toggle');
+    if (summaryToggle) summaryToggle.checked = !!config.showAnswersInSummaryOnly;
 }
 
 
