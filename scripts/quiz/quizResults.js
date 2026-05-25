@@ -6,7 +6,6 @@ import {
 } from '../helpers.js';
 
 const {
-    stopQuizTimer,
     explanationAreaEl,
     nextQuestionBtn,
     skipQuestionBtn,
@@ -78,7 +77,7 @@ export function displayExplanation(qData, isCorrect) {
 }
 
 export function showResults() {
-    const { stopQuizTimer } = require('./quizExecution.js');
+    const { stopQuizTimer } = await import('./quizExecution.js');
     stopQuizTimer();
     clearInProgressQuiz();
     showView('results');
