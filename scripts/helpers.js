@@ -525,16 +525,55 @@ export function showToast(message, duration = 3000, type = 'success') {
     }, duration);
 }
 
+export function updateNavHighlights(activeKey) {
+    // 1. Update Mobile Nav
+    if (elements.mobileNavHomeBtn) {
+        elements.mobileNavHomeBtn.classList.toggle('text-white', activeKey === 'home');
+        elements.mobileNavHomeBtn.classList.toggle('bg-blue-600', activeKey === 'home');
+        elements.mobileNavHomeBtn.classList.toggle('text-gray-300', activeKey !== 'home');
+    }
+    if (elements.mobileNavHistoryBtn) {
+        elements.mobileNavHistoryBtn.classList.toggle('text-white', activeKey === 'history');
+        elements.mobileNavHistoryBtn.classList.toggle('bg-blue-600', activeKey === 'history');
+        elements.mobileNavHistoryBtn.classList.toggle('text-gray-300', activeKey !== 'history');
+    }
+
+    // 2. Update Desktop Nav
+    const map = {
+        home: elements.desktopNavHomeBtn,
+        history: elements.desktopNavHistoryBtn,
+        help: elements.desktopNavHelpBtn,
+        about: elements.desktopNavAboutBtn,
+        account: elements.desktopNavAccountBtn
+    };
+
+    Object.keys(map).forEach(key => {
+        const btn = map[key];
+        if (btn) {
+            btn.classList.toggle('text-white', key === activeKey);
+            btn.classList.toggle('bg-blue-600', key === activeKey);
+            btn.classList.toggle('text-gray-300', key !== activeKey);
+        }
+    });
+}
+
 export function showView(id) {
-    Object.values(views).forEach(v => { if (v) v.classList.remove('active'); });
-    if (views[id]) views[id].classList.add('active');
+    // 1. Switch the visible page
+    Object.values(elements.views).forEach(v => { if (v) v.classList.remove('active'); });
+    if (elements.views[id]) elements.views[id].classList.add('active');
     
-    // Hide navigation elements when actively taking a quiz
+    // 2. Hide navigation during active quiz
     if (id === 'quiz') {
         document.body.classList.add('quiz-active');
     } else {
         document.body.classList.remove('quiz-active');
     }
+
+    // 3. Automatically highlight the correct nav button!
+    let navKey = id;
+    if (id === 'start') navKey = 'home';
+    if (id === 'history-fullscreen') navKey = 'history';
+    updateNavHighlights(navKey);
 }
 
 export function getQuizDB() {
@@ -915,6 +954,8 @@ export function initializeAppState() {
     handleDifficultyChange();
     handleTimeToggle();
     handleAttemptToggle();
+
+    updateNavHighlights('home');
 }
 
 export function prepareSavedProgress() {
