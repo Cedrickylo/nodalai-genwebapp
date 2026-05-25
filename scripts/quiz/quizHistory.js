@@ -134,8 +134,8 @@ export async function generateShareableLink(quizKey) {
 }
 
 // import { state } from '../state.js';
-import { showView, setupCustomizeView, exportQuizAsJSON } from '../helpers.js';
-import { resumeQuiz } from './fileHandling.js';
+// import { showView, setupCustomizeView, exportQuizAsJSON } from '../helpers.js';
+// import { resumeQuiz } from './fileHandling.js';
 
 export function handleHistoryClick(event) {
     const targetButton = event.target.closest('button');
