@@ -490,7 +490,6 @@ export async function populateAccountData() {
     authBtnText.textContent = customName || 'Account';
 
     await refreshCooldownPanel();
-    showView('account');
 }
 
 export async function saveDisplayName() {
