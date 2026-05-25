@@ -62,7 +62,11 @@ const {
     confirmTitle,
     confirmMessage,
     acceptConfirmBtn,
-    cancelConfirmBtn
+    cancelConfirmBtn,
+    accountModalOverlay,
+    accountViewContainer,
+    accountCard,
+    closeAccountBtn
 } = elements;
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS } = constants;
@@ -148,7 +152,7 @@ export async function handleLogout() {
     if (isConfirmed) {
         // 1. Sign out of Puter
         await puter.auth.signOut();
-        accountModal.classList.add('hidden');
+        // accountModal.classList.add('hidden');
         
         // --- NEW CLEANUP LOGIC ---
         // 2. Wipe the saved data from the browser's Local Storage
@@ -429,8 +433,24 @@ export async function updateAuthUI() {
     }
 }
 
-export async function openAccountModal() {
+export async function openAccountAsModal() {
+    elements.accountModalOverlay.appendChild(elements.accountCard);
+    elements.accountModalOverlay.classList.remove('hidden');
+    await populateAccountData();
+}
+
+// Function for Nav Bar buttons (Shows as Full Page)
+export async function openAccountAsView() {
+    elements.accountViewContainer.appendChild(elements.accountCard);
+    showView('account');
+    await populateAccountData();
+}
+
+export async function populateAccountData() {
+    if (!window.puter || !puter.auth.isSignedIn()) return;
     const user = await puter.auth.getUser();
+    elements.modalUsername.textContent = user.username;
+
     modalUsername.textContent = user.username || 'Unknown';
     modalAccountId.textContent = user.uuid || user.id || user.accountId || 'Unknown';
     modalEmail.textContent = user.email
@@ -470,7 +490,7 @@ export async function openAccountModal() {
     authBtnText.textContent = customName || 'Account';
 
     await refreshCooldownPanel();
-    accountModal.classList.remove('hidden');
+    showView('account');
 }
 
 export async function saveDisplayName() {
@@ -485,7 +505,13 @@ export async function saveDisplayName() {
 }
 
 export function closeAccountModalHandler() {
-    accountModal.classList.add('hidden');
+// If it's inside the modal overlay, just hide the modal
+    if (elements.accountCard.parentElement.id === 'account-modal-overlay') {
+        elements.accountModalOverlay.classList.add('hidden');
+    } else {
+        // If it's inside the view, go back to start screen
+        showView('start');
+    }
 }
 
 export function showToast(message, duration = 3000, type = 'success') {
@@ -832,33 +858,57 @@ export function initializeAudio() {
 }
 
 export function attachAuthHandlers() {
-    authBtn.onclick = async () => {
-        if (!puter.auth.isSignedIn()) {
-            try {
-                // 1. Wait for the user to finish logging in
-                await puter.auth.signIn();
-                
-                // 2. Wait for the UI to update with their username and credits
-                await updateAuthUI(); 
-                
-                // 3. Immediately pull their saved quizzes from the cloud!
-                syncHistoryWithCloud(); 
-                
-            } catch (e) {
-                console.error("Sign in failed", e);
+    // 1. Home Screen Auth Button (Shows as Popup)
+    if (authBtn) {
+        authBtn.onclick = async () => {
+            if (!puter.auth.isSignedIn()) {
+                try {
+                    // 1. Wait for the user to finish logging in
+                    await puter.auth.signIn();
+                    
+                    // 2. Wait for the UI to update with their username and credits
+                    await updateAuthUI(); 
+                    
+                    // 3. Immediately pull their saved quizzes from the cloud!
+                    syncHistoryWithCloud(); 
+                    
+                } catch (e) {
+                    console.error("Sign in failed", e);
+                }
+            } else {
+                // If they are already signed in, just open the popup dashboard
+                openAccountAsModal();
             }
-        } else {
-            // If they are already signed in, just open the dashboard
-            openAccountModal();
-        }
-    };
-    saveDisplayNameBtn.onclick = saveDisplayName;
-    buyCreditsBtn.onclick = () => {
-        window.open('https://puter.com/billing', '_blank');
-        showToast('Opening the credits purchase page...', 2500);
-    };
-    logoutBtn.onclick = handleLogout;
-    closeAccountModal.onclick = closeAccountModalHandler;
+        };
+    }
+
+    // 2. Nav Bar Account Buttons (Shows as Full Page)
+    const desktopNavAccount = document.getElementById('desktop-nav-account-btn');
+    const mobileNavAccount = document.getElementById('mobile-menu-account-btn');
+    
+    if (desktopNavAccount) {
+        desktopNavAccount.onclick = openAccountAsView;
+    }
+    if (mobileNavAccount) {
+        mobileNavAccount.onclick = openAccountAsView;
+    }
+
+    // 3. Existing action buttons inside the card
+    if (saveDisplayNameBtn) saveDisplayNameBtn.onclick = saveDisplayName;
+    
+    if (buyCreditsBtn) {
+        buyCreditsBtn.onclick = () => {
+            window.open('https://puter.com/billing', '_blank');
+            showToast('Opening the credits purchase page...', 2500);
+        };
+    }
+    
+    if (logoutBtn) logoutBtn.onclick = handleLogout;
+
+    // 4. Smart Close Button for the Card
+    if (closeAccountBtn) {
+        closeAccountBtn.onclick = closeAccountHandler;
+    }
 }
 
 export function initializeAppState() {
