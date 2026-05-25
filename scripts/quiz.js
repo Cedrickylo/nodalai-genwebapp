@@ -247,10 +247,14 @@ export function attachQuizEventListeners() {
     elements.mobileNavHistoryBtn?.addEventListener('click', () => {
         showAllHistoryFullScreen();
     });
-    syncCloudBtn.addEventListener('click', async () => {
+    // Target both Sync buttons to trigger cloud sync
+    const triggerSync = async () => {
         const { syncHistoryWithCloud } = await import('./helpers.js');
         syncHistoryWithCloud(true);
-    });
+    };
+
+    if (syncCloudBtn) syncCloudBtn.addEventListener('click', triggerSync);
+    if (elements.fullHistorySyncBtn) elements.fullHistorySyncBtn.addEventListener('click', triggerSync);
     
     timeLimitToggle.addEventListener('change', handleTimeToggle);
     timePresetRadios.forEach(r => r.addEventListener('change', handleTimePresetChange));

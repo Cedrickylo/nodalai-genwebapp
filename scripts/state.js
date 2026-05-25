@@ -70,6 +70,7 @@ export const elements = {
     showAllHistoryBtn: document.getElementById('show-all-history-btn'),
     historyFullscreenView: document.getElementById('history-fullscreen-view'),
     historyFullscreenBackBtn: document.getElementById('history-fullscreen-back-btn'),
+    fullHistorySyncBtn: document.getElementById('full-history-sync-btn'),
     historyFullList: document.getElementById('history-full-list'),
     helpBackBtn: document.getElementById('help-back-btn'),
     aboutBackBtn: document.getElementById('about-back-btn'),

@@ -194,16 +194,19 @@ export function setSyncing(status) {
     const isOffline = !window.puter || !puter.auth.isSignedIn();
     const finalStatus = isOffline ? 'offline' : status;
 
-    // 1. Target Global Sync Icons
-    const globalDone = document.getElementById('sync-icon-done');
-    const globalLoad = document.getElementById('sync-icon-loading');
-    const globalOffline = document.getElementById('sync-icon-offline');
+    // 1. Target Global Sync Buttons (Using Class to hit both Home and Full views)
+    const globalSyncBtns = document.querySelectorAll('.global-sync-btn');
+    globalSyncBtns.forEach(btn => {
+        const done = btn.querySelector('.sync-icon-done');
+        const load = btn.querySelector('.sync-icon-loading');
+        const offline = btn.querySelector('.sync-icon-offline');
 
-    if (globalDone) globalDone.classList.toggle('hidden', finalStatus !== 'synced');
-    if (globalLoad) globalLoad.classList.toggle('hidden', finalStatus !== 'syncing');
-    if (globalOffline) globalOffline.classList.toggle('hidden', finalStatus !== 'offline');
+        if (done) done.classList.toggle('hidden', finalStatus !== 'synced');
+        if (load) load.classList.toggle('hidden', finalStatus !== 'syncing');
+        if (offline) offline.classList.toggle('hidden', finalStatus !== 'offline');
+    });
 
-    // 2. Target Quiz Sync Icons
+    // 2. Target Quiz View Sync Indicator (Existing)
     const quizDone = document.querySelector('#quiz-sync-indicator .sync-icon-done');
     const quizLoad = document.querySelector('#quiz-sync-indicator .sync-icon-loading');
     const quizOffline = document.querySelector('#quiz-sync-indicator .sync-icon-offline');
