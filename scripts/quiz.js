@@ -17,7 +17,7 @@ import {
     handleDifficultyChange,
     clearInProgressQuiz,
     refreshHistory,
-    openAccountModal,
+    openAccountAsView,
     saveDisplayName,
     handleLogout
 } from './helpers.js';
@@ -155,7 +155,7 @@ export function attachQuizEventListeners() {
         elements.navAccountBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             // Call the same function that your main button uses
-            await openAccountModal(); 
+            await openAccountAsView(); 
         });
     }
 
@@ -306,14 +306,14 @@ export function attachQuizEventListeners() {
             });
             elements.mobileMenuHelpBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('help'); });
             elements.mobileMenuAboutBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('about'); });
-            elements.mobileMenuAccountBtn?.addEventListener('click', async () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); await openAccountModal(); });
+            elements.mobileMenuAccountBtn?.addEventListener('click', async () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); await openAccountAsView(); });
 
             // Desktop nav handlers
             elements.desktopNavHomeBtn?.addEventListener('click', () => { setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
             elements.desktopNavHistoryBtn?.addEventListener('click', () => { setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
             elements.desktopNavHelpBtn?.addEventListener('click', () => { setDesktopNavActive('help'); showView('help'); });
             elements.desktopNavAboutBtn?.addEventListener('click', () => { setDesktopNavActive('about'); showView('about'); });
-            elements.desktopNavAccountBtn?.addEventListener('click', async () => { setDesktopNavActive('account'); await openAccountModal(); });
+            elements.desktopNavAccountBtn?.addEventListener('click', async () => { setDesktopNavActive('account'); await openAccountAsView(); });
     
     cancelCustomizeBtn.addEventListener('click', async () => {
         const { hasUnsavedChanges, setupCustomizeView } = await import('./helpers.js');
