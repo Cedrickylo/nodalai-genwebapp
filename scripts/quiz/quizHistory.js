@@ -137,6 +137,9 @@ export async function generateShareableLink(quizKey) {
 // import { showView, setupCustomizeView, exportQuizAsJSON } from '../helpers.js';
 // import { resumeQuiz } from './fileHandling.js';
 
+import { state } from '../state.js';
+import { showView, setupCustomizeView, exportQuizAsJSON } from '../helpers.js';
+
 export function handleHistoryClick(event) {
     const targetButton = event.target.closest('button');
     if (!targetButton) return;
@@ -155,8 +158,9 @@ export function handleHistoryClick(event) {
             state.currentFileName = selectedQuiz.fileName;
             state.currentQuizKey = quizKey;
             
-            import('./quizExecution.js').then(m => {
-                m.startQuiz();
+            // Fires interactive active session frame launch directly 
+            import('./quizExecution.js').then(module => {
+                module.startQuiz();
             });
             break;
 
@@ -165,15 +169,19 @@ export function handleHistoryClick(event) {
             state.customizingQuizKey = quizKey;
             state.customizingQuizData = selectedQuiz;
 
+            // Updates settings input data with selected configurations
             setupCustomizeView(selectedQuiz.config, selectedQuiz.fileName);
             showView('start');
             
-            const configPanel = document.getElementById('customize-content');
-            if (configPanel) configPanel.classList.remove('hidden');
+            // Unfolds presentation panel
+            const panel = document.getElementById('customize-content');
+            if (panel) panel.classList.remove('hidden');
             break;
 
         case 'share':
-            exportQuizAsJSON(quizKey);
+            if (typeof exportQuizAsJSON === 'function') {
+                exportQuizAsJSON(quizKey);
+            }
             break;
     }
 }

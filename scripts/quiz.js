@@ -1,5 +1,6 @@
+// quiz.js - Main Entry Point & Unified App Event Binding Engine
 import { showView, showToast, setupCustomizeView, exportQuizAsJSON, openAccountModal, syncHistoryWithCloud } from './helpers.js';
-import { handleFileSelect, handleQuizImport, resumeQuiz, resetAppFiles } from './quiz/fileHandling.js';
+import { handleFileSelect, handleQuizImport, resumeQuiz } from './quiz/fileHandling.js';
 import { handleQuizGeneration } from './quiz/quizGeneration.js';
 import { skipQuestion } from './quiz/quizExecution.js';
 import { state } from './state.js';
@@ -7,138 +8,135 @@ import { state } from './state.js';
 export function attachQuizEventListeners() {
     console.log("Unified Application Event Binding Engine Activated.");
 
-    // ==========================================
-    // 1. NAVIGATION (SIDEBAR, FOOTER, POPUPS)
-    // ==========================================
-    const clickRoute = (targetId, viewName, runCallback) => {
-        const btn = document.getElementById(targetId);
-        if (btn) {
-            btn.onclick = () => {
-                if (viewName) showView(viewName);
-                if (runCallback) runCallback();
-            };
-        }
+    // Helper to safely bind click event maps
+    const bindClick = (targetId, callback) => {
+        const el = document.getElementById(targetId);
+        if (el) el.onclick = callback;
     };
 
-    // Desktop
-    clickRoute('desktop-nav-home-btn', 'start');
-    clickRoute('desktop-nav-help-btn', 'help');
-    clickRoute('desktop-nav-about-btn', 'about');
-    clickRoute('desktop-nav-account-btn', null, () => openAccountModal());
-    clickRoute('desktop-nav-history-btn', null, () => {
+    // ==========================================
+    // 1. NAVIGATION ROUTING (SIDEBAR & BOTTOM FOOTER)
+    // ==========================================
+    bindClick('desktop-nav-home-btn', () => showView('start'));
+    bindClick('desktop-nav-help-btn', () => showView('help'));
+    bindClick('desktop-nav-about-btn', () => showView('about'));
+    bindClick('desktop-nav-account-btn', () => openAccountModal());
+    bindClick('desktop-nav-history-btn', () => {
         import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
     });
 
-    // Mobile Navigation & Drawer Menu
-    clickRoute('mobile-nav-home-btn', 'start');
-    clickRoute('mobile-nav-history-btn', null, () => {
+    // Mobile Navigation Bar Buttons
+    bindClick('mobile-nav-home-btn', () => showView('start'));
+    bindClick('mobile-nav-history-btn', () => {
         import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
     });
     
-    const mobMenuBtn = document.getElementById('mobile-nav-menu-btn');
+    // Mobile Pop-up Menu Layer Drawer Toggle
+    const mobNavMenuBtn = document.getElementById('mobile-nav-menu-btn');
     const mobMenuModal = document.getElementById('mobile-menu-modal');
-    if (mobMenuBtn && mobMenuModal) {
-        mobMenuBtn.onclick = () => mobMenuModal.classList.remove('hidden');
+    if (mobNavMenuBtn && mobMenuModal) {
+        mobNavMenuBtn.onclick = () => mobMenuModal.classList.remove('hidden');
     }
 
-    const closeMenu = () => mobMenuModal && mobMenuModal.classList.add('hidden');
-    clickRoute('mobile-menu-close-btn', null, closeMenu);
-    
-    const backdrop = document.getElementById('mobile-menu-backdrop');
-    if (backdrop) backdrop.onclick = closeMenu;
+    const closeMobileMenu = () => {
+        if (mobMenuModal) mobMenuModal.classList.add('hidden');
+    };
 
-    clickRoute('mobile-menu-help-btn', 'help', closeMenu);
-    clickRoute('mobile-menu-about-btn', 'about', closeMenu);
-    clickRoute('mobile-menu-account-btn', null, () => { closeMenu(); openAccountModal(); });
+    bindClick('mobile-menu-close-btn', closeMobileMenu);
+    const mobMenuBackdrop = document.getElementById('mobile-menu-backdrop');
+    if (mobMenuBackdrop) mobMenuBackdrop.onclick = closeMobileMenu;
 
-    // Modals Close Targets
-    clickRoute('history-fullscreen-back-btn', 'start');
-    clickRoute('help-back-btn', 'start');
-    clickRoute('about-back-btn', 'start');
-    
-    const closeAccBtn = document.getElementById('close-account-modal');
-    const accModal = document.getElementById('account-modal');
-    if (closeAccBtn && accModal) {
-        closeAccBtn.onclick = () => accModal.classList.add('hidden');
-    }
+    // Mobile Menu Internal Options
+    bindClick('mobile-menu-help-btn', () => { closeMobileMenu(); showView('help'); });
+    bindClick('mobile-menu-about-btn', () => { closeMobileMenu(); showView('about'); });
+    bindClick('mobile-menu-account-btn', () => { closeMobileMenu(); openAccountModal(); });
+
+    // Independent View Layer Back Targets
+    bindClick('history-fullscreen-back-btn', () => showView('start'));
+    bindClick('help-back-btn', () => showView('start'));
+    bindClick('about-back-btn', () => showView('start'));
+
+    // Account Modal Close Trigger
+    bindClick('close-account-modal', () => {
+        const accModal = document.getElementById('account-modal');
+        if (accModal) accModal.classList.add('hidden');
+    });
 
     // ==========================================
     // 2. LIVE ACTIVE QUIZ CONTROLS
     // ==========================================
-    const skipBtn = document.getElementById('skip-question-btn');
-    if (skipBtn) skipBtn.onclick = () => skipQuestion();
+    bindClick('skip-question-btn', () => skipQuestion());
+    
+    bindClick('save-quiz-btn', () => {
+        import('./quiz/quizUtils.js').then(m => m.saveCurrentQuiz());
+    });
 
-    const saveQuizBtn = document.getElementById('save-quiz-btn');
-    if (saveQuizBtn) {
-        saveQuizBtn.onclick = () => {
-            import('./quiz/quizUtils.js').then(m => m.saveCurrentQuiz());
-        };
-    }
-
-    const homeBtn = document.getElementById('home-btn');
-    if (homeBtn) {
-        homeBtn.onclick = () => {
-            import('./quiz/quizUtils.js').then(m => {
-                m.resetApp(false);
-                showView('start');
-            });
-        };
-    }
+    bindClick('home-btn', () => {
+        import('./quiz/quizUtils.js').then(m => {
+            m.resetApp(false); // Safeguard working choices state context 
+            showView('start');
+        });
+    });
 
     // ==========================================
-    // 3. HOMEPAGE HISTORY CARDS (Sync & Routing)
+    // 3. CLOUD SYNC & INLINE DISPATCH HISTORY ACTIONS
     // ==========================================
-    clickRoute('sync-cloud-btn', null, () => syncHistoryWithCloud());
-    clickRoute('show-all-history-btn', null, () => {
+    bindClick('sync-cloud-btn', () => syncHistoryWithCloud());
+    bindClick('show-all-history-btn', () => {
         import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
     });
 
-    const routeHistoryClick = (e) => {
-        if (e.target.closest('button')) {
-            import('./quiz/quizHistory.js').then(m => m.handleHistoryClick(e));
+    // Delegated click interceptor layout router for cards generated on page
+    const routeHistoryActions = (event) => {
+        if (event.target.closest('button')) {
+            import('./quiz/quizHistory.js').then(m => m.handleHistoryClick(event));
         }
     };
-    
-    const listHome = document.getElementById('history-list');
-    const listFull = document.getElementById('history-full-list');
-    if (listHome) listHome.onclick = routeHistoryClick;
-    if (listFull) listFull.onclick = routeHistoryClick;
+
+    const inlineHistoryContainer = document.getElementById('history-list');
+    const absoluteHistoryContainer = document.getElementById('history-full-list');
+    if (inlineHistoryContainer) inlineHistoryContainer.onclick = routeHistoryActions;
+    if (absoluteHistoryContainer) absoluteHistoryContainer.onclick = routeHistoryActions;
 
     // ==========================================
-    // 4. QUIZ SETTINGS & CUSTOMIZATION FORM MATRIX
+    // 4. PREFERENCES SETTINGS CARD TUNERS (Toggles & Padding Inputs)
     // ==========================================
-    const toggleBtn = document.getElementById('customize-toggle-btn');
-    const toggleContent = document.getElementById('customize-content');
-    const toggleIcon = document.getElementById('customize-toggle-icon');
-    if (toggleBtn && toggleContent) {
-        toggleBtn.onclick = () => {
-            const isHidden = toggleContent.classList.toggle('hidden');
-            if (toggleIcon) toggleIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+    const customizeToggleBtn = document.getElementById('customize-toggle-btn');
+    const customizeContent = document.getElementById('customize-content');
+    const customizeToggleIcon = document.getElementById('customize-toggle-icon');
+    if (customizeToggleBtn && customizeContent) {
+        customizeToggleBtn.onclick = () => {
+            const isHidden = customizeContent.classList.toggle('hidden');
+            if (customizeToggleIcon) {
+                customizeToggleIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
         };
     }
 
-    // Difficulty Radio Triggers (Hides/Shows Custom Selection)
+    // Custom Difficulty Toggle Panel Layout Tweak
     document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
         radio.onchange = () => {
-            const opts = document.getElementById('custom-options');
-            if (opts) opts.classList.toggle('hidden', radio.value !== 'custom');
+            const customOptions = document.getElementById('custom-options');
+            if (customOptions) customOptions.classList.toggle('hidden', radio.value !== 'custom');
         };
     });
 
-    // Custom Mixed Types Counters Tracker
-    const typeSelect = document.getElementById('custom-question-type');
-    if (typeSelect) {
-        typeSelect.onchange = () => {
-            const mixedPanel = document.getElementById('custom-mixed-counts');
-            if (mixedPanel) mixedPanel.classList.toggle('hidden', typeSelect.value !== 'mixed');
+    // Custom Question Category Type Selector Menu Tracking Option
+    const customTypeSelect = document.getElementById('custom-question-type');
+    if (customTypeSelect) {
+        customTypeSelect.onchange = () => {
+            const mixedCounts = document.getElementById('custom-mixed-counts');
+            if (mixedCounts) mixedCounts.classList.toggle('hidden', customTypeSelect.value !== 'mixed');
         };
     }
 
-    // Timed Quiz Toggles
-    const timeToggle = document.getElementById('time-limit-toggle');
-    const timeOptions = document.getElementById('time-limit-options');
-    if (timeToggle && timeOptions) {
-        timeToggle.onchange = () => timeOptions.classList.toggle('hidden', !timeToggle.checked);
+    // Timed Quiz Toggle Configuration Submenu Toggles
+    const timeLimitToggle = document.getElementById('time-limit-toggle');
+    const timeLimitOptions = document.getElementById('time-limit-options');
+    if (timeLimitToggle && timeLimitOptions) {
+        timeLimitToggle.onchange = () => {
+            timeLimitOptions.classList.toggle('hidden', !timeLimitToggle.checked);
+        };
     }
 
     document.querySelectorAll('input[name="time_preset"]').forEach(radio => {
@@ -148,44 +146,40 @@ export function attachQuizEventListeners() {
         };
     });
 
-    // Attempt Limit Toggles
-    const attemptToggle = document.getElementById('attempt-limit-toggle');
-    const attemptOptions = document.getElementById('attempt-limit-options');
-    if (attemptToggle && attemptOptions) {
-        attemptToggle.onchange = () => attemptOptions.classList.toggle('hidden', !attemptToggle.checked);
-    }
-
-    // File Inputs & Clear Actions
-    const fileInp = document.getElementById('file-upload-input');
-    if (fileInp) fileInp.onchange = (e) => handleFileSelect(e);
-
-    const addMoreInp = document.getElementById('add-more-files-input');
-    if (addMoreInp) addMoreInp.onchange = (e) => handleFileSelect(e);
-
-    const importInp = document.getElementById('import-quiz-input');
-    if (importInp) importInp.onchange = (e) => handleQuizImport(e);
-
-    const clearBtn = document.getElementById('clear-files-btn');
-    if (clearBtn) {
-        clearBtn.onclick = async () => {
-            const confirmed = await customConfirm(
-                'Are you sure you want to clear the selected files? This action cannot be undone.',
-                'Clear Files', 'Clear', 'Cancel', true
-            );
-            if (confirmed) {
-                const list = document.getElementById('selected-files-list');
-                const label = document.getElementById('file-name');
-                if (list) list.innerHTML = '';
-                if (label) label.textContent = 'Select Documents';
-                state.fileContent = '';
-                state.fileHash = '';
-                showToast('Documents cleared.', 2000);
-            }
+    // Attempt Limit Input Display Field Grid Controls
+    const attemptLimitToggle = document.getElementById('attempt-limit-toggle');
+    const attemptLimitOptions = document.getElementById('attempt-limit-options');
+    if (attemptLimitToggle && attemptLimitOptions) {
+        attemptLimitToggle.onchange = () => {
+            attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
         };
     }
 
-    // Main Engine Activator Trigger
-    const genBtn = document.getElementById('generate-quiz-btn');
-    if (genBtn) genBtn.onclick = () => handleQuizGeneration(false, false);
+    // Core Document Input Selection Pickers handlers
+    const fileUploadInput = document.getElementById('file-upload-input');
+    if (fileUploadInput) fileUploadInput.onchange = (e) => handleFileSelect(e);
+
+    const addMoreFilesInput = document.getElementById('add-more-files-input');
+    if (addMoreFilesInput) addMoreFilesInput.onchange = (e) => handleFileSelect(e);
+
+    const importQuizInput = document.getElementById('import-quiz-input');
+    if (importQuizInput) importQuizInput.onchange = (e) => handleQuizImport(e);
+
+    // Multi-Document Erase Removal Selection Clear Action (With local element isolation styling)
+    bindClick('clear-files-btn', () => {
+        const listEl = document.getElementById('selected-files-list');
+        const displayLabel = document.getElementById('file-name');
+        if (listEl) listEl.innerHTML = '';
+        if (displayLabel) displayLabel.textContent = 'Select Documents';
+        state.fileContent = '';
+        state.fileHash = '';
+        showToast('Documents cleared.', 2000, 'info');
+    });
+
+    // Main Run Trigger Launch Generator Action Engine Activation Button Target Call
+    bindClick('generate-quiz-btn', () => handleQuizGeneration(false, false));
+    bindClick('resume-quiz-btn', () => resumeQuiz());
+
+    console.log("All functional pathways assigned completely.");
 }
 export { loadSharedQuiz } from './quiz/fileHandling.js';
