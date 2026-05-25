@@ -150,42 +150,31 @@ export function handleHistoryClick(event) {
 
     switch (action) {
         case 'load':
-            // Overwrite operational working state with chosen item specs
             state.questions = selectedQuiz.questions;
             state.currentQuizConfig = { ...selectedQuiz.config };
             state.currentFileName = selectedQuiz.fileName;
             state.currentQuizKey = quizKey;
-
-            // Direct start context restoration
-            if (typeof resumeQuiz === 'function') {
-                resumeQuiz();
-            } else {
-                showView('quiz-view');
-            }
+            
+            import('./quizExecution.js').then(m => {
+                m.startQuiz();
+            });
             break;
 
         case 'customize':
             state.isCustomizingHistory = true;
             state.customizingQuizKey = quizKey;
             state.customizingQuizData = selectedQuiz;
-            
-            // Populates dashboard options panel inputs with historic configurations
+
             setupCustomizeView(selectedQuiz.config, selectedQuiz.fileName);
             showView('start');
             
-            // Auto expand parameters container smoothly
             const configPanel = document.getElementById('customize-content');
             if (configPanel) configPanel.classList.remove('hidden');
             break;
 
         case 'share':
-            if (typeof exportQuizAsJSON === 'function') {
-                exportQuizAsJSON(quizKey);
-            }
+            exportQuizAsJSON(quizKey);
             break;
-
-        default:
-            console.warn(`Unhandled inline dashboard action item context: ${action}`);
     }
 }
 
