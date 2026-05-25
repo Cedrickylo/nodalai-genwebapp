@@ -825,33 +825,49 @@ export function initializeAudio() {
 }
 
 export function attachAuthHandlers() {
-    authBtn.onclick = async () => {
-        if (!puter.auth.isSignedIn()) {
-            try {
-                // 1. Wait for the user to finish logging in
-                await puter.auth.signIn();
-                
-                // 2. Wait for the UI to update with their username and credits
-                await updateAuthUI(); 
-                
-                // 3. Immediately pull their saved quizzes from the cloud!
-                syncHistoryWithCloud(); 
-                
-            } catch (e) {
-                console.error("Sign in failed", e);
+    // Safety check for the main login button
+    if (authBtn) {
+        authBtn.onclick = async () => {
+            if (!puter.auth.isSignedIn()) {
+                try {
+                    // 1. Wait for the user to finish logging in
+                    await puter.auth.signIn();
+                    
+                    // 2. Wait for the UI to update with their username and credits
+                    await updateAuthUI(); 
+                    
+                    // 3. Immediately pull their saved quizzes from the cloud!
+                    syncHistoryWithCloud(); 
+                    
+                } catch (e) {
+                    console.error("Sign in failed", e);
+                }
+            } else {
+                // If they are already signed in, just open the dashboard
+                openAccountModal();
             }
-        } else {
-            // If they are already signed in, just open the dashboard
-            openAccountModal();
-        }
-    };
-    saveDisplayNameBtn.onclick = saveDisplayName;
-    buyCreditsBtn.onclick = () => {
-        window.open('https://puter.com/billing', '_blank');
-        showToast('Opening the credits purchase page...', 2500);
-    };
-    logoutBtn.onclick = handleLogout;
-    closeAccountModal.onclick = closeAccountModalHandler;
+        };
+    }
+
+    // Use optional chaining (?.) or conditional checks to prevent null execution crashes
+    if (saveDisplayNameBtn) {
+        saveDisplayNameBtn.onclick = saveDisplayName;
+    }
+
+    if (buyCreditsBtn) {
+        buyCreditsBtn.onclick = () => {
+            window.open('https://puter.com/billing', '_blank');
+            showToast('Opening the credits purchase page...', 2500);
+        };
+    }
+
+    if (logoutBtn) {
+        logoutBtn.onclick = handleLogout;
+    }
+
+    if (closeAccountModal) {
+        closeAccountModal.onclick = closeAccountModalHandler;
+    }
 }
 
 export function initializeAppState() {
