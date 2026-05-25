@@ -503,6 +503,13 @@ export function showToast(message, duration = 3000, type = 'success') {
 export function showView(id) {
     Object.values(views).forEach(v => { if (v) v.classList.remove('active'); });
     if (views[id]) views[id].classList.add('active');
+    
+    // Hide navigation elements when actively taking a quiz
+    if (id === 'quiz') {
+        document.body.classList.add('quiz-active');
+    } else {
+        document.body.classList.remove('quiz-active');
+    }
 }
 
 export function getQuizDB() {

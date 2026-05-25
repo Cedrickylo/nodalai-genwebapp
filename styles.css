@@ -36,3 +36,7 @@
 
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-sync { animation: spin 2s linear infinite; }
+
+        /* Hide Navigation during active Quiz execution */
+        body.quiz-active aside { display: none !important; }
+        body.quiz-active #mobile-bottom-nav { display: none !important; }
