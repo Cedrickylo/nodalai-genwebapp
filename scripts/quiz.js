@@ -254,6 +254,7 @@ export function attachQuizEventListeners() {
     
     timeLimitToggle.addEventListener('change', handleTimeToggle);
     timePresetRadios.forEach(r => r.addEventListener('change', handleTimePresetChange));
+    attemptLimitToggle.addEventListener('change', handleAttemptToggle);
             // Mobile nav active state helper
             function setMobileNavActive(key) {
                 const homeBtn = elements.mobileNavHomeBtn;
