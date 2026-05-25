@@ -17,7 +17,9 @@ export const elements = {
         loading: document.getElementById('loading-view'),
         quiz: document.getElementById('quiz-view'),
         results: document.getElementById('results-view'),
-        'history-fullscreen': document.getElementById('history-fullscreen-view')
+        'history-fullscreen': document.getElementById('history-fullscreen-view'),
+        help: document.getElementById('help-view'),
+        about: document.getElementById('about-view')
     },
     globalSyncDone: document.getElementById('sync-icon-done'),
     globalSyncLoad: document.getElementById('sync-icon-loading'),
@@ -67,6 +69,8 @@ export const elements = {
     historyFullscreenView: document.getElementById('history-fullscreen-view'),
     historyFullscreenBackBtn: document.getElementById('history-fullscreen-back-btn'),
     historyFullList: document.getElementById('history-full-list'),
+    helpBackBtn: document.getElementById('help-back-btn'),
+    aboutBackBtn: document.getElementById('about-back-btn'),
     mobileNavHomeBtn: document.getElementById('mobile-nav-home-btn'),
     mobileNavHistoryBtn: document.getElementById('mobile-nav-history-btn'),
     mobileNavMenuBtn: document.getElementById('mobile-nav-menu-btn'),

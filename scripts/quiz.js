@@ -16,7 +16,10 @@ import {
     validateAllInputs,
     handleDifficultyChange,
     clearInProgressQuiz,
-    refreshHistory
+    refreshHistory,
+    openAccountModal,
+    saveDisplayName,
+    handleLogout
 } from './helpers.js';
 
 // Import modules
@@ -226,6 +229,9 @@ export function attachQuizEventListeners() {
     showAllHistoryBtn?.addEventListener('click', () => showAllHistoryFullScreen());
     // Full-screen history back button
     elements.historyFullscreenBackBtn?.addEventListener('click', () => showView('start'));
+    // Help and About back buttons
+    elements.helpBackBtn?.addEventListener('click', () => showView('start'));
+    elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
     // Mobile bottom nav
     elements.mobileNavHomeBtn?.addEventListener('click', () => {
         showView('start');
@@ -298,16 +304,16 @@ export function attachQuizEventListeners() {
             elements.mobileMenuBackdrop?.addEventListener('click', () => {
                 if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
             });
-            elements.mobileMenuHelpBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showToast('Help: For assistance, visit docs or contact support.'); });
-            elements.mobileMenuAboutBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showToast('About: Nodal AI v1.'); });
-            elements.mobileMenuAccountBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); elements.accountModal?.classList.remove('hidden'); });
+            elements.mobileMenuHelpBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('help'); });
+            elements.mobileMenuAboutBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('about'); });
+            elements.mobileMenuAccountBtn?.addEventListener('click', async () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); await openAccountModal(); });
 
             // Desktop nav handlers
             elements.desktopNavHomeBtn?.addEventListener('click', () => { setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
             elements.desktopNavHistoryBtn?.addEventListener('click', () => { setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
-            elements.desktopNavHelpBtn?.addEventListener('click', () => { setDesktopNavActive('help'); showToast('Help: For assistance, visit docs or contact support.'); });
-            elements.desktopNavAboutBtn?.addEventListener('click', () => { setDesktopNavActive('about'); showToast('About: Nodal AI v1.'); });
-            elements.desktopNavAccountBtn?.addEventListener('click', () => { setDesktopNavActive('account'); elements.accountModal?.classList.remove('hidden'); });
+            elements.desktopNavHelpBtn?.addEventListener('click', () => { setDesktopNavActive('help'); showView('help'); });
+            elements.desktopNavAboutBtn?.addEventListener('click', () => { setDesktopNavActive('about'); showView('about'); });
+            elements.desktopNavAccountBtn?.addEventListener('click', async () => { setDesktopNavActive('account'); await openAccountModal(); });
     
     cancelCustomizeBtn.addEventListener('click', async () => {
         const { hasUnsavedChanges, setupCustomizeView } = await import('./helpers.js');

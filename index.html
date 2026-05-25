@@ -15,9 +15,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-900 text-white flex min-h-screen p-4">
+    <!-- Left Sidebar Navigation -->
+    <aside class="hidden md:flex md:w-56 md:flex-col md:bg-gray-800 md:rounded-xl md:shadow-2xl md:p-6 md:mr-4 md:h-fit md:sticky md:top-4 md:border md:border-gray-700">
+        <div class="md:space-y-4">
+            <h2 class="text-xl font-bold text-blue-400 mb-6">Menu</h2>
+            <nav class="space-y-2">
+                <button id="desktop-nav-home-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">Home</button>
+                <button id="desktop-nav-history-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">History</button>
+                <button id="desktop-nav-help-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">Help</button>
+                <button id="desktop-nav-about-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">About</button>
+                <button id="desktop-nav-account-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">Account</button>
+            </nav>
+        </div>
+    </aside>
 
-    <div class="w-full max-w-3xl mx-auto">
+    <div class="w-full flex items-center justify-center" style="flex: 1;">
         <div id="start-view" class="view active">
              <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative pt-16 sm:pt-12">
                 <div class="absolute top-4 right-4 flex items-center gap-3">
@@ -28,8 +41,8 @@
                 </div>
 
                 <!-- Mobile Menu Modal -->
-                <div id="mobile-menu-modal" class="hidden fixed inset-0 z-60 flex items-end md:hidden">
-                    <div class="w-full bg-black/40 backdrop-blur-sm" id="mobile-menu-backdrop"></div>
+                <div id="mobile-menu-modal" class="hidden fixed inset-0 z-40 flex flex-col md:hidden">
+                    <div class="flex-1 bg-black/60 backdrop-blur-sm" id="mobile-menu-backdrop"></div>
                     <div class="w-full bg-gray-800 p-4 rounded-t-xl shadow-xl border-t border-gray-700">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold">Menu</h3>
@@ -44,14 +57,6 @@
                 </div>
 
                 <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
-                <!-- Desktop Navigation -->
-                <div id="desktop-top-nav" class="hidden md:flex justify-center gap-3 mt-3">
-                    <button id="desktop-nav-home-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">Home</button>
-                    <button id="desktop-nav-history-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">History</button>
-                    <button id="desktop-nav-help-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">Help</button>
-                    <button id="desktop-nav-about-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">About</button>
-                    <button id="desktop-nav-account-btn" class="px-3 py-2 rounded-md text-gray-300 hover:text-white transition-colors duration-200">Account</button>
-                </div>
                 <p id="start-subtitle" class="text-gray-400 mb-8 text-center">Transform your documents into tailored assessments instantly.</p>
                 
                 <div id="file-actions" class="grid grid-cols-2 gap-4 mb-6">
@@ -285,12 +290,12 @@
                         <span class="text-xs">Home</span>
                     </button>
                     <button id="mobile-nav-history-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
-                                            <button id="mobile-nav-menu-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                                                <span class="text-xs">Menu</span>
-                                            </button>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"></path><path d="M21 21v-5h-5"></path><path d="M21 8a9 9 0 1 0 0 8"></path></svg>
                         <span class="text-xs">History</span>
+                    </button>
+                    <button id="mobile-nav-menu-btn" class="flex flex-col items-center text-gray-300 hover:text-white py-2 px-4 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        <span class="text-xs">Menu</span>
                     </button>
                 </div>
 
@@ -619,6 +624,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <script type="module" src="scripts/main.js"></script>
