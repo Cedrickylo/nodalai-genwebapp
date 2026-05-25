@@ -563,7 +563,7 @@ export function showView(id) {
     if (elements.views[id]) elements.views[id].classList.add('active');
     
     // 2. Hide navigation during active quiz
-    if (id === 'quiz' || id === 'results') {
+    if (id === 'quiz' || id === 'results' || id === 'loading') {
         document.body.classList.add('quiz-active');
     } else {
         document.body.classList.remove('quiz-active');

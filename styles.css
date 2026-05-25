@@ -1,7 +1,9 @@
 ﻿        /* Mobile Responsiveness & Layout Fixes */
         body { font-family: 'Inter', sans-serif; overflow-x: hidden; max-width: 100vw; }
         @media (max-width: 768px) {
-            body { padding-bottom: 100px; }
+            body { padding-bottom: 120px; }
+            /* Safe area spacing buffer to keep content above the bottom nav */
+            .view { padding-bottom: 80px; }
         }
         .view { display: none; }
         .view.active { display: block; }
