@@ -95,12 +95,19 @@ export function attachQuizEventListeners() {
     const navHistoryBtn = document.getElementById('desktop-nav-history-btn');
     if (navHistoryBtn) {
         navHistoryBtn.onclick = () => {
-            const { showAllHistoryFullScreen } = require('./quiz/quizHistory.js'); // fallback lazy link if decoupled
-            if (typeof showAllHistoryFullScreen === 'function') {
-                showAllHistoryFullScreen();
-            } else {
-                showView('history-fullscreen');
-            }
+            // FIX: Replaced Node.js 'require' with browser-supported dynamic 'import()'
+            import('./quiz/quizHistory.js')
+                .then(module => {
+                    if (module && typeof module.showAllHistoryFullScreen === 'function') {
+                        module.showAllHistoryFullScreen();
+                    } else {
+                        showView('history-fullscreen-view');
+                    }
+                })
+                .catch(err => {
+                    console.warn("Lazy history module loading failed, falling back to direct view toggle:", err);
+                    showView('history-fullscreen-view');
+                });
         };
     }
 
@@ -134,12 +141,15 @@ export function attachQuizEventListeners() {
     if (mobileNavHistoryBtn) {
         mobileNavHistoryBtn.onclick = () => {
             showView('history-fullscreen-view');
-            const fullList = document.getElementById('history-full-list');
-            if (fullList && fullList.children.length === 0) {
-                // Trigger full rendering layout shift if list container elements exist empty
+            // Safely trigger full rendering loop if lists are empty
+            import('./quiz/quizHistory.js').then(module => {
+                if (module && typeof module.showAllHistoryFullScreen === 'function') {
+                    module.showAllHistoryFullScreen();
+                }
+            }).catch(() => {
                 const showAllBtn = document.getElementById('show-all-history-btn');
                 if (showAllBtn) showAllBtn.click();
-            }
+            });
         };
     }
 
@@ -207,9 +217,9 @@ export function attachQuizEventListeners() {
     }
 
     // Shared Link Core Interceptors Guard
-    if (elements.showAllHistoryBtn) {
-        elements.showAllHistoryBtn.onclick = () => {
-            // Dyn import fallback connector if context maps to different target name files
+    const inlineShowAllHistoryBtn = document.getElementById('show-all-history-btn');
+    if (inlineShowAllHistoryBtn) {
+        inlineShowAllHistoryBtn.onclick = () => {
             import('./quiz/quizHistory.js').then(module => {
                 if (module && module.showAllHistoryFullScreen) {
                     module.showAllHistoryFullScreen();
@@ -217,6 +227,63 @@ export function attachQuizEventListeners() {
             }).catch(() => {
                 showView('history-fullscreen-view');
             });
+        };
+    }
+
+    // --- FIX: CORE QUIZ OPERATIONS BINDINGS ---
+    
+    // 1. Select Documents Trigger
+    const fileUploadInput = document.getElementById('file-upload-input');
+    if (fileUploadInput) {
+        fileUploadInput.onchange = (e) => {
+            if (typeof handleFileSelect === 'function') handleFileSelect(e);
+        };
+    }
+
+    // 2. Add More Documents Trigger
+    const addMoreFilesInput = document.getElementById('add-more-files-input');
+    if (addMoreFilesInput) {
+        addMoreFilesInput.onchange = (e) => {
+            if (typeof handleFileSelect === 'function') handleFileSelect(e);
+        };
+    }
+
+    // 3. Import Quiz JSON Button
+    const importQuizInput = document.getElementById('import-quiz-input');
+    if (importQuizInput) {
+        importQuizInput.onchange = (e) => {
+            if (typeof handleQuizImport === 'function') handleQuizImport(e);
+        };
+    }
+
+    // 4. Main Generate Quiz Button Engine
+    const generateQuizBtn = document.getElementById('generate-quiz-btn');
+    if (generateQuizBtn) {
+        generateQuizBtn.onclick = () => {
+            if (typeof handleQuizGeneration === 'function') {
+                handleQuizGeneration(false, false);
+            }
+        };
+    }
+
+    // 5. Resume Quiz Progress Button
+    const resumeQuizBtn = document.getElementById('resume-quiz-btn');
+    if (resumeQuizBtn) {
+        resumeQuizBtn.onclick = () => {
+            if (typeof resumeQuiz === 'function') resumeQuiz();
+        };
+    }
+
+    // 6. Settings Flyout Container Toggle
+    const customizeToggleBtn = document.getElementById('customize-toggle-btn');
+    const customizeContent = document.getElementById('customize-content');
+    const customizeToggleIcon = document.getElementById('customize-toggle-icon');
+    if (customizeToggleBtn && customizeContent) {
+        customizeToggleBtn.onclick = () => {
+            const isHidden = customizeContent.classList.toggle('hidden');
+            if (customizeToggleIcon) {
+                customizeToggleIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
         };
     }
 }

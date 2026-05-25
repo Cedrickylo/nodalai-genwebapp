@@ -133,58 +133,59 @@ export async function generateShareableLink(quizKey) {
     }
 }
 
-export async function handleHistoryClick(e) {
-    // Find the closest button element, even if the user clicked the inner SVG icon or text span
-    const btn = e.target.closest('button');
-    if (!btn) return;
+import { state } from '../state.js';
+import { showView, setupCustomizeView, exportQuizAsJSON } from '../helpers.js';
+import { resumeQuiz } from './fileHandling.js';
 
-    const key = btn.dataset.key;
-    const action = btn.dataset.action;
-    const quizData = state.quizHistory[key];
-    if (!quizData) return;
+export function handleHistoryClick(event) {
+    const targetButton = event.target.closest('button');
+    if (!targetButton) return;
 
-    if (action === 'load') {
-        if (state.savedProgress?.key === key && (state.savedProgress.shuffledIndexPos < state.savedProgress.shuffledIndices?.length || state.savedProgress.inSkippedRound)) {
-            const doResume = await customConfirm(
-                'Do you want to resume where you left off, or start over from the beginning?',
-                'Resume Quiz',
-                'Resume',
-                'Start Over'
-            );
-            if (doResume) {
-                const { resumeQuiz } = await import('./fileHandling.js');
-                resumeQuiz(state.savedProgress);
-                return;
+    const quizKey = targetButton.getAttribute('data-key');
+    const action = targetButton.getAttribute('data-action');
+    if (!quizKey || !action) return;
+
+    const selectedQuiz = state.quizHistory[quizKey];
+    if (!selectedQuiz) return;
+
+    switch (action) {
+        case 'load':
+            // Overwrite operational working state with chosen item specs
+            state.questions = selectedQuiz.questions;
+            state.currentQuizConfig = { ...selectedQuiz.config };
+            state.currentFileName = selectedQuiz.fileName;
+            state.currentQuizKey = quizKey;
+
+            // Direct start context restoration
+            if (typeof resumeQuiz === 'function') {
+                resumeQuiz();
+            } else {
+                showView('quiz-view');
             }
-        }
-        
-        const { clearInProgressQuiz } = await import('../helpers.js');
-        const { startQuiz } = await import('./quizExecution.js');
-        
-        clearInProgressQuiz();
-        state.questions = quizData.questions;
-        state.currentQuizConfig = quizData.config;
-        state.currentQuizKey = key;
-        state.currentFileName = quizData.fileName;
-        state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
-        state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
-        state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
-        state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
-        elements.statusMessage.textContent = `Loaded "${state.currentFileName}".`;
-        elements.statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
-        startQuiz();
-    } else if (action === 'export') {
-        exportQuizFromHistory(quizData, key);
-    } else if (action === 'customize') {
-        state.customizingQuizData = { ...quizData, key };
-        setupCustomizeView(quizData.config, quizData.fileName);
-        showView('start');
-    } else if (action === 'share') {
-        // Store the key of the quiz we are currently interacting with
-        state.currentShareQuizKey = key;
-        
-        // Open the share modal seamlessly
-        openShareModal(key);
+            break;
+
+        case 'customize':
+            state.isCustomizingHistory = true;
+            state.customizingQuizKey = quizKey;
+            state.customizingQuizData = selectedQuiz;
+            
+            // Populates dashboard options panel inputs with historic configurations
+            setupCustomizeView(selectedQuiz.config, selectedQuiz.fileName);
+            showView('start');
+            
+            // Auto expand parameters container smoothly
+            const configPanel = document.getElementById('customize-content');
+            if (configPanel) configPanel.classList.remove('hidden');
+            break;
+
+        case 'share':
+            if (typeof exportQuizAsJSON === 'function') {
+                exportQuizAsJSON(quizKey);
+            }
+            break;
+
+        default:
+            console.warn(`Unhandled inline dashboard action item context: ${action}`);
     }
 }
 
