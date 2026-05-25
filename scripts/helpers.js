@@ -504,7 +504,7 @@ export async function saveDisplayName() {
     }
 }
 
-export function closeAccountModalHandler() {
+export function closeAccountHandler() {
 // If it's inside the modal overlay, just hide the modal
     if (elements.accountCard.parentElement.id === 'account-modal-overlay') {
         elements.accountModalOverlay.classList.add('hidden');
