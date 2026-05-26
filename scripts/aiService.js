@@ -1,9 +1,8 @@
 // aiService.js
 // Main function to generate quiz questions using AI
-// This is the single point of change when switching AI services
-const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI, groq
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/responses';
-const GROQ_API_KEY = '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'; // Replace with your Groq API key
+
+const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI
+
 export function isUsingPuterAI() {
     return AI_SERVICE === 'puter';
 }
@@ -15,23 +14,26 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
             return extractTextFromResponse(response);
         }
 
-        const response = await fetch(GROQ_API_URL, {
+        // Call your new secure Netlify function
+        const response = await fetch('/.netlify/functions/generate-quiz', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${GROQ_API_KEY}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'groq/compound-mini',
-                input: `${systemPrompt}\n\n${userPrompt}`
+                systemPrompt: systemPrompt,
+                userPrompt: userPrompt
             })
         });
 
         if (!response.ok) {
-            throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+            throw new Error(`Netlify Function error: ${response.status} ${response.statusText}`);
         }
 
+        // The function returns the exact JSON that Groq provides
         const data = await response.json();
+        
+        // Pass it into your existing extractor helper
         return extractTextFromResponse(data);
     } catch (error) {
         console.error('AI Service Error:', error);
@@ -39,13 +41,15 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
     }
 }
 
+// ... keep your extractTextFromResponse function and the rest of the file exactly as is ...
+
 // Helper function to extract text from various AI response formats
 // This handles different response structures from different AI providers
 // export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
 //     const response = await fetch("https://api.openai.com/v1/chat/completions", {
 //         method: "POST",
 //         headers: {
-//             "Authorization": `Bearer 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`, // Secure this in production!
+//             "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`, // Secure this in production!
 //             "Content-Type": "application/json"
 //         },
 //         body: JSON.stringify({
