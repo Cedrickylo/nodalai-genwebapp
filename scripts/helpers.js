@@ -691,43 +691,48 @@ export function refreshHistory() {
     const db = state.quizHistory;
     const sorted = Object.entries(db).sort(([, a], [, b]) => b.timestamp - a.timestamp);
     
-    elements.historyList.innerHTML = '';
+    // 1. CLEAR BOTH CONTAINERS
+    if (elements.historyList) elements.historyList.innerHTML = '';
     
+    const fullContainer = elements.historyFullList || document.getElementById('history-full-list');
+    if (fullContainer) fullContainer.innerHTML = '';
+    
+    // Handle empty state
     if (sorted.length === 0) {
-        elements.historyList.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
+        const noQuizzesHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
+        if (elements.historyList) elements.historyList.innerHTML = noQuizzesHTML;
+        if (fullContainer) fullContainer.innerHTML = noQuizzesHTML;
         elements.showAllHistoryBtn?.classList.add('hidden');
         return;
     }
 
-    // If on desktop (>= 768px) only show the 3 most recent items in the compact history list
+    // 2. MANAGE HOME SCREEN COMPACT LIST (Limit to 3 items on desktop)
     const isDesktop = window.innerWidth >= 768;
-    const displayItems = isDesktop ? sorted.slice(0, 3) : sorted;
+    const compactDisplayItems = isDesktop ? sorted.slice(0, 3) : sorted;
 
-    // Show the "Show All" button only on desktop when there are more than 3 items
     if (isDesktop && sorted.length > 3) {
         elements.showAllHistoryBtn?.classList.remove('hidden');
     } else {
         elements.showAllHistoryBtn?.classList.add('hidden');
     }
 
-    displayItems.forEach(([key, data]) => {
-        const item = document.createElement('div');
-        item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
+    // Helper function to generate uniform inner HTML for both list items
+    function generateQuizItemHTML(key, data) {
+        const config = data.config || {};
+        const tInfo = formatTime(config.totalTime);
         
-        const tInfo = formatTime(data.config.totalTime);
-        let diffTxt = data.config.difficulty ? `(${data.config.difficulty}` : '(';
-        if (data.config.difficulty === 'custom' && data.config.customTypeShort) {
-            diffTxt += `: ${data.config.customTypeShort})`;
-        } else if (data.config.difficulty) {
+        let diffTxt = config.difficulty ? `(${config.difficulty}` : '(';
+        if (config.difficulty === 'custom' && config.customTypeShort) {
+            diffTxt += `: ${config.customTypeShort})`;
+        } else if (config.difficulty) {
             diffTxt += ')';
         } else {
-            diffTxt += `${data.config.type || 'mixed'})`;
+            diffTxt += `${config.type || 'mixed'})`;
         }
         
-        const attInfo = data.config.isAttemptLimited ? `(${data.config.maxAttempts} att)` : '';
-        const summaryInfo = data.config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
+        const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
+        const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
         
-        // 1. Check if the quiz is shared
         const isShared = data.share && data.share.isShared;
         const shareIconHTML = isShared ? `
             <span class="text-blue-400 bg-blue-500/10 p-1 rounded inline-flex items-center flex-shrink-0" title="Currently sharing via link">
@@ -735,21 +740,15 @@ export function refreshHistory() {
             </span>
         ` : '';
 
-        // 2. Build the title row (REMOVED max-w-[150px], ADDED dynamic flex sizing)
-        const titleHtml = `
-            <div class="flex items-center gap-2 min-w-0 mb-1 w-full">
-                <p class="font-semibold text-sm truncate min-w-0" title="${data.fileName || 'Untitled'}">
-                    ${data.fileName || 'Untitled'}
-                </p>
-                ${shareIconHTML}
-            </div>
-        `;
-
-        // 3. Set the HTML
-        item.innerHTML = `
+        return `
             <div class="flex-grow min-w-0 mr-4 overflow-hidden">
-                ${titleHtml}
-                <p class="text-xs text-gray-400 truncate">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+                <div class="flex items-center gap-2 min-w-0 mb-1 w-full">
+                    <p class="font-semibold text-sm truncate min-w-0" title="${data.fileName || 'Untitled'}">
+                        ${data.fileName || 'Untitled'}
+                    </p>
+                    ${shareIconHTML}
+                </div>
+                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
             <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
                 <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="share" title="Share / Export">
@@ -765,9 +764,28 @@ export function refreshHistory() {
                     <span>Load</span>
                 </button>
             </div>
-        `;      
-        elements.historyList.appendChild(item);
-    });
+        `;
+    }
+
+    // 3. RENDER COMPACT LIST
+    if (elements.historyList) {
+        compactDisplayItems.forEach(([key, data]) => {
+            const item = document.createElement('div');
+            item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
+            item.innerHTML = generateQuizItemHTML(key, data);
+            elements.historyList.appendChild(item);
+        });
+    }
+
+    // 4. RENDER FULL SCREEN LIST (If container exists in DOM layout)
+    if (fullContainer) {
+        sorted.forEach(([key, data]) => {
+            const item = document.createElement('div');
+            item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
+            item.innerHTML = generateQuizItemHTML(key, data);
+            fullContainer.appendChild(item);
+        });
+    }
 }
 
 export function getCustomizeState() {
