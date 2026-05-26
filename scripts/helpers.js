@@ -217,35 +217,42 @@ export function setSyncing(status) {
 }
 
 export async function syncHistoryWithCloud(manual = false) {
+    // 1. Authentication check
     if (!window.puter || !puter.auth.isSignedIn()) {
-        setSyncing('offline'); // Set offline if not logged in
+        setSyncing('offline');
         if (manual) showToast('Sign in to Puter to sync history.', 4000, 'warning');
         return;
     }
     
     if (manual) showToast('Started syncing...');
-    setSyncing('syncing'); // CHANGED FROM true
+    setSyncing('syncing'); 
 
     try {
-        // 1. Get Cloud Data
+        // 2. Fetch the current cloud payload matrix
         const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
-        const cloudData = cloudRaw ? JSON.parse(cloudRaw) : { items: {}, updatedAt: 0 };
-
-        // 2. Get Local Data
-        const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
+        let cloudData = { items: {}, updatedAt: 0 };
         
-        // 3. MERGE: Quiz-by-quiz timestamp comparison (Last-Write-Wins)
+        if (cloudRaw) {
+            try {
+                cloudData = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
+            } catch (parseError) {
+                console.warn("Cloud data format corrupted. Reinitializing schema layout.");
+            }
+        }
+
+        // 3. Fetch current local system matrix
+        const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
         const mergedItems = {};
 
-        // Combine all unique quiz keys from both cloud and local history
-        const allKeys = new Set([...Object.keys(cloudData.items), ...Object.keys(localItems)]);
+        // 4. Create a comprehensive lookup grid combining all unique workspace identifiers
+        const allKeys = new Set([...Object.keys(cloudData.items || {}), ...Object.keys(localItems)]);
 
         for (const key of allKeys) {
-            const cloudQuiz = cloudData.items[key];
+            const cloudQuiz = cloudData.items?.[key];
             const localQuiz = localItems[key];
             
             if (cloudQuiz && localQuiz) {
-                // Both exist, choose the version with the newer internal timestamp
+                // Last-Write-Wins based on precise item timestamps
                 if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
                     mergedItems[key] = cloudQuiz;
                 } else {
@@ -260,29 +267,28 @@ export async function syncHistoryWithCloud(manual = false) {
 
         const now = Date.now();
 
-        // 4. Update State and LocalStorage
-        state.quizHistory = mergedItems;
+        // 5. CRITICAL CRASH REPAIR: Push structural modifications back to core state pointers
+        state.quizHistory = mergedItems; 
+        
+        // Commit changes locally
         localStorage.setItem(DB_NAME, JSON.stringify(mergedItems));
         localStorage.setItem(DB_NAME + '_ts', now.toString());
 
-        // 5. Push the unified history back to the Cloud
+        // 6. Ship the reconciled datasets back up to your Puter KV cloud instance
         await puter.kv.set(CLOUD_SYNC_KEY, JSON.stringify({ 
             items: mergedItems, 
             updatedAt: now 
         }));
 
+        // Redraw lists and resolve indicators
         refreshHistory();
         setSyncing('synced');
-        if (manual) showToast('Done syncing!');
+        if (manual) showToast('Done syncing!', 2000, 'success');
+
     } catch (e) {
-        console.error('Sync error', e);
+        console.error('Core Cloud Sync Stack Breakdown:', e);
         setSyncing('offline');
-        showToast('Sync failed. Please check your connection.', 3000, 'error');
-    } finally {
-        // CHANGED FROM false
-        if (window.puter && puter.auth.isSignedIn()) {
-            setSyncing('synced'); 
-        }
+        showToast('Sync failed. Please check your network connection.', 4000, 'error');
     }
 }
 
