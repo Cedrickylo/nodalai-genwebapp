@@ -16,25 +16,26 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
 
         // Call your new secure Netlify function
         const response = await fetch('/.netlify/functions/generate-quiz', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                systemPrompt: systemPrompt,
-                userPrompt: userPrompt
-            })
-        });
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            systemPrompt: systemPrompt,
+            userPrompt: userPrompt
+        })
+    });
 
-        if (!response.ok) {
-            throw new Error(`Netlify Function error: ${response.status} ${response.statusText}`);
-        }
-
-        // The function returns the exact JSON that Groq provides
-        const data = await response.json();
+    if (!response.ok) {
+        // Attempt to extract our custom verbose error payload
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Detailed Server Error Payload:", errorData);
         
-        // Pass it into your existing extractor helper
-        return extractTextFromResponse(data);
+        throw new Error(errorData.error || `Netlify Function error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return extractTextFromResponse(data);   
     } catch (error) {
         console.error('AI Service Error:', error);
         throw error;

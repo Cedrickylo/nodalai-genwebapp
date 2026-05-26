@@ -1,21 +1,26 @@
 // netlify/functions/generate-quiz.js
 
 exports.handler = async (event) => {
-  // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
   try {
-    // Parse the prompts sent from your frontend
+    // Diagnostic check: Is the environment variable even showing up?
+    if (!process.env.GROQ_API_KEY) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Missing GROQ_API_KEY environment variable on Netlify side." })
+      };
+    }
+
     const { systemPrompt, userPrompt } = JSON.parse(event.body);
 
-    // Make the secure call to Groq
     const response = await fetch('https://api.groq.com/openai/v1/responses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}` // Pulls the hidden key from Netlify
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
         model: 'groq/compound-mini',
@@ -23,22 +28,29 @@ exports.handler = async (event) => {
       })
     });
 
+    // If Groq rejects the request (e.g., bad key, bad payload architecture), grab its actual response
     if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+      const groqErrorPayload = await response.text();
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ 
+          error: `Groq API responded with status ${response.status}`, 
+          details: groqErrorPayload 
+        })
+      };
     }
 
     const data = await response.json();
-
-    // Send the raw Groq response back to your frontend
     return {
       statusCode: 200,
       body: JSON.stringify(data)
     };
+
   } catch (error) {
-    console.error(error);
+    // Catch-all for function syntax errors or internal serverless network failures
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to communicate with Groq API' })
+      body: JSON.stringify({ error: "Serverless Function Internal Crash", message: error.message })
     };
   }
 };
