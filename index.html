@@ -230,69 +230,101 @@
             </div>
         </div>
 
-        <div id="help-view" class="view w-full max-w-4xl">
-            <div class="bg-gray-800 w-full p-4 sm:p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
-                <div class="absolute top-4 left-4">
+        <div id="help-view" class="view w-full max-w-5xl">
+            <div class="page-shell bg-gray-800/90 border border-gray-700/80 w-full p-5 sm:p-8 rounded-2xl shadow-2xl relative min-h-[60vh] overflow-hidden">
+                <div class="page-shell-glow page-shell-glow-left"></div>
+                <div class="page-shell-glow page-shell-glow-right"></div>
+                <div class="absolute top-4 left-4 z-10">
                     <button id="help-back-btn" class="inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
                 </div>
-                <h2 class="text-2xl font-bold text-blue-400 text-center mt-6 sm:mt-0">Help</h2>
-                <p class="text-sm text-gray-400 text-center mb-6">How to use Nodal AI Quiz Generator</p>
-                <div class="prose prose-invert max-w-none text-sm text-gray-200">
-		    <h3>Quick Steps</h3>
-                    <ol class="list-decimal list-inside mb-4">
-                        <li>Select or upload documents using "Select Documents".</li>
-                        <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
-                        <li>Click "Generate Quiz" to create questions from your documents.</li>
-                        <li>Take the quiz, review results, and export or save to the cloud.</li>
-                    </ol>
-
-                    <h3>What this site does</h3>
-                    <p>It analyzes uploaded documents and generates assessment-style questions (multiple choice, identification, enumeration, or a mix) using on-device logic and cloud helpers. You can save quizzes to your Puter account or export them locally.</p>
-
-                    <h3>Limitations & Notes</h3>
-                    <ul class="list-disc list-inside mb-4">
-                        <li>Quality of questions depends on the clarity and structure of the source document.</li>
-                        <li>Processing large or scanned PDFs may be slower and may not extract text perfectly.</li>
-                        <li>There is a rate limit on quiz generation to prevent abuse (see account modal).</li>
-                        <li>Some features rely on Puter cloud services; offline behavior is limited.</li>
-                    </ul>
-
-                    <h3>Troubleshooting</h3>
-                    <p>If uploads fail or generation stalls, try re-uploading a simpler file, check your internet connection for cloud sync features, or refresh the page.</p>
-
-                    <h3>Privacy</h3>
-                    <p>Uploaded documents may be temporarily processed by Puter services when cloud features are enabled. Please avoid uploading sensitive personal data.</p>
+                <div class="relative z-10 pt-10 sm:pt-4">
+                    <div class="page-hero text-center mb-8 sm:mb-10">
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-2 sm:mt-0">Help</h2>
+                        <p class="text-sm text-gray-400 text-center mb-0">How to use Nodal AI Quiz Generator</p>
                     </div>
+
+                    <div class="info-grid space-y-4">
+		    <section class="info-card">
+                            <h3>Quick Steps</h3>
+                            <ol class="list-decimal list-inside mb-0">
+                                <li>Select or upload documents using "Select Documents".</li>
+                                <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
+                                <li>Click "Generate Quiz" to create questions from your documents.</li>
+                                <li>Take the quiz, review results, and export or save to the cloud.</li>
+                            </ol>
+                        </section>
+
+                        <section class="info-card">
+                            <h3>What this site does</h3>
+                            <p>It analyzes uploaded documents and generates assessment-style questions (multiple choice, identification, enumeration, or a mix) using on-device logic and cloud helpers. You can save quizzes to your Puter account or export them locally.</p>
+                        </section>
+
+                        <section class="info-card">
+                            <h3>Limitations & Notes</h3>
+                            <ul class="list-disc list-inside mb-0">
+                                <li>Quality of questions depends on the clarity and structure of the source document.</li>
+                                <li>Processing large or scanned PDFs may be slower and may not extract text perfectly.</li>
+                                <li>There is a rate limit on quiz generation to prevent abuse (see account modal).</li>
+                                <li>Some features rely on Puter cloud services; offline behavior is limited.</li>
+                            </ul>
+                        </section>
+
+                        <section class="info-card">
+                            <h3>Troubleshooting</h3>
+                            <p>If uploads fail or generation stalls, try re-uploading a simpler file, check your internet connection for cloud sync features, or refresh the page.</p>
+                        </section>
+
+                        <section class="info-card">
+                            <h3>Privacy</h3>
+                            <p>Uploaded documents may be temporarily processed by Puter services when cloud features are enabled. Please avoid uploading sensitive personal data.</p>
+                        </section>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="about-view" class="view w-full max-w-4xl">
-            <div class="bg-gray-800 w-full p-4 sm:p-8 rounded-xl shadow-2xl relative min-h-[60vh]">
-                <div class="absolute top-4 left-4">
+        <div id="about-view" class="view w-full max-w-5xl">
+            <div class="page-shell bg-gray-800/90 border border-gray-700/80 w-full p-5 sm:p-8 rounded-2xl shadow-2xl relative min-h-[60vh] overflow-hidden">
+                <div class="page-shell-glow page-shell-glow-left"></div>
+                <div class="page-shell-glow page-shell-glow-right"></div>
+                <div class="absolute top-4 left-4 z-10">
                     <button id="about-back-btn" class="inline-flex text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">Back</button>
                 </div>
-                <h2 class="text-2xl font-bold text-blue-400 text-center mt-6 sm:mt-0">About</h2>
-                <p class="text-sm text-gray-400 text-center mb-6">Purpose, credits, and Terms of Service</p>
-                <div class="prose prose-invert max-w-none text-sm text-gray-200">
-		            <h3>Purpose</h3>
-                    <p>Nodal AI Quiz Generator is a lightweight tool to convert learning materials into practice quizzes quickly. It's designed for educators and learners to create formative assessments from documents.</p>
+                <div class="relative z-10 pt-10 sm:pt-4">
+                    <div class="page-hero text-center mb-8 sm:mb-10">
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-2 sm:mt-0">About</h2>
+                        <p class="text-sm text-gray-400 text-center mb-0">Purpose, credits, and Terms of Service</p>
+                    </div>
 
-                    <h3>Creator</h3>
-                    <p>Created by the Nodal AI team (or contributor). For inquiries, contact the project owner listed in the repository.</p>
+                    <div class="info-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
+		            <section class="info-card">
+                            <h3>Purpose</h3>
+                            <p>Nodal AI Quiz Generator is a lightweight tool to convert learning materials into practice quizzes quickly. It's designed for educators and learners to create formative assessments from documents.</p>
+                        </section>
 
-                    <h3>Services & Credits</h3>
-                    <p>This project uses the following third-party services and libraries:</p>
-                    <ul class="list-disc list-inside mb-4">
-                        <li>Puter.js — cloud sync & user accounts (credits apply to some operations).</li>
-                        <li>mammoth.js — Word document parsing.</li>
-                        <li>pdf.js — PDF text extraction.</li>
-                        <li>tone.js — audio feedback (optional).</li>
-                        <li>crypto-js and lz-string — for local data handling and compression.</li>
-                    </ul>
+                        <section class="info-card">
+                            <h3>Creator</h3>
+                            <p>Created by the Nodal AI team (or contributor). For inquiries, contact the project owner listed in the repository.</p>
+                        </section>
 
-                    <h3>Terms of Service</h3>
-                    <p class="text-xs text-gray-400">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
-                    <p class="text-xs text-gray-400">For full terms, see the project repository or contact the developer for the official TOS document.</p>
+                        <section class="info-card lg:col-span-2">
+                            <h3>Services & Credits</h3>
+                            <p>This project uses the following third-party services and libraries:</p>
+                            <ul class="list-disc list-inside mb-0">
+                                <li>Puter.js — cloud sync & user accounts (credits apply to some operations).</li>
+                                <li>mammoth.js — Word document parsing.</li>
+                                <li>pdf.js — PDF text extraction.</li>
+                                <li>tone.js — audio feedback (optional).</li>
+                                <li>crypto-js and lz-string — for local data handling and compression.</li>
+                            </ul>
+                        </section>
+
+                        <section class="info-card lg:col-span-2">
+                            <h3>Terms of Service</h3>
+                            <p class="text-xs text-gray-400">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
+                            <p class="text-xs text-gray-400">For full terms, see the project repository or contact the developer for the official TOS document.</p>
+                        </section>
+                    </div>
                 </div>
             </div>
         </div>
