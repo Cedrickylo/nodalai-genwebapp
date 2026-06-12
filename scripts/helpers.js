@@ -611,6 +611,44 @@ export function updateNavHighlights(activeKey) {
     });
 }
 
+const scrollReactiveHeaderObservers = new Map();
+
+export function setupScrollReactiveHeader(viewId) {
+    const configMap = {
+        'history-fullscreen': {
+            headerSelector: '#history-fullscreen-view .scroll-reactive-header',
+            sentinelId: 'history-header-sentinel'
+        },
+        help: {
+            headerSelector: '#help-view .scroll-reactive-header',
+            sentinelId: 'help-header-sentinel'
+        },
+        about: {
+            headerSelector: '#about-view .scroll-reactive-header',
+            sentinelId: 'about-header-sentinel'
+        }
+    };
+
+    const config = configMap[viewId];
+    if (!config) return;
+
+    const header = document.querySelector(config.headerSelector);
+    const sentinel = document.getElementById(config.sentinelId);
+    if (!header || !sentinel) return;
+
+    const existingObserver = scrollReactiveHeaderObservers.get(viewId);
+    if (existingObserver) existingObserver.disconnect();
+
+    header.classList.remove('is-stuck');
+
+    const observer = new IntersectionObserver(([entry]) => {
+        header.classList.toggle('is-stuck', !entry.isIntersecting);
+    }, { threshold: 0 });
+
+    observer.observe(sentinel);
+    scrollReactiveHeaderObservers.set(viewId, observer);
+}
+
 export function showView(id) {
     // 1. Switch the visible page
     Object.values(elements.views).forEach(v => { if (v) v.classList.remove('active'); });
@@ -628,6 +666,8 @@ export function showView(id) {
     if (id === 'start') navKey = 'home';
     if (id === 'history-fullscreen') navKey = 'history';
     updateNavHighlights(navKey);
+
+    setupScrollReactiveHeader(id);
 }
 
 export function getQuizDB() {

@@ -136,6 +136,20 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
         }
 
+        .scroll-reactive-header {
+            background: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, backdrop-filter 0.2s ease, border-color 0.2s ease;
+        }
+
+        .scroll-reactive-header.is-stuck {
+            background: rgba(17, 24, 39, 0.88);
+            border-color: rgba(75, 85, 99, 0.82);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(12px);
+        }
+
         .page-sticky-header h2 {
             justify-self: center;
             text-align: center;

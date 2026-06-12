@@ -11,7 +11,8 @@ import {
     openShareModal,
     navigateToShareStep,
     formatTime,
-    exportQuizAsJSON
+    exportQuizAsJSON,
+    setupScrollReactiveHeader
 } from '../helpers.js';
 
 const {
@@ -287,6 +288,8 @@ export function showAllHistoryFullScreen() {
 
     // Attach click handler for delegated actions inside full-list
     container.onclick = handleHistoryClick;
+
+    setupScrollReactiveHeader('history-fullscreen');
 
     showView('history-fullscreen');
 }
