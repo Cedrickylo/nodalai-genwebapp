@@ -74,14 +74,14 @@
         }
 
         .page-shell-glow {
-            position: absolute;
+            position: absolute !important;
             width: 12rem;
             height: 12rem;
             border-radius: 9999px;
             filter: blur(48px);
             opacity: 0.2;
             pointer-events: none;
-            z-index: 0;
+            z-index: 0 !important;
         }
 
         .page-shell-glow-left {
@@ -96,7 +96,7 @@
             background: rgba(20, 184, 166, 0.35);
         }
 
-        .page-shell > * {
+        .page-shell > *:not(.page-shell-glow) {
             position: relative;
             z-index: 1;
         }
@@ -109,27 +109,9 @@
         }
 
         .page-header {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
+            text-align: center;
             position: relative;
             z-index: 1;
-        }
-
-        @media (min-width: 640px) {
-            .page-header {
-                flex-direction: row;
-                align-items: flex-start;
-                gap: 1rem;
-            }
-        }
-
-        .page-header-copy {
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-            min-width: 0;
         }
 
         .info-grid {
