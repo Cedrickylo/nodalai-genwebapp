@@ -4,6 +4,25 @@
             body { padding-bottom: 120px; }
             /* Safe area spacing buffer to keep content above the bottom nav */
             .view { padding-bottom: 80px; }
+
+            /* Keep the history fullscreen card sized to the mobile viewport without its own scroll area */
+            #history-fullscreen-view {
+                width: 100%;
+                max-width: none;
+            }
+
+            #history-fullscreen-view > div {
+                min-height: calc(100dvh - 2rem);
+                display: flex;
+                flex-direction: column;
+            }
+
+            #history-full-list {
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none;
+                overflow: visible;
+            }
         }
         .view { display: none; }
         .view.active { display: block; }
