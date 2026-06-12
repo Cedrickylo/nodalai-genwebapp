@@ -159,21 +159,59 @@ export async function handleFileSelect(event) {
     }
 
     try {
+        state.currentFiles = Array.from(files);
         let combinedText = '';
         let names = [];
-        
+
         for (const file of files) {
             names.push(file.name);
-            // Process file text elements context safely...
-            if (file.type === "application/json") {
-                // handle direct imports routes
+            const ext = file.name.split('.').pop().toLowerCase();
+            let txt = '';
+
+            if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json'].includes(ext)) {
+                txt = await file.text();
+            } else if (ext === 'docx') {
+                const ab = await file.arrayBuffer();
+                const res = await mammoth.extractRawText({ arrayBuffer: ab });
+                txt = res.value;
+            } else if (ext === 'pdf') {
+                const ab = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(ab).promise;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const tc = await page.getTextContent();
+                    txt += tc.items.map(it => it.str).join(' ') + '\n';
+                }
             } else {
-                // process txt/doc/pdf inputs parsing streams...
+                txt = await file.text();
             }
+
+            combinedText += `\n[SOURCE: ${file.name}]\n${txt}\n`;
         }
+
+        if (combinedText.trim().length < 10) {
+            throw new Error('Not enough text extracted.');
+        }
+
+        state.fileContent = combinedText;
+        state.fileHash = CryptoJS.SHA256(state.fileContent).toString();
+        state.currentFileName = files.length === 1 ? files[0].name : (files[0]?.name || 'Combined Quiz');
 
         if (fileNameDisplay) {
             fileNameDisplay.textContent = files.length === 1 ? files[0].name : `${files.length} Documents Selected`;
+        }
+
+        if (selectedFilesContainerLocal) selectedFilesContainerLocal.classList.remove('hidden');
+        if (renameContainer) renameContainer.classList.remove('hidden');
+        const customizeSection = document.getElementById('customize-section');
+        const customizeContent = document.getElementById('customize-content');
+        if (customizeSection) customizeSection.classList.remove('hidden');
+        if (customizeContent) customizeContent.classList.remove('hidden');
+
+        renderSelectedFilesList();
+
+        if (editQuizNameInput && state.currentFileName) {
+            editQuizNameInput.value = state.currentFileName;
         }
 
         if (statusMsg) {
@@ -184,6 +222,8 @@ export async function handleFileSelect(event) {
         // Ensure generate button unlocks context properly
         const generateBtn = document.getElementById('generate-quiz-btn');
         if (generateBtn) generateBtn.disabled = false;
+
+        validateAllInputs();
 
     } catch (err) {
         console.error("Document analysis break:", err);
