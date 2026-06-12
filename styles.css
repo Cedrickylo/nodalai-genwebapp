@@ -12,7 +12,7 @@
             }
 
             #history-fullscreen-view > div {
-                min-height: calc(100dvh - 2rem);
+                min-height: calc(100dvh - 9rem);
                 display: flex;
                 flex-direction: column;
             }
