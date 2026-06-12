@@ -1,185 +1,501 @@
-// quiz.js - Main Entry Point & Unified App Event Binding Engine
-import { showView, showToast, setupCustomizeView, exportQuizAsJSON, openAccountModal, syncHistoryWithCloud } from './helpers.js';
-import { handleFileSelect, handleQuizImport, resumeQuiz } from './quiz/fileHandling.js';
-import { handleQuizGeneration } from './quiz/quizGeneration.js';
-import { skipQuestion } from './quiz/quizExecution.js';
-import { state } from './state.js';
+// =====================================================================
+// QUIZ.JS - Main Entry Point
+// This file imports all quiz modules and exports the public API
+// =====================================================================
+
+import { elements, state, constants } from './state.js';
+import { 
+    showToast,
+    showView,
+    customConfirm,
+    clearHistory,
+    handleTimePresetChange,
+    handleCustomTypeChange,
+    handleTimeToggle,
+    handleAttemptToggle,
+    validateAllInputs,
+    handleDifficultyChange,
+    clearInProgressQuiz,
+    refreshHistory,
+    openAccountAsView,
+    saveDisplayName,
+    handleLogout
+} from './helpers.js';
+
+// Import modules
+import { 
+    handleFileSelect, 
+    handleQuizImport, 
+    resumeQuiz, 
+    loadSharedQuiz,
+    renderSelectedFilesList 
+} from './quiz/fileHandling.js';
+
+import { 
+    handleQuizGeneration 
+} from './quiz/quizGeneration.js';
+
+import { 
+    startQuiz,
+    startQuizTimer,
+    updateTimerDisplay,
+    stopQuizTimer,
+    updateAttemptDisplay,
+    handleTimeUp,
+    displayNextQuestion,
+    skipQuestion,
+    checkAnswer
+} from './quiz/quizExecution.js';
+
+import { 
+    displayExplanation,
+    showResults,
+    setupRemedialView,
+    handleRemedialDifficultyChange,
+    handleRemedialCustomTypeChange,
+    handleRemedialTimeToggle,
+    handleRemedialAttemptToggle,
+    handleRemedialTimePresetChange,
+    validateRemedialInputs
+} from './quiz/quizResults.js';
+
+import { 
+    handleHistoryClick,
+    exportQuiz,
+    exportQuizFromHistory,
+    generateShareableLink,
+    showAllHistoryFullScreen
+} from './quiz/quizHistory.js';
+
+import { 
+    resetApp,
+    resetStartViewUI,
+    startLoadingAnimation,
+    stopLoadingAnimation,
+    saveCurrentQuiz,
+    saveAndGoHome
+} from './quiz/quizUtils.js';
+
+const { IN_PROGRESS_QUIZ_KEY } = constants;
+
+// =====================================================================
+// EVENT LISTENERS SETUP
+// =====================================================================
 
 export function attachQuizEventListeners() {
-    console.log("Unified Application Event Binding Engine Activated.");
+    const {
+        resumeQuizBtn,
+        fileUploadInput,
+        addMoreFilesInput,
+        importQuizInput,
+        generateQuizBtn,
+        difficultyRadios,
+        questionCountInput,
+        customQuestionTypeSelect,
+        customCountInputs,
+        nextQuestionBtn,
+        skipQuestionBtn,
+        restartQuizBtn,
+        exportQuizBtn,
+        homeBtn,
+        saveQuizBtn,
+        historyList,
+        showAllHistoryBtn,
+        syncCloudBtn,
+        timeLimitToggle,
+        timePresetRadios,
+        customTimeLimitInput,
+        attemptLimitToggle,
+        attemptLimitInput,
+        cancelCustomizeBtn,
+        deleteCustomizeBtn,
+        createRemedialBtn,
+        cancelRemedialBtn,
+        generateRemedialQuizBtn,
+        remedialDifficultyRadios,
+        remedialCustomQuestionTypeSelect,
+        remedialCustomCountInputs,
+        remedialQuestionCountInput,
+        remedialTimeLimitToggle,
+        remedialTimePresetRadios,
+        remedialAttemptLimitToggle,
+        remedialCustomTimeLimitInput,
+        remedialAttemptLimitInput,
+        remedialCustomTimeInputContainer,
+        remedialTimeLimitOptions,
+        remedialAttemptLimitOptions,
+        remedialOptionsView,
+        resultsActions
+    } = elements;
 
-    // Helper to safely bind click event maps
-    const bindClick = (targetId, callback) => {
-        const el = document.getElementById(targetId);
-        if (el) el.onclick = callback;
+    resumeQuizBtn.addEventListener('click', () => { if (state.savedProgress) resumeQuiz(state.savedProgress); });
+    fileUploadInput.addEventListener('change', handleFileSelect);
+    addMoreFilesInput.addEventListener('change', handleFileSelect);
+    importQuizInput.addEventListener('change', handleQuizImport);
+    generateQuizBtn.addEventListener('click', () => handleQuizGeneration(false, false));
+    difficultyRadios.forEach(r => r.addEventListener('change', handleDifficultyChange));
+    questionCountInput.addEventListener('input', validateAllInputs);
+    customQuestionTypeSelect.addEventListener('change', handleCustomTypeChange);
+    customCountInputs.forEach(i => i.addEventListener('input', validateAllInputs));
+    nextQuestionBtn.addEventListener('click', displayNextQuestion);
+    skipQuestionBtn.addEventListener('click', skipQuestion);
+    restartQuizBtn.addEventListener('click', () => resetApp(true));
+    exportQuizBtn.addEventListener('click', exportQuiz);
+    elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
+    // Help and About back buttons
+    elements.helpBackBtn?.addEventListener('click', () => showView('start'));
+    elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
+    
+    // ADD THIS NEW LINE:
+    document.getElementById('account-mobile-back-btn')?.addEventListener('click', () => showView('start'));
+    
+    // Copy Link Button
+    elements.copyShareLinkBtn.onclick = () => {
+        elements.shareLinkInput.select();
+        document.execCommand('copy');
+        showToast('Link copied to clipboard!', 2000, 'success');
     };
 
-    // ==========================================
-    // 1. NAVIGATION ROUTING (SIDEBAR & BOTTOM FOOTER)
-    // ==========================================
-    bindClick('desktop-nav-home-btn', () => showView('start'));
-    bindClick('desktop-nav-help-btn', () => showView('help'));
-    bindClick('desktop-nav-about-btn', () => showView('about'));
-    bindClick('desktop-nav-account-btn', () => openAccountModal());
-    bindClick('desktop-nav-history-btn', () => {
-        import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
-    });
-
-    // Mobile Navigation Bar Buttons
-    bindClick('mobile-nav-home-btn', () => showView('start'));
-    bindClick('mobile-nav-history-btn', () => {
-        import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
-    });
-    
-    // Mobile Pop-up Menu Layer Drawer Toggle
-    const mobNavMenuBtn = document.getElementById('mobile-nav-menu-btn');
-    const mobMenuModal = document.getElementById('mobile-menu-modal');
-    if (mobNavMenuBtn && mobMenuModal) {
-        mobNavMenuBtn.onclick = () => mobMenuModal.classList.remove('hidden');
+    // Fix: Navbar Account Button
+    if (elements.navAccountBtn) {
+        elements.navAccountBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            // Call the same function that your main button uses
+            await openAccountAsView(); 
+        });
     }
 
-    const closeMobileMenu = () => {
-        if (mobMenuModal) mobMenuModal.classList.add('hidden');
-    };
-
-    bindClick('mobile-menu-close-btn', closeMobileMenu);
-    const mobMenuBackdrop = document.getElementById('mobile-menu-backdrop');
-    if (mobMenuBackdrop) mobMenuBackdrop.onclick = closeMobileMenu;
-
-    // Mobile Menu Internal Options
-    bindClick('mobile-menu-help-btn', () => { closeMobileMenu(); showView('help'); });
-    bindClick('mobile-menu-about-btn', () => { closeMobileMenu(); showView('about'); });
-    bindClick('mobile-menu-account-btn', () => { closeMobileMenu(); openAccountModal(); });
-
-    // Independent View Layer Back Targets
-    bindClick('history-fullscreen-back-btn', () => showView('start'));
-    bindClick('help-back-btn', () => showView('start'));
-    bindClick('about-back-btn', () => showView('start'));
-
-    // Account Modal Close Trigger
-    bindClick('close-account-modal', () => {
-        const accModal = document.getElementById('account-modal');
-        if (accModal) accModal.classList.add('hidden');
-    });
-
-    // ==========================================
-    // 2. LIVE ACTIVE QUIZ CONTROLS
-    // ==========================================
-    bindClick('skip-question-btn', () => skipQuestion());
-    
-    bindClick('save-quiz-btn', () => {
-        import('./quiz/quizUtils.js').then(m => m.saveCurrentQuiz());
-    });
-
-    bindClick('home-btn', () => {
-        import('./quiz/quizUtils.js').then(m => {
-            m.resetApp(false); // Safeguard working choices state context 
-            showView('start');
+    // Fix: Navbar History Button
+    if (elements.navHistoryBtn) {
+        elements.navHistoryBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showView('start'); 
+            refreshHistory();
+            
+            // Smooth scroll to history if needed
+            document.getElementById('history-section')?.scrollIntoView({ behavior: 'smooth' });
         });
-    });
+    }
 
-    // ==========================================
-    // 3. CLOUD SYNC & INLINE DISPATCH HISTORY ACTIONS
-    // ==========================================
-    bindClick('sync-cloud-btn', () => syncHistoryWithCloud());
-    bindClick('show-all-history-btn', () => {
-        import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
-    });
+    // Disable Share Button
+    elements.disableShareBtn.onclick = async () => {
+        const quiz = state.quizHistory[state.currentShareQuizKey];
+        if (quiz && quiz.share && quiz.share.shareId) {
+            try {
+                const { syncHistoryWithCloud, closeShareModal } = await import('./helpers.js');
+                
+                // Delete from Puter FS
+                await puter.fs.delete(quiz.share.shareId);
+                
+                // Reset metadata
+                quiz.share = { isShared: false };
+                quiz.timestamp = Date.now();
 
-    // Delegated click interceptor layout router for cards generated on page
-    const routeHistoryActions = (event) => {
-        if (event.target.closest('button')) {
-            import('./quiz/quizHistory.js').then(m => m.handleHistoryClick(event));
+                localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+                localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
+
+                await syncHistoryWithCloud();
+                refreshHistory();
+                closeShareModal();
+                showToast('Sharing disabled.', 3000, 'info');
+            } catch (err) {
+                console.error('Disable Error:', err);
+                showToast('Failed to disable sharing.', 3000, 'error');
+            }
         }
     };
 
-    const inlineHistoryContainer = document.getElementById('history-list');
-    const absoluteHistoryContainer = document.getElementById('history-full-list');
-    if (inlineHistoryContainer) inlineHistoryContainer.onclick = routeHistoryActions;
-    if (absoluteHistoryContainer) absoluteHistoryContainer.onclick = routeHistoryActions;
+    // Modal Navigation & Closing
+    elements.closeShareModalBtn.onclick = async () => {
+        const { closeShareModal } = await import('./helpers.js');
+        closeShareModal();
+    };
+    elements.shareMenuLinkBtn.onclick = async () => {
+        const { navigateToShareStep } = await import('./helpers.js');
+        navigateToShareStep('config');
+    };
+    elements.shareMenuExportBtn.onclick = async () => {
+        const { exportQuizAsJSON, closeShareModal } = await import('./helpers.js');
+        exportQuizAsJSON(state.currentShareQuizKey);
+        closeShareModal();
+    };
+    elements.shareBackBtn.onclick = async () => {
+        const { navigateToShareStep } = await import('./helpers.js');
+        navigateToShareStep('menu');
+    };
+    
+    homeBtn.addEventListener('click', async () => { 
+        if (await customConfirm('Save progress and return to the home screen?', 'Return Home', 'Save & Exit', 'Cancel')) {
+            saveAndGoHome(); 
+        }
+    });
+    
+    saveQuizBtn.addEventListener('click', saveCurrentQuiz);
+    historyList.addEventListener('click', handleHistoryClick);
+    showAllHistoryBtn?.addEventListener('click', () => showAllHistoryFullScreen());
+    // Full-screen history back button
+    elements.historyFullscreenBackBtn?.addEventListener('click', () => showView('start'));
+    // Help and About back buttons
+    elements.helpBackBtn?.addEventListener('click', () => showView('start'));
+    elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
+    // Mobile bottom nav
+    elements.mobileNavHomeBtn?.addEventListener('click', () => {
+        showView('start');
+        // ensure we scroll to top when returning home on mobile
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    elements.mobileNavHistoryBtn?.addEventListener('click', () => {
+        showAllHistoryFullScreen();
+    });
+    // Target both Sync buttons to trigger cloud sync
+    const triggerSync = async () => {
+        const { syncHistoryWithCloud } = await import('./helpers.js');
+        syncHistoryWithCloud(true);
+    };
 
-    // ==========================================
-    // 4. PREFERENCES SETTINGS CARD TUNERS (Toggles & Padding Inputs)
-    // ==========================================
-    const customizeToggleBtn = document.getElementById('customize-toggle-btn');
-    const customizeContent = document.getElementById('customize-content');
-    const customizeToggleIcon = document.getElementById('customize-toggle-icon');
-    if (customizeToggleBtn && customizeContent) {
-        customizeToggleBtn.onclick = () => {
-            const isHidden = customizeContent.classList.toggle('hidden');
-            if (customizeToggleIcon) {
-                customizeToggleIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+    if (syncCloudBtn) syncCloudBtn.addEventListener('click', triggerSync);
+    if (elements.fullHistorySyncBtn) elements.fullHistorySyncBtn.addEventListener('click', triggerSync);
+    
+    timeLimitToggle.addEventListener('change', handleTimeToggle);
+    timePresetRadios.forEach(r => r.addEventListener('change', handleTimePresetChange));
+    attemptLimitToggle.addEventListener('change', handleAttemptToggle);
+            // Mobile nav active state helper
+            function setMobileNavActive(key) {
+                const homeBtn = elements.mobileNavHomeBtn;
+                const histBtn = elements.mobileNavHistoryBtn;
+                if (homeBtn) {
+                    homeBtn.classList.toggle('text-white', key === 'home');
+                    homeBtn.classList.toggle('bg-blue-600', key === 'home');
+                    homeBtn.classList.toggle('text-gray-300', key !== 'home');
+                    homeBtn.setAttribute('aria-current', key === 'home' ? 'true' : 'false');
+                }
+                if (histBtn) {
+                    histBtn.classList.toggle('text-white', key === 'history');
+                    histBtn.classList.toggle('bg-blue-600', key === 'history');
+                    histBtn.classList.toggle('text-gray-300', key !== 'history');
+                    histBtn.setAttribute('aria-current', key === 'history' ? 'true' : 'false');
+                }
             }
-        };
-    }
 
-    // Custom Difficulty Toggle Panel Layout Tweak
-    document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
-        radio.onchange = () => {
-            const customOptions = document.getElementById('custom-options');
-            if (customOptions) customOptions.classList.toggle('hidden', radio.value !== 'custom');
-        };
+            // Desktop nav active state helper
+            function setDesktopNavActive(key) {
+                const map = {
+                    home: elements.desktopNavHomeBtn,
+                    history: elements.desktopNavHistoryBtn,
+                    help: elements.desktopNavHelpBtn,
+                    about: elements.desktopNavAboutBtn,
+                    account: elements.desktopNavAccountBtn
+                };
+                Object.keys(map).forEach(k => {
+                    const btn = map[k];
+                    if (!btn) return;
+                    btn.classList.toggle('text-white', k === key);
+                    btn.classList.toggle('bg-blue-600', k === key);
+                    btn.classList.toggle('text-gray-300', k !== key);
+                    btn.setAttribute('aria-current', k === key ? 'true' : 'false');
+                });
+            }
+
+            elements.mobileNavHomeBtn?.addEventListener('click', () => {
+                setMobileNavActive('home'); setDesktopNavActive('home');
+                showView('start');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            elements.mobileNavHistoryBtn?.addEventListener('click', () => {
+                setMobileNavActive('history'); setDesktopNavActive('history');
+                showAllHistoryFullScreen();
+            });
+            // Menu open/close (mobile)
+            elements.mobileNavMenuBtn?.addEventListener('click', () => {
+                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.remove('hidden');
+            });
+            elements.mobileMenuCloseBtn?.addEventListener('click', () => {
+                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
+            });
+            elements.mobileMenuBackdrop?.addEventListener('click', () => {
+                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
+            });
+            elements.mobileMenuHelpBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('help'); });
+            elements.mobileMenuAboutBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('about'); });
+            elements.mobileMenuAccountBtn?.addEventListener('click', async () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); await openAccountAsView(); });
+
+            // Desktop nav handlers
+            elements.desktopNavHomeBtn?.addEventListener('click', () => { setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
+            elements.desktopNavHistoryBtn?.addEventListener('click', () => { setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
+            elements.desktopNavHelpBtn?.addEventListener('click', () => { setDesktopNavActive('help'); showView('help'); });
+            elements.desktopNavAboutBtn?.addEventListener('click', () => { setDesktopNavActive('about'); showView('about'); });
+            elements.desktopNavAccountBtn?.addEventListener('click', async () => { setDesktopNavActive('account'); await openAccountAsView(); });
+    
+    cancelCustomizeBtn.addEventListener('click', async () => {
+        const { hasUnsavedChanges, setupCustomizeView } = await import('./helpers.js');
+        if (hasUnsavedChanges() && state.isCustomizingHistory) {
+            const wantsToSave = await customConfirm(
+                'You have unsaved changes! Do you want to save them before exiting?\n\n• OK = Save changes\n• Cancel = Discard changes',
+                'Unsaved Changes',
+                'Save Changes',
+                'Discard',
+                false
+            );
+            
+            if (wantsToSave) {
+                handleQuizGeneration(false, true);
+                return;
+            }
+        }
+        resetApp(true);
+    });
+    
+    deleteCustomizeBtn.addEventListener('click', async () => {
+        if (!state.isCustomizingHistory || !state.customizingQuizData) return;
+
+        const confirmed = await customConfirm(
+            'Delete this quiz from history? This action cannot be undone.',
+            'Delete Quiz',
+            'Delete',
+            'Cancel',
+            true
+        );
+        if (!confirmed) return;
+
+        delete state.quizHistory[state.customizingQuizData.key];
+        localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+        refreshHistory();
+        showToast('Quiz deleted.', 3000, 'success');
+        resetApp(true);
     });
 
-    // Custom Question Category Type Selector Menu Tracking Option
-    const customTypeSelect = document.getElementById('custom-question-type');
-    if (customTypeSelect) {
-        customTypeSelect.onchange = () => {
-            const mixedCounts = document.getElementById('custom-mixed-counts');
-            if (mixedCounts) mixedCounts.classList.toggle('hidden', customTypeSelect.value !== 'mixed');
-        };
-    }
+    document.getElementById('customize-toggle-btn').addEventListener('click', () => {
+        const content = document.getElementById('customize-content');
+        content.classList.toggle('hidden');
+        document.getElementById('customize-toggle-icon').classList.toggle('rotate-180');
 
-    // Timed Quiz Toggle Configuration Submenu Toggles
-    const timeLimitToggle = document.getElementById('time-limit-toggle');
-    const timeLimitOptions = document.getElementById('time-limit-options');
-    if (timeLimitToggle && timeLimitOptions) {
-        timeLimitToggle.onchange = () => {
-            timeLimitOptions.classList.toggle('hidden', !timeLimitToggle.checked);
-        };
-    }
-
-    document.querySelectorAll('input[name="time_preset"]').forEach(radio => {
-        radio.onchange = () => {
-            const customTimeInput = document.getElementById('custom-time-input-container');
-            if (customTimeInput) customTimeInput.classList.toggle('hidden', radio.value !== 'custom');
-        };
+        if (!content.classList.contains('hidden')) {
+            resumeQuizBtn.classList.add('hidden');
+        } else {
+            prepareResumeButton();
+        }
     });
 
-    // Attempt Limit Input Display Field Grid Controls
-    const attemptLimitToggle = document.getElementById('attempt-limit-toggle');
-    const attemptLimitOptions = document.getElementById('attempt-limit-options');
-    if (attemptLimitToggle && attemptLimitOptions) {
-        attemptLimitToggle.onchange = () => {
-            attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
-        };
-    }
-
-    // Core Document Input Selection Pickers handlers
-    const fileUploadInput = document.getElementById('file-upload-input');
-    if (fileUploadInput) fileUploadInput.onchange = (e) => handleFileSelect(e);
-
-    const addMoreFilesInput = document.getElementById('add-more-files-input');
-    if (addMoreFilesInput) addMoreFilesInput.onchange = (e) => handleFileSelect(e);
-
-    const importQuizInput = document.getElementById('import-quiz-input');
-    if (importQuizInput) importQuizInput.onchange = (e) => handleQuizImport(e);
-
-    // Multi-Document Erase Removal Selection Clear Action (With local element isolation styling)
-    bindClick('clear-files-btn', () => {
-        const listEl = document.getElementById('selected-files-list');
-        const displayLabel = document.getElementById('file-name');
-        if (listEl) listEl.innerHTML = '';
-        if (displayLabel) displayLabel.textContent = 'Select Documents';
-        state.fileContent = '';
-        state.fileHash = '';
-        showToast('Documents cleared.', 2000, 'info');
+    createRemedialBtn.addEventListener('click', setupRemedialView);
+    cancelRemedialBtn.addEventListener('click', () => {
+        remedialOptionsView.classList.add('hidden');
+        resultsActions.classList.remove('hidden');
+        createRemedialBtn.classList.add('hidden');
     });
-
-    // Main Run Trigger Launch Generator Action Engine Activation Button Target Call
-    bindClick('generate-quiz-btn', () => handleQuizGeneration(false, false));
-    bindClick('resume-quiz-btn', () => resumeQuiz());
-
-    console.log("All functional pathways assigned completely.");
+    generateRemedialQuizBtn.addEventListener('click', () => handleQuizGeneration(true, false));
+    remedialDifficultyRadios.forEach(r => r.addEventListener('change', handleRemedialDifficultyChange));
+    remedialCustomQuestionTypeSelect.addEventListener('change', handleRemedialCustomTypeChange);
+    remedialCustomCountInputs.forEach(i => i.addEventListener('input', validateRemedialInputs));
+    remedialQuestionCountInput.addEventListener('input', validateRemedialInputs);
+    remedialTimeLimitToggle.addEventListener('change', () => {
+        remedialTimeLimitOptions.classList.toggle('hidden', !remedialTimeLimitToggle.checked);
+        if (remedialTimeLimitToggle.checked) {
+            const sel = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
+            remedialCustomTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
+        } else {
+            remedialCustomTimeInputContainer.classList.add('hidden');
+        }
+        validateRemedialInputs();
+    });
+    remedialAttemptLimitToggle.addEventListener('change', () => {
+        remedialAttemptLimitOptions.classList.toggle('hidden', !remedialAttemptLimitToggle.checked);
+        validateRemedialInputs();
+    });
+    remedialTimePresetRadios.forEach(r => r.addEventListener('change', () => {
+        const sel = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
+        remedialCustomTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
+        validateRemedialInputs();
+    }));
+    remedialCustomTimeLimitInput.addEventListener('input', validateRemedialInputs);
+    remedialAttemptLimitInput.addEventListener('input', validateRemedialInputs);
 }
-export { loadSharedQuiz } from './quiz/fileHandling.js';
+
+export function prepareResumeButton() {
+    try {
+        const { resumeQuizBtn } = elements;
+        const saved = localStorage.getItem(IN_PROGRESS_QUIZ_KEY);
+        if (saved && document.getElementById('customize-content').classList.contains('hidden')) {
+            const data = JSON.parse(saved);
+            if (data?.questions?.length && (data.shuffledIndexPos < data.shuffledIndices?.length || data.inSkippedRound)) {
+                state.savedProgress = data;
+                resumeQuizBtn.classList.remove('hidden');
+                resumeQuizBtn.textContent = `Resume: ${data.fileName || 'Quiz'} (${data.answeredIndices?.length || 0}/${data.questions.length})`;
+            } else {
+                clearInProgressQuiz();
+            }
+        }
+    } catch (e) {
+        console.error('Could not read progress', e);
+        clearInProgressQuiz();
+    }
+}
+
+// =====================================================================
+// PUBLIC API EXPORTS
+// =====================================================================
+
+export {
+    // File handling
+    handleFileSelect,
+    handleQuizImport,
+    resumeQuiz,
+    loadSharedQuiz,
+    renderSelectedFilesList,
+    
+    // Quiz generation
+    handleQuizGeneration,
+    
+    // Quiz execution
+    startQuiz,
+    startQuizTimer,
+    updateTimerDisplay,
+    stopQuizTimer,
+    updateAttemptDisplay,
+    handleTimeUp,
+    displayNextQuestion,
+    skipQuestion,
+    checkAnswer,
+    
+    // Results
+    displayExplanation,
+    showResults,
+    setupRemedialView,
+    handleRemedialDifficultyChange,
+    handleRemedialCustomTypeChange,
+    handleRemedialTimeToggle,
+    handleRemedialAttemptToggle,
+    handleRemedialTimePresetChange,
+    validateRemedialInputs,
+    
+    // History
+    handleHistoryClick,
+    exportQuiz,
+    exportQuizFromHistory,
+    generateShareableLink,
+    
+    // Utils
+    resetApp,
+    resetStartViewUI,
+    startLoadingAnimation,
+    stopLoadingAnimation,
+    saveCurrentQuiz,
+    saveAndGoHome
+};
+
+// Initialize
+const clearFilesBtn = document.getElementById('clear-files-btn');
+if (clearFilesBtn) {
+    clearFilesBtn.addEventListener('click', async () => {
+        const confirmed = await customConfirm(
+            'Are you sure you want to clear the selected files? This action cannot be undone.',
+            'Clear Files',
+            'Clear',
+            'Cancel',
+            true // true makes the button red (destructive)
+        );
+
+        if (confirmed) {
+            resetApp();
+        }
+    });
+}

@@ -62,7 +62,14 @@ const {
     confirmTitle,
     confirmMessage,
     acceptConfirmBtn,
-    cancelConfirmBtn
+    cancelConfirmBtn,
+    accountModalOverlay,
+    accountViewContainer,
+    accountCard,
+    closeAccountBtn,
+    accountLoggedInContent,
+    accountLoggedOutContent,
+    accountLoginBtn
 } = elements;
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS } = constants;
@@ -116,54 +123,40 @@ export function toggleContainerVisibility(containerId, isVisible) {
 // --- Consolidated Toggle Functions ---
 
 export function handleTimeToggle() {
-    // Dynamically retrieve the live toggle input and container panel elements from the current layout context
-    const timeLimitToggle = document.getElementById('time-limit-toggle');
-    const timeLimitOptions = document.getElementById('time-limit-options');
-
-    if (timeLimitToggle && timeLimitOptions) {
-        if (timeLimitToggle.checked) {
-            timeLimitOptions.classList.remove('hidden');
-        } else {
-            timeLimitOptions.classList.add('hidden');
-        }
+    // Show/hide the entire options container
+    timeLimitOptions.classList.toggle('hidden', !timeLimitToggle.checked);
+    
+    if (timeLimitToggle.checked) {
+        handleTimePresetChange(); // Show specific sub-option if enabled
+    } else {
+        customTimeInputContainer.classList.add('hidden');
     }
 }
 
 export function handleAttemptToggle() {
-    // Dynamically retrieve the live attempt toggle input and options element block
-    const attemptLimitToggle = document.getElementById('attempt-limit-toggle');
-    const attemptLimitOptions = document.getElementById('attempt-limit-options');
-
-    if (attemptLimitToggle && attemptLimitOptions) {
-        if (attemptLimitToggle.checked) {
-            attemptLimitOptions.classList.remove('hidden');
-        } else {
-            attemptLimitOptions.classList.add('hidden');
-        }
-    }
+    // Show/hide the attempt limit container based on checkbox state
+    attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
 }
 
 export function handleDifficultyChange() {
-    // Look up live difficulty radio inputs directly from the current active DOM layout
-    const activeRadio = document.querySelector('input[name="difficulty"]:checked');
-    const customOptionsDiv = document.getElementById('custom-options');
+    const selected = document.querySelector('input[name="difficulty"]:checked')?.value;
+    const isCustom = selected === 'custom';
     
-    if (activeRadio && customOptionsDiv) {
-        // Safely toggle the visibility state of custom mix menus without crashing
-        if (activeRadio.value === 'custom') {
-            customOptionsDiv.classList.remove('hidden');
-        } else {
-            customOptionsDiv.classList.add('hidden');
-        }
+    // Hide/show the Custom Options box entirely
+    customOptionsDiv.classList.toggle('hidden', !isCustom);
+    
+    if (isCustom) {
+        handleCustomTypeChange();
     }
 }
 
 export async function handleLogout() {
     const isConfirmed = await customConfirm('Are you sure you want to log out?', 'Sign Out', 'Sign Out', 'Cancel', true);
     if (isConfirmed) {
+        if (elements.accountModalOverlay) elements.accountModalOverlay.classList.add('hidden');
         // 1. Sign out of Puter
         await puter.auth.signOut();
-        accountModal.classList.add('hidden');
+        // accountModal.classList.add('hidden');
         
         // --- NEW CLEANUP LOGIC ---
         // 2. Wipe the saved data from the browser's Local Storage
@@ -196,72 +189,106 @@ export async function clearHistory() {
     }
 }
 
-export function setSyncing(isSyncing) {
-    [globalSyncDone, quizSyncDone].forEach(el => el?.classList.toggle('hidden', isSyncing));
-    [globalSyncLoad, quizSyncLoad].forEach(el => el?.classList.toggle('hidden', !isSyncing));
+export function setSyncing(status) {
+    // Determine if the user is completely offline/logged out
+    const isOffline = !window.puter || !puter.auth.isSignedIn();
+    const finalStatus = isOffline ? 'offline' : status;
+
+    // 1. Target Global Sync Buttons (Using Class to hit both Home and Full views)
+    const globalSyncBtns = document.querySelectorAll('.global-sync-btn');
+    globalSyncBtns.forEach(btn => {
+        const done = btn.querySelector('.sync-icon-done');
+        const load = btn.querySelector('.sync-icon-loading');
+        const offline = btn.querySelector('.sync-icon-offline');
+
+        if (done) done.classList.toggle('hidden', finalStatus !== 'synced');
+        if (load) load.classList.toggle('hidden', finalStatus !== 'syncing');
+        if (offline) offline.classList.toggle('hidden', finalStatus !== 'offline');
+    });
+
+    // 2. Target Quiz View Sync Indicator (Existing)
+    const quizDone = document.querySelector('#quiz-sync-indicator .sync-icon-done');
+    const quizLoad = document.querySelector('#quiz-sync-indicator .sync-icon-loading');
+    const quizOffline = document.querySelector('#quiz-sync-indicator .sync-icon-offline');
+
+    if (quizDone) quizDone.classList.toggle('hidden', finalStatus !== 'synced');
+    if (quizLoad) quizLoad.classList.toggle('hidden', finalStatus !== 'syncing');
+    if (quizOffline) quizOffline.classList.toggle('hidden', finalStatus !== 'offline');
 }
 
 export async function syncHistoryWithCloud(manual = false) {
-    if (!puter.auth.isSignedIn()) {
+    // 1. Authentication check
+    if (!window.puter || !puter.auth.isSignedIn()) {
+        setSyncing('offline');
         if (manual) showToast('Sign in to Puter to sync history.', 4000, 'warning');
         return;
     }
     
     if (manual) showToast('Started syncing...');
-    setSyncing(true);
+    setSyncing('syncing'); 
 
     try {
-        // 1. Get Cloud Data
+        // 2. Fetch the current cloud payload matrix
         const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
-        const cloudData = cloudRaw ? JSON.parse(cloudRaw) : { items: {}, updatedAt: 0 };
-
-        // 2. Get Local Data
-        const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
+        let cloudData = { items: {}, updatedAt: 0 };
         
-// 3. MERGE: Quiz-by-quiz timestamp comparison (Last-Write-Wins)
-const mergedItems = {};
-
-// Combine all unique quiz keys from both cloud and local history
-const allKeys = new Set([...Object.keys(cloudData.items), ...Object.keys(localItems)]);
-
-for (const key of allKeys) {
-    const cloudQuiz = cloudData.items[key];
-    const localQuiz = localItems[key];
-    
-    if (cloudQuiz && localQuiz) {
-        // Both exist, choose the version with the newer internal timestamp
-        if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
-            mergedItems[key] = cloudQuiz;
-        } else {
-            mergedItems[key] = localQuiz;
+        if (cloudRaw) {
+            try {
+                cloudData = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
+            } catch (parseError) {
+                console.warn("Cloud data format corrupted. Reinitializing schema layout.");
+            }
         }
-    } else if (cloudQuiz) {
-        mergedItems[key] = cloudQuiz;
-    } else if (localQuiz) {
-        mergedItems[key] = localQuiz;
-    }
-}
 
-const now = Date.now();
+        // 3. Fetch current local system matrix
+        const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
+        const mergedItems = {};
 
-        // 4. Update State and LocalStorage
-        state.quizHistory = mergedItems;
+        // 4. Create a comprehensive lookup grid combining all unique workspace identifiers
+        const allKeys = new Set([...Object.keys(cloudData.items || {}), ...Object.keys(localItems)]);
+
+        for (const key of allKeys) {
+            const cloudQuiz = cloudData.items?.[key];
+            const localQuiz = localItems[key];
+            
+            if (cloudQuiz && localQuiz) {
+                // Last-Write-Wins based on precise item timestamps
+                if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
+                    mergedItems[key] = cloudQuiz;
+                } else {
+                    mergedItems[key] = localQuiz;
+                }
+            } else if (cloudQuiz) {
+                mergedItems[key] = cloudQuiz;
+            } else if (localQuiz) {
+                mergedItems[key] = localQuiz;
+            }
+        }
+
+        const now = Date.now();
+
+        // 5. CRITICAL CRASH REPAIR: Push structural modifications back to core state pointers
+        state.quizHistory = mergedItems; 
+        
+        // Commit changes locally
         localStorage.setItem(DB_NAME, JSON.stringify(mergedItems));
         localStorage.setItem(DB_NAME + '_ts', now.toString());
 
-        // 5. Push the unified history back to the Cloud
+        // 6. Ship the reconciled datasets back up to your Puter KV cloud instance
         await puter.kv.set(CLOUD_SYNC_KEY, JSON.stringify({ 
             items: mergedItems, 
             updatedAt: now 
         }));
 
+        // Redraw lists and resolve indicators
         refreshHistory();
-        if (manual) showToast('Done syncing!');
+        setSyncing('synced');
+        if (manual) showToast('Done syncing!', 2000, 'success');
+
     } catch (e) {
-        console.error('Sync error', e);
-        showToast('Sync failed. Please check your connection.', 3000, 'error');
-    } finally {
-        setSyncing(false);
+        console.error('Core Cloud Sync Stack Breakdown:', e);
+        setSyncing('offline');
+        showToast('Sync failed. Please check your network connection.', 4000, 'error');
     }
 }
 
@@ -428,71 +455,56 @@ export function getUniqueName(baseName) {
 }
 
 export async function updateAuthUI() {
-    console.log("Synchronizing Puter Auth Session Presentation State...");
-    
-    // Look up the core text presentation targets from the live document structure
-    const authBtnText = document.getElementById('auth-btn-text');
-    const puterAuthBtn = document.getElementById('puter-auth-btn');
+    const signedIn = puter.auth.isSignedIn();
 
-    // Fallback references to dashboard profile row containers
-    const mUsername = document.getElementById('modal-username');
-    const mAccountId = document.getElementById('modal-account-id');
-    const mEmail = document.getElementById('modal-email');
-    const mCredits = document.getElementById('modal-credits');
-
-    try {
-        if (window.puter && puter.auth.isSignedIn()) {
-            const user = await puter.auth.getUser();
-            
-            // Safe fallback naming validation selector check
-            const userDisplayName = user.display_name || user.username || "Puter User";
-
-            // Update Header Action buttons smoothly
-            if (authBtnText) authBtnText.textContent = "Account";
-            if (puterAuthBtn) {
-                puterAuthBtn.classList.replace('bg-blue-600', 'bg-green-600');
-                puterAuthBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
-            }
-
-            // --- DEFENSIVE SAFE GATES FOR DASHBOARD DATA ---
-            if (mUsername) mUsername.textContent = userDisplayName;
-            if (mAccountId) mAccountId.textContent = user.id || "---";
-            if (mEmail) mEmail.textContent = user.email || "Session Active";
-
-            // Safe lookup checks for credit trackers to prevent undefined text crashes
-            if (mCredits) {
-                try {
-                    const balance = await puter.auth.getRemainingBalance();
-                    mCredits.textContent = balance !== undefined ? `${balance} credits` : "Unlimited Tiers";
-                } catch {
-                    mCredits.textContent = "Available";
-                }
-            }
-
-            // Update remaining UI dashboard values (cooldowns, storage meters) safely if they exist
-            const storageLabel = document.getElementById('modal-storage-label');
-            if (storageLabel) storageLabel.textContent = "Cloud Active";
-
-        } else {
-            // Reset state views if unauthenticated
-            if (authBtnText) authBtnText.textContent = "Puter Login";
-            if (puterAuthBtn) {
-                puterAuthBtn.classList.replace('bg-green-600', 'bg-blue-600');
-                puterAuthBtn.classList.replace('hover:bg-green-700', 'hover:bg-blue-700');
-            }
-
-            if (mUsername) mUsername.textContent = "---";
-            if (mAccountId) mAccountId.textContent = "---";
-            if (mEmail) mEmail.textContent = "---";
-            if (mCredits) mCredits.textContent = "---";
-        }
-    } catch (error) {
-        console.warn("Minor non-blocking interface alignment notice inside updateAuthUI:", error);
+    if (signedIn) {
+        const customName = await puter.kv.get('custom_display_name');
+        authBtnText.textContent = customName || 'Account';
+        authBtn.classList.remove('bg-blue-600');
+        authBtn.classList.add('bg-green-600');
+        await syncHistoryWithCloud();
+        await loadGenerationCooldownState();
+    } else {
+        authBtnText.textContent = 'Puter Login';
+        authBtn.classList.remove('bg-green-600');
+        authBtn.classList.add('bg-blue-600');
+        
+        // ADD THIS LINE: Force the icon to show "Can't Sync" when logged out
+        setSyncing('offline'); 
     }
 }
 
-export async function openAccountModal() {
+export async function openAccountAsModal() {
+    elements.accountModalOverlay.appendChild(elements.accountCard);
+    elements.accountModalOverlay.classList.remove('hidden');
+    await populateAccountData();
+}
+
+// Function for Nav Bar buttons (Shows as Full Page)
+export async function openAccountAsView() {
+    elements.accountViewContainer.appendChild(elements.accountCard);
+    showView('account');
+    await populateAccountData();
+}
+
+export async function populateAccountData() {
+    const loggedInContent = document.getElementById('account-logged-in-content');
+    const loggedOutContent = document.getElementById('account-logged-out-content');
+
+    if (!window.puter || !puter.auth.isSignedIn()) {
+        // Show login prompt if they open account page while logged out
+        if (loggedInContent) loggedInContent.classList.add('hidden');
+        if (loggedOutContent) loggedOutContent.classList.remove('hidden');
+        return;
+    }
+
+    // Hide prompt, show data
+    if (loggedInContent) loggedInContent.classList.remove('hidden');
+    if (loggedOutContent) loggedOutContent.classList.add('hidden');
+
     const user = await puter.auth.getUser();
+    elements.modalUsername.textContent = user.username;
+
     modalUsername.textContent = user.username || 'Unknown';
     modalAccountId.textContent = user.uuid || user.id || user.accountId || 'Unknown';
     modalEmail.textContent = user.email
@@ -532,7 +544,6 @@ export async function openAccountModal() {
     authBtnText.textContent = customName || 'Account';
 
     await refreshCooldownPanel();
-    accountModal.classList.remove('hidden');
 }
 
 export async function saveDisplayName() {
@@ -546,8 +557,14 @@ export async function saveDisplayName() {
     }
 }
 
-export function closeAccountModalHandler() {
-    accountModal.classList.add('hidden');
+export function closeAccountHandler() {
+// If it's inside the modal overlay, just hide the modal
+    if (elements.accountCard.parentElement.id === 'account-modal-overlay') {
+        elements.accountModalOverlay.classList.add('hidden');
+    } else {
+        // If it's inside the view, go back to start screen
+        showView('start');
+    }
 }
 
 export function showToast(message, duration = 3000, type = 'success') {
@@ -562,9 +579,55 @@ export function showToast(message, duration = 3000, type = 'success') {
     }, duration);
 }
 
+export function updateNavHighlights(activeKey) {
+    // 1. Update Mobile Nav
+    if (elements.mobileNavHomeBtn) {
+        elements.mobileNavHomeBtn.classList.toggle('text-white', activeKey === 'home');
+        elements.mobileNavHomeBtn.classList.toggle('bg-blue-600', activeKey === 'home');
+        elements.mobileNavHomeBtn.classList.toggle('text-gray-300', activeKey !== 'home');
+    }
+    if (elements.mobileNavHistoryBtn) {
+        elements.mobileNavHistoryBtn.classList.toggle('text-white', activeKey === 'history');
+        elements.mobileNavHistoryBtn.classList.toggle('bg-blue-600', activeKey === 'history');
+        elements.mobileNavHistoryBtn.classList.toggle('text-gray-300', activeKey !== 'history');
+    }
+
+    // 2. Update Desktop Nav
+    const map = {
+        home: elements.desktopNavHomeBtn,
+        history: elements.desktopNavHistoryBtn,
+        help: elements.desktopNavHelpBtn,
+        about: elements.desktopNavAboutBtn,
+        account: elements.desktopNavAccountBtn
+    };
+
+    Object.keys(map).forEach(key => {
+        const btn = map[key];
+        if (btn) {
+            btn.classList.toggle('text-white', key === activeKey);
+            btn.classList.toggle('bg-blue-600', key === activeKey);
+            btn.classList.toggle('text-gray-300', key !== activeKey);
+        }
+    });
+}
+
 export function showView(id) {
-    Object.values(views).forEach(v => { if (v) v.classList.remove('active'); });
-    if (views[id]) views[id].classList.add('active');
+    // 1. Switch the visible page
+    Object.values(elements.views).forEach(v => { if (v) v.classList.remove('active'); });
+    if (elements.views[id]) elements.views[id].classList.add('active');
+    
+    // 2. Hide navigation during active quiz
+    if (id === 'quiz' || id === 'results' || id === 'loading') {
+        document.body.classList.add('quiz-active');
+    } else {
+        document.body.classList.remove('quiz-active');
+    }
+
+    // 3. Automatically highlight the correct nav button!
+    let navKey = id;
+    if (id === 'start') navKey = 'home';
+    if (id === 'history-fullscreen') navKey = 'history';
+    updateNavHighlights(navKey);
 }
 
 export function getQuizDB() {
@@ -628,43 +691,48 @@ export function refreshHistory() {
     const db = state.quizHistory;
     const sorted = Object.entries(db).sort(([, a], [, b]) => b.timestamp - a.timestamp);
     
-    elements.historyList.innerHTML = '';
+    // 1. CLEAR BOTH CONTAINERS
+    if (elements.historyList) elements.historyList.innerHTML = '';
     
+    const fullContainer = elements.historyFullList || document.getElementById('history-full-list');
+    if (fullContainer) fullContainer.innerHTML = '';
+    
+    // Handle empty state
     if (sorted.length === 0) {
-        elements.historyList.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
+        const noQuizzesHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
+        if (elements.historyList) elements.historyList.innerHTML = noQuizzesHTML;
+        if (fullContainer) fullContainer.innerHTML = noQuizzesHTML;
         elements.showAllHistoryBtn?.classList.add('hidden');
         return;
     }
 
-    // If on desktop (>= 768px) only show the 3 most recent items in the compact history list
+    // 2. MANAGE HOME SCREEN COMPACT LIST (Limit to 3 items on desktop)
     const isDesktop = window.innerWidth >= 768;
-    const displayItems = isDesktop ? sorted.slice(0, 3) : sorted;
+    const compactDisplayItems = isDesktop ? sorted.slice(0, 3) : sorted;
 
-    // Show the "Show All" button only on desktop when there are more than 3 items
     if (isDesktop && sorted.length > 3) {
         elements.showAllHistoryBtn?.classList.remove('hidden');
     } else {
         elements.showAllHistoryBtn?.classList.add('hidden');
     }
 
-    displayItems.forEach(([key, data]) => {
-        const item = document.createElement('div');
-        item.className = 'p-3 bg-gray-700/50 rounded-lg flex justify-between items-center';
+    // Helper function to generate uniform inner HTML for both list items
+    function generateQuizItemHTML(key, data) {
+        const config = data.config || {};
+        const tInfo = formatTime(config.totalTime);
         
-        const tInfo = formatTime(data.config.totalTime);
-        let diffTxt = data.config.difficulty ? `(${data.config.difficulty}` : '(';
-        if (data.config.difficulty === 'custom' && data.config.customTypeShort) {
-            diffTxt += `: ${data.config.customTypeShort})`;
-        } else if (data.config.difficulty) {
+        let diffTxt = config.difficulty ? `(${config.difficulty}` : '(';
+        if (config.difficulty === 'custom' && config.customTypeShort) {
+            diffTxt += `: ${config.customTypeShort})`;
+        } else if (config.difficulty) {
             diffTxt += ')';
         } else {
-            diffTxt += `${data.config.type || 'mixed'})`;
+            diffTxt += `${config.type || 'mixed'})`;
         }
         
-        const attInfo = data.config.isAttemptLimited ? `(${data.config.maxAttempts} att)` : '';
-        const summaryInfo = data.config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
+        const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
+        const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
         
-        // 1. Check if the quiz is shared
         const isShared = data.share && data.share.isShared;
         const shareIconHTML = isShared ? `
             <span class="text-blue-400 bg-blue-500/10 p-1 rounded inline-flex items-center flex-shrink-0" title="Currently sharing via link">
@@ -672,21 +740,15 @@ export function refreshHistory() {
             </span>
         ` : '';
 
-        // 2. Build the title row (REMOVED max-w-[150px], ADDED dynamic flex sizing)
-        const titleHtml = `
-            <div class="flex items-center gap-2 min-w-0 mb-1 w-full">
-                <p class="font-semibold text-sm truncate min-w-0" title="${data.fileName || 'Untitled'}">
-                    ${data.fileName || 'Untitled'}
-                </p>
-                ${shareIconHTML}
-            </div>
-        `;
-
-        // 3. Set the HTML
-        item.innerHTML = `
+        return `
             <div class="flex-grow min-w-0 mr-4 overflow-hidden">
-                ${titleHtml}
-                <p class="text-xs text-gray-400 truncate">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+                <div class="flex items-center gap-2 min-w-0 mb-1 w-full">
+                    <p class="font-semibold text-sm truncate min-w-0" title="${data.fileName || 'Untitled'}">
+                        ${data.fileName || 'Untitled'}
+                    </p>
+                    ${shareIconHTML}
+                </div>
+                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
             <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
                 <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="share" title="Share / Export">
@@ -702,9 +764,28 @@ export function refreshHistory() {
                     <span>Load</span>
                 </button>
             </div>
-        `;      
-        elements.historyList.appendChild(item);
-    });
+        `;
+    }
+
+    // 3. RENDER COMPACT LIST
+    if (elements.historyList) {
+        compactDisplayItems.forEach(([key, data]) => {
+            const item = document.createElement('div');
+            item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
+            item.innerHTML = generateQuizItemHTML(key, data);
+            elements.historyList.appendChild(item);
+        });
+    }
+
+    // 4. RENDER FULL SCREEN LIST (If container exists in DOM layout)
+    if (fullContainer) {
+        sorted.forEach(([key, data]) => {
+            const item = document.createElement('div');
+            item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
+            item.innerHTML = generateQuizItemHTML(key, data);
+            fullContainer.appendChild(item);
+        });
+    }
 }
 
 export function getCustomizeState() {
@@ -734,66 +815,101 @@ export function hasUnsavedChanges() {
         current.summaryOnly !== state.initialCustomizeState.summaryOnly;
 }
 
-export function setupCustomizeView(config, fileName) {
-    if (!config) return;
+export function setupCustomizeView(config, name) {
+    state.isCustomizingHistory = true;
+    renameContainer.classList.remove('hidden');
+    editQuizNameInput.value = name || '';
 
-    // 1. Restore question counts input smoothly
-    const qCountInput = document.getElementById('question-count');
-    if (qCountInput) qCountInput.value = config.count || 10;
+    startSubtitle.textContent = `Customizing: "${name || 'quiz'}" (Options only)`;
+    generateQuizBtn.textContent = 'Start Customized Quiz';
+    cancelCustomizeBtn.classList.remove('hidden');
+    deleteCustomizeBtn.classList.remove('hidden');
+    fileActionsDiv.classList.add('hidden');
 
-    // 2. Restore title renaming fields safely
-    const renameInput = document.getElementById('edit-quiz-name');
-    if (renameInput) renameInput.value = fileName || '';
+    elements.resumeQuizBtn.classList.add('hidden');
 
-    // 3. Dynamically trace and select matching difficulty targets
-    if (config.difficulty) {
-        const targetRadio = document.querySelector(`input[name="difficulty"][value="${config.difficulty}"]`);
-        if (targetRadio) {
-            targetRadio.checked = true;
-            // Fire the updated change checker to update custom fields layout positions
-            handleDifficultyChange();
+    customizeSection.classList.remove('hidden');
+    customizeContent.classList.remove('hidden');
+    customizeToggleIcon.classList.add('rotate-180');
+
+    // =====================================================================
+    // CLEAN CUSTOMIZATION UI OVERHAUL (HIDES INACTIVE CONTROLS)
+    // =====================================================================
+    
+    // 1. Locate the top-most wrapper layout rows for both inputs
+    const countGroup = document.getElementById('question-count-group') || questionCountInput.closest('.mb-4, .space-y-4, div');
+    
+    // Target the main wrapper form block container enclosing the difficulty option items
+    const diffGroup = document.getElementById('difficulty-group') || 
+                      document.querySelector('.difficulty-section') || 
+                      difficultyRadios[0]?.closest('.mb-6, .mb-4, .space-y-4, div');
+    
+    // Hide all interactive configuration selectors from the form layout grid
+    if (countGroup) countGroup.classList.add('hidden');
+    if (diffGroup) diffGroup.classList.add('hidden');
+    if (customOptionsDiv) customOptionsDiv.classList.add('hidden');
+
+    // 2. Parse configuration attributes to build clean text summary labels
+    const qCount = config.count || 10;
+    const rawDiff = config.difficulty || 'easy';
+    const capitalizedDiff = rawDiff.charAt(0).toUpperCase() + rawDiff.slice(1);
+    
+    let typeText = 'Mixed Types';
+    if (rawDiff === 'custom') {
+        const customType = config.customType || 'mixed';
+        if (customType === 'multiple-choice') typeText = 'Multiple Choice Only';
+        else if (customType === 'identification') typeText = 'Identification Only';
+        else if (customType === 'enumeration') typeText = 'Enumeration Only';
+    }
+
+    // 3. Prevent duplication by purging an existing summary banner instance
+    document.getElementById('quiz-custom-summary-banner')?.remove();
+
+    // 4. Construct and inject the custom metadata overview row container widget
+    const summaryBanner = document.createElement('div');
+    summaryBanner.id = 'quiz-custom-summary-banner';
+    summaryBanner.className = 'w-full bg-gray-800/80 border border-gray-700/60 rounded-xl p-4 mb-5 flex flex-wrap gap-4 items-center justify-around text-center shadow-md animate-fade-in';
+    summaryBanner.innerHTML = `
+        <div class="flex flex-col px-2">
+            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Questions Count</span>
+            <span class="text-base font-bold text-blue-400 mt-0.5">${qCount} Items</span>
+        </div>
+        <div class="h-8 w-px bg-gray-700/50 hidden sm:block"></div>
+        <div class="flex flex-col px-2">
+            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Difficulty Mode</span>
+            <span class="text-base font-bold text-indigo-400 mt-0.5">${capitalizedDiff}</span>
+        </div>
+        <div class="h-8 w-px bg-gray-700/50 hidden sm:block"></div>
+        <div class="flex flex-col px-2">
+            <span class="text-xs text-gray-400 font-medium tracking-wide uppercase">Question Structure</span>
+            <span class="text-base font-bold text-purple-400 mt-0.5">${typeText}</span>
+        </div>
+    `;
+
+    // Put our visual summary card right at the very top of your options panel view frame
+    customizeContent.insertBefore(summaryBanner, customizeContent.firstChild);
+
+    // Keep form background element states assigned accurately so generation requests remain pristine
+    questionCountInput.value = qCount;
+    difficultyRadios.forEach(radio => {
+        radio.checked = radio.value === rawDiff;
+    });
+    if (rawDiff === 'custom') {
+        customQuestionTypeSelect.value = config.customType || 'mixed';
+
+        // ADDED: Explicitly populate the hidden custom inputs from the loaded config
+        if (config.customType === 'mixed') {
+            const mcInput = document.getElementById('mc-count');
+            const idInput = document.getElementById('id-count');
+            const enInput = document.getElementById('en-count');
+            
+            if (mcInput) mcInput.value = config.mc || 0;
+            if (idInput) idInput.value = config.id || 0;
+            if (enInput) enInput.value = config.en || 0;
         }
     }
 
-    // 4. Handle structural mixed categories layout fields
-    const customTypeSelect = document.getElementById('custom-question-type');
-    const customMixedCounts = document.getElementById('custom-mixed-counts');
-    if (customTypeSelect) {
-        customTypeSelect.value = config.customType || 'mixed';
-        if (customMixedCounts) {
-            customMixedCounts.classList.toggle('hidden', customTypeSelect.value !== 'mixed');
-        }
-    }
-
-    // 5. Populate explicit custom category numbers safely if they exist
-    const mcInput = document.getElementById('mc-count');
-    const idInput = document.getElementById('id-count');
-    const enInput = document.getElementById('en-count');
-    if (mcInput) mcInput.value = config.mc || 0;
-    if (idInput) idInput.value = config.id || 0;
-    if (enInput) enInput.value = config.en || 0;
-
-    // 6. Restore time limits configurations layout properties
-    const timeToggle = document.getElementById('time-limit-toggle');
-    const timeOptions = document.getElementById('time-limit-options');
-    if (timeToggle) {
-        timeToggle.checked = !!config.isTimedQuiz;
-        if (timeOptions) timeOptions.classList.toggle('hidden', !timeToggle.checked);
-    }
-
-    // 7. Restore attempt settings cards parameters checks
-    const attemptToggle = document.getElementById('attempt-limit-toggle');
-    const attemptOptions = document.getElementById('attempt-limit-options');
-    const attemptInput = document.getElementById('attempt-limit-input');
-    if (attemptToggle) {
-        attemptToggle.checked = !!config.isAttemptLimited;
-        if (attemptOptions) attemptOptions.classList.toggle('hidden', !attemptToggle.checked);
-        if (attemptInput && config.maxAttempts) attemptInput.value = config.maxAttempts;
-    }
-
-    // 8. Restore summary checkbox parameters values
-    const summaryToggle = document.getElementById('summary-only-toggle');
-    if (summaryToggle) summaryToggle.checked = !!config.showAnswersInSummaryOnly;
+    validateAllInputs();
 }
 
 
@@ -863,7 +979,7 @@ export function initializeAudio() {
 }
 
 export function attachAuthHandlers() {
-    // Safety check for the main login button
+    // 1. Home Screen Auth Button (Shows as Popup)
     if (authBtn) {
         authBtn.onclick = async () => {
             if (!puter.auth.isSignedIn()) {
@@ -881,30 +997,53 @@ export function attachAuthHandlers() {
                     console.error("Sign in failed", e);
                 }
             } else {
-                // If they are already signed in, just open the dashboard
-                openAccountModal();
+                // If they are already signed in, just open the popup dashboard
+                openAccountAsModal();
             }
         };
     }
 
-    // Use optional chaining (?.) or conditional checks to prevent null execution crashes
-    if (saveDisplayNameBtn) {
-        saveDisplayNameBtn.onclick = saveDisplayName;
+    // 2. Nav Bar Account Buttons (Shows as Full Page)
+    const desktopNavAccount = document.getElementById('desktop-nav-account-btn');
+    const mobileNavAccount = document.getElementById('mobile-menu-account-btn');
+    
+    if (desktopNavAccount) {
+        desktopNavAccount.onclick = openAccountAsView;
+    }
+    if (mobileNavAccount) {
+        mobileNavAccount.onclick = openAccountAsView;
     }
 
+    // 3. Existing action buttons inside the card
+    if (saveDisplayNameBtn) saveDisplayNameBtn.onclick = saveDisplayName;
+    
     if (buyCreditsBtn) {
         buyCreditsBtn.onclick = () => {
             window.open('https://puter.com/billing', '_blank');
             showToast('Opening the credits purchase page...', 2500);
         };
     }
+    
+    if (logoutBtn) logoutBtn.onclick = handleLogout;
 
-    if (logoutBtn) {
-        logoutBtn.onclick = handleLogout;
+    // 4. Smart Close Button for the Card
+    if (closeAccountBtn) {
+        closeAccountBtn.onclick = closeAccountHandler;
     }
 
-    if (closeAccountModal) {
-        closeAccountModal.onclick = closeAccountModalHandler;
+    // 5. NEW: Login Button inside the Logged-Out Account View
+    const accountLoginBtn = document.getElementById('account-login-btn');
+    if (accountLoginBtn) {
+        accountLoginBtn.onclick = async () => {
+            try {
+                await puter.auth.signIn();
+                await updateAuthUI(); 
+                syncHistoryWithCloud();
+                await populateAccountData(); // Refresh the account view immediately
+            } catch (e) {
+                console.error("Sign in failed", e);
+            }
+        };
     }
 }
 
@@ -913,6 +1052,8 @@ export function initializeAppState() {
     handleDifficultyChange();
     handleTimeToggle();
     handleAttemptToggle();
+
+    updateNavHighlights('home');
 }
 
 export function prepareSavedProgress() {

@@ -194,7 +194,14 @@ export function displayNextQuestion() {
     }
 
     const qData = state.questions[nextIdx];
-    progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${state.questions.length}`;
+    
+    // NEW: Custom indicator for Skipped Questions
+    if (state.inSkippedRound) {
+        progressEl.innerHTML = `<span class="text-yellow-400 font-bold tracking-wide animate-pulse">Skipped Qs: ${state.currentSkippedItemIndex + 1} / ${state.currentSkippedArray.length}</span>`;
+    } else {
+        progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${state.questions.length}`;
+    }
+    
     scoreEl.textContent = `Score: ${state.score}`;
     questionTextEl.textContent = qData.question;
 
@@ -290,9 +297,19 @@ export function checkAnswer(userAnswer) {
         const idIn = document.getElementById('id-ans');
         if (idIn) idIn.classList.add(isCorrect ? 'correct' : 'incorrect');
     } else if (qData.type === 'enumeration') {
-        const correctItems = (qData.answer || []).map(s => (s || '').toString().trim().toLowerCase()).sort();
+        // AI might return a string instead of an array. Parse it safely.
+        let rawAnswer = qData.answer || [];
+        if (typeof rawAnswer === 'string') {
+            rawAnswer = rawAnswer.split(/[,|\n]/); // Split by comma or newline
+        } else if (!Array.isArray(rawAnswer)) {
+            rawAnswer = [rawAnswer]; // Force it into an array
+        }
+        
+        const correctItems = rawAnswer.map(s => (s || '').toString().trim().toLowerCase()).sort();
         const userItems = (userAnswer || []).map(s => (s || '').toString().trim().toLowerCase()).sort();
+        
         isCorrect = correctItems.length === userItems.length && correctItems.every((it, i) => it === userItems[i]);
+        
         const enIn = document.getElementById('en-ans');
         if (enIn) enIn.classList.add(isCorrect ? 'correct' : 'incorrect');
     }

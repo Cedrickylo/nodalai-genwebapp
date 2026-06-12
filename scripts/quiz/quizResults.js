@@ -6,7 +6,6 @@ import {
 } from '../helpers.js';
 
 const {
-    stopQuizTimer,
     explanationAreaEl,
     nextQuestionBtn,
     skipQuestionBtn,
@@ -77,8 +76,8 @@ export function displayExplanation(qData, isCorrect) {
     });
 }
 
-export function showResults() {
-    const { stopQuizTimer } = require('./quizExecution.js');
+export async function showResults() {
+    const { stopQuizTimer } = await import('./quizExecution.js');
     stopQuizTimer();
     clearInProgressQuiz();
     showView('results');
@@ -91,18 +90,34 @@ export function showResults() {
 
     const summaryCont = document.getElementById('summary-container');
     summaryCont.innerHTML = '';
-    const sortedAns = [...state.userAnswers].sort((a, b) => a.originalIndex - b.originalIndex);
     state.incorrectQuestionsForRemedial = [];
 
-    sortedAns.forEach((ans, dispIdx) => {
+    // Loop through ALL original questions, not just the answered ones
+    state.questions.forEach((qData, origIdx) => {
+        // Find if the user submitted an answer for this specific question
+        const userAnsObj = state.userAnswers.find(a => a.originalIndex === origIdx);
+        const isCorrect = userAnsObj ? userAnsObj.isCorrect : false;
+        
         const item = document.createElement('div');
-        item.className = `summary-item bg-gray-700/50 p-4 rounded-lg ${ans.isCorrect ? 'summary-correct' : 'summary-incorrect'}`;
-        const userAnsTxt = Array.isArray(ans.userAnswer) ? ans.userAnswer.join(', ') : (ans.userAnswer || '');
-        const corrAnsTxt = Array.isArray(ans.correctAnswer) ? ans.correctAnswer.join(', ') : ans.correctAnswer;
-        item.innerHTML = `<p class="font-semibold text-gray-300">Q${dispIdx + 1}: ${ans.question}</p><p class="text-sm mt-2">You: <span class="font-mono text-gray-400">${userAnsTxt || '<em>Skipped/Timeout/Attempts</em>'}</span></p>${!ans.isCorrect ? `<p class="text-sm">Correct: <span class="font-mono text-green-400">${corrAnsTxt || 'N/A'}</span></p>` : ''}`;
+        item.className = `summary-item bg-gray-700/50 p-4 rounded-lg ${isCorrect ? 'summary-correct' : 'summary-incorrect'}`;
+        
+        // Format the User's Answer text
+        let userAnsTxt = 'No answer';
+        if (userAnsObj && userAnsObj.userAnswer !== undefined && userAnsObj.userAnswer !== null && userAnsObj.userAnswer !== '') {
+            userAnsTxt = Array.isArray(userAnsObj.userAnswer) ? userAnsObj.userAnswer.join(', ') : userAnsObj.userAnswer;
+        }
+        
+        // Format the Correct Answer text
+        const corrAnsTxt = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
+        
+        item.innerHTML = `<p class="font-semibold text-gray-300">Q${origIdx + 1}: ${qData.question}</p>
+                          <p class="text-sm mt-2">You: <span class="font-mono text-gray-400">${userAnsTxt}</span></p>
+                          ${!isCorrect ? `<p class="text-sm">Correct: <span class="font-mono text-green-400">${corrAnsTxt || 'N/A'}</span></p>` : ''}`;
+        
         summaryCont.appendChild(item);
-        if (!ans.isCorrect) {
-            state.incorrectQuestionsForRemedial.push(state.questions[ans.originalIndex]);
+        
+        if (!isCorrect) {
+            state.incorrectQuestionsForRemedial.push(qData);
         }
     });
 

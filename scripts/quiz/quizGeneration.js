@@ -30,6 +30,7 @@ const {
 } = elements;
 
 export async function handleQuizGeneration(isRemedial = false, skipStart = false) {
+
     // 1. CUSTOMIZATION CHECK
     if (state.isCustomizingHistory && state.customizingQuizData && !isRemedial) {
         const { editQuizNameInput } = elements;
@@ -83,6 +84,28 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             refreshHistory();
         }
         return;
+    }
+
+    // ADDED: Require login before generation
+    if (!puter.auth.isSignedIn()) {
+        const wantsToLogin = await customConfirm(
+            'You need a Puter account to generate quizzes using AI. Would you like to log in or sign up now?',
+            'Login Required',
+            'Log In / Sign Up',
+            'Cancel'
+        );
+        if (wantsToLogin) {
+            try {
+                await puter.auth.signIn();
+                const { updateAuthUI, syncHistoryWithCloud } = await import('../helpers.js');
+                await updateAuthUI();
+                syncHistoryWithCloud();
+                showToast('Logged in successfully. Click "Generate Quiz" again to continue.');
+            } catch (e) {
+                console.error("Login failed during generation prompt", e);
+            }
+        }
+        return; // Halt generation process until they log in
     }
 
     // 2. UI PARSING & MATH LOGIC
