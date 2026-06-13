@@ -16,15 +16,60 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-900 text-white flex min-h-screen p-4">
+<!-- Updated Desktop Sidebar Navigation with Cohesive Icons -->
     <aside class="hidden md:flex md:w-56 md:flex-col md:bg-gray-800 md:rounded-xl md:shadow-2xl md:p-6 md:mr-4 md:h-fit md:sticky md:top-4 md:border md:border-gray-700">
         <div class="md:space-y-4">
             <h2 class="text-xl font-bold text-blue-400 mb-6">Nodal AI</h2>
             <nav class="space-y-2">
-                <button id="desktop-nav-home-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">Home</button>
-                <button id="desktop-nav-history-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">History</button>
-                <button id="desktop-nav-help-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">Help</button>
-                <button id="desktop-nav-about-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">About</button>
-                <button id="desktop-nav-account-btn" class="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">Account</button>
+                
+                <!-- Home Button -->
+                <button id="desktop-nav-home-btn" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Home</span>
+                </button>
+
+                <!-- History Button -->
+                <button id="desktop-nav-history-btn" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v5h5"></path>
+                        <path d="M21 21v-5h-5"></path>
+                        <path d="M21 8a9 9 0 1 0 0 8"></path>
+                    </svg>
+                    <span>History</span>
+                </button>
+
+                <!-- Help Button -->
+                <button id="desktop-nav-help-btn" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <span>Help</span>
+                </button>
+
+                <!-- About Button -->
+                <button id="desktop-nav-about-btn" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>About</span>
+                </button>
+
+                <!-- Account Button -->
+                <button id="desktop-nav-account-btn" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors duration-200">
+                    <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>Account</span>
+                </button>
+
             </nav>
         </div>
     </aside>
