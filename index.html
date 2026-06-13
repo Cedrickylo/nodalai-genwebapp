@@ -216,6 +216,69 @@
                                 <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">If checked, immediate feedback and correct answers will be hidden during the quiz. You will only see all answers in the final summary.</span></span>
                             </div>
                         </div>
+                        <!-- Advanced Quiz Configurations Block Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-700/50">
+                            <!-- Advanced Feature Mechanics -->
+                            <div class="bg-gray-700/50 p-4 rounded-lg space-y-4">
+                                <h4 class="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2">Advanced Options</h4>
+                                
+                                <!-- Timer Mode Customizer Split -->
+                                <div class="space-y-2">
+                                    <label for="timer-mode-select" class="block text-sm text-gray-300">Timer Target Configuration</label>
+                                    <select id="timer-mode-select" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                                        <option value="quiz" selected>Quiz-Wide (Total Time Limit)</option>
+                                        <option value="question">Per-Question (Individual Time Limit)</option>
+                                    </select>
+                                    <div id="question-time-container" class="hidden flex items-center gap-2 pt-1 animate-fade-in">
+                                        <input type="number" id="question-time-input" class="w-20 bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-sm text-white" value="30" min="5">
+                                        <span class="text-xs text-gray-400">seconds per question</span>
+                                    </div>
+                                </div>
+
+                                <!-- Second Chance Engine Options Selector -->
+                                <div class="space-y-2 pt-2 border-t border-gray-800/60">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="second-chance-toggle" class="h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
+                                        <label for="second-chance-toggle" class="text-sm font-medium text-gray-300 cursor-pointer">Enable Second Chance</label>
+                                    </div>
+                                    <div id="second-chance-options" class="hidden flex items-center gap-2 pl-6 animate-fade-in">
+                                        <label for="max-chances-input" class="text-xs text-gray-400">Max extra chances:</label>
+                                        <select id="max-chances-input" class="bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-xs text-white">
+                                            <option value="1" selected>1 Chance</option>
+                                            <option value="2">2 Chances</option>
+                                            <option value="3">3 Chances</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Manual Evaluation Selection Handler Toggle -->
+                                <div class="flex items-center gap-2 pt-2 border-t border-gray-800/60">
+                                    <input type="checkbox" id="manual-reveal-toggle" class="h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
+                                    <label for="manual-reveal-toggle" class="text-sm font-medium text-gray-300 cursor-pointer">Don't auto-validate answers (Manual Reveal)</label>
+                                </div>
+                            </div>
+
+                            <!-- Randomization Configuration Track -->
+                            <div class="bg-gray-700/50 p-4 rounded-lg space-y-4">
+                                <h4 class="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2">Randomization Settings</h4>
+                                
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" id="shuffle-questions-toggle" class="h-5 w-5 rounded bg-gray-800 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer" checked>
+                                    <div class="flex flex-col">
+                                        <label for="shuffle-questions-toggle" class="text-sm font-medium text-gray-200 cursor-pointer">Shuffle Question Order</label>
+                                        <span class="text-xs text-gray-400">Randomizes the sequence of questions served.</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3 pt-3 border-t border-gray-800/60">
+                                    <input type="checkbox" id="shuffle-choices-toggle" class="h-5 w-5 rounded bg-gray-800 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer" checked>
+                                    <div class="flex flex-col">
+                                        <label for="shuffle-choices-toggle" class="text-sm font-medium text-gray-200 cursor-pointer">Shuffle Multiple-Choice Options</label>
+                                        <span class="text-xs text-gray-400">Randomizes choice layout order on every load.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -481,8 +544,11 @@
                 
                 <div id="explanation-area" class="mt-6 hidden flex-shrink-0"></div>
                 
+                <!-- Navigation utility layout button columns -->
                 <div class="flex gap-4 mt-6 mb-auto flex-shrink-0">
                     <button id="skip-question-btn" class="hidden w-1/3 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Skip</button>
+                    <!-- NEW: Reveal Answer widget applied seamlessly for manual reveal configs -->
+                    <button id="reveal-answer-btn" class="hidden flex-grow bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg">Reveal Answer</button>
                     <button id="next-question-btn" class="hidden flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">Next Question</button>
                 </div>
 

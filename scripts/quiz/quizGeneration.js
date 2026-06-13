@@ -67,6 +67,18 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         state.currentQuizConfig.maxAttempts = state.maxAttempts;
         state.currentQuizConfig.showAnswersInSummaryOnly = summaryOnlyToggle.checked;
 
+        // --- Core Advanced Configuration State Bundle Packing ---
+        if (elements.timerModeSelect) {
+            state.currentQuizConfig.timerMode = elements.timerModeSelect.value;
+            if (state.currentQuizConfig.timerMode === 'question') state.isTimedQuiz = true;
+        }
+        if (elements.questionTimeInput) state.currentQuizConfig.questionTime = parseInt(elements.questionTimeInput.value, 10) || 30;
+        if (elements.secondChanceToggle) state.currentQuizConfig.enableSecondChance = elements.secondChanceToggle.checked;
+        if (elements.maxChancesInput) state.currentQuizConfig.maxChances = parseInt(elements.maxChancesInput.value, 10) || 1;
+        if (elements.manualRevealToggle) state.currentQuizConfig.manualReveal = elements.manualRevealToggle.checked;
+        if (elements.shuffleQuestionsToggle) state.currentQuizConfig.randomizeQuestions = elements.shuffleQuestionsToggle.checked;
+        if (elements.shuffleChoicesToggle) state.currentQuizConfig.randomizeChoices = elements.shuffleChoicesToggle.checked;
+
         const newQuizId = CryptoJS.SHA256(JSON.stringify(state.questions) + JSON.stringify(state.currentQuizConfig) + newName).toString();
         if (newQuizId !== state.customizingQuizData.key && state.quizHistory[state.customizingQuizData.key]) {
             delete state.quizHistory[state.customizingQuizData.key];
@@ -181,6 +193,19 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     }
 
     const showAnswersInSummaryOnly = summaryToggle.checked;
+    
+    // Direct read operations for custom setup parameters
+    const timerMode = elements.timerModeSelect ? elements.timerModeSelect.value : 'quiz';
+    const questionTime = elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30;
+    const enableSecondChance = elements.secondChanceToggle ? elements.secondChanceToggle.checked : false;
+    const maxChances = elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1;
+    const manualReveal = elements.manualRevealToggle ? elements.manualRevealToggle.checked : false;
+    const randomizeQuestions = elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true;
+    const randomizeChoices = elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true;
+
+    // If per-question timer is selected, implicitly mark activity as timed
+    if (timerMode === 'question') state.isTimedQuiz = true;
+
     state.currentQuizConfig = {
         count: totalQ,
         difficulty: selDiff,
@@ -194,7 +219,15 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         isAttemptLimited: state.isAttemptLimited,
         maxAttempts: state.maxAttempts,
         showAnswersInSummaryOnly,
-        isRemedial: isRemedial
+        isRemedial: isRemedial,
+        // --- Advanced Settings Mappings ---
+        timerMode,
+        questionTime,
+        enableSecondChance,
+        maxChances,
+        manualReveal,
+        randomizeQuestions,
+        randomizeChoices
     };
 
     await loadGenerationCooldownState();

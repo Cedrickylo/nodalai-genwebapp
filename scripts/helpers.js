@@ -973,7 +973,15 @@ export function getCustomizeState() {
         customTime: parseInt(customTimeLimitInput.value, 10) || 15,
         attemptLimit: attemptLimitToggle.checked,
         attempts: parseInt(attemptLimitInput.value, 10) || 3,
-        summaryOnly: summaryOnlyToggle.checked
+        summaryOnly: summaryOnlyToggle.checked,
+        // --- Packed Advanced Configurations ---
+        timerMode: elements.timerModeSelect ? elements.timerModeSelect.value : 'quiz',
+        questionTime: elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30,
+        enableSecondChance: elements.secondChanceToggle ? elements.secondChanceToggle.checked : false,
+        maxChances: elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1,
+        manualReveal: elements.manualRevealToggle ? elements.manualRevealToggle.checked : false,
+        randomizeQuestions: elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true,
+        randomizeChoices: elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true
     };
 }
 
@@ -1083,6 +1091,24 @@ export function setupCustomizeView(config, name) {
         }
     }
 
+    // --- Populating Advanced Config Form Fields ---
+    if (elements.timerModeSelect) {
+        elements.timerModeSelect.value = config.timerMode || 'quiz';
+        const qTimeContainer = document.getElementById('question-time-container');
+        if (qTimeContainer) qTimeContainer.classList.toggle('hidden', config.timerMode !== 'question');
+    }
+    if (elements.questionTimeInput) elements.questionTimeInput.value = config.questionTime || 30;
+    
+    if (elements.secondChanceToggle) {
+        elements.secondChanceToggle.checked = config.enableSecondChance || false;
+        const sChanceOptions = document.getElementById('second-chance-options');
+        if (sChanceOptions) sChanceOptions.classList.toggle('hidden', !config.enableSecondChance);
+    }
+    if (elements.maxChancesInput) elements.maxChancesInput.value = config.maxChances || 1;
+    if (elements.manualRevealToggle) elements.manualRevealToggle.checked = config.manualReveal || false;
+    if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = config.randomizeQuestions !== false;
+    if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = config.randomizeChoices !== false;
+
     validateAllInputs();
 }
 
@@ -1135,6 +1161,12 @@ export function validateAllInputs() {
     if (attemptLimitToggle.checked) {
         const maxAttempts = parseInt(attemptLimitInput.value, 10) || 0;
         enabled = enabled && maxAttempts > 0;
+    }
+
+    // --- Validate Advanced Feature Parameters ---
+    if (elements.timerModeSelect && elements.timerModeSelect.value === 'question') {
+        const qTime = elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 0 : 0;
+        enabled = enabled && qTime >= 5; // Enforce minimum 5 seconds constraint
     }
 
     // ==================================================================

@@ -174,7 +174,16 @@ export const elements = {
     // FIXED: Changed 'welcomemodal' to match camelCase 'welcomeModal' in helpers.js
     welcomemodal: document.getElementById('welcome-modal-overlay'),    
     welcomeCloseBtn: document.getElementById('welcome-close-btn'),    
-    welcomeCheckbox: document.getElementById('welcome-dont-show-again')
+    welcomeCheckbox: document.getElementById('welcome-dont-show-again'),
+    // --- ADVANCED FEATURE CONTROLS ---
+    timerModeSelect: document.getElementById('timer-mode-select'),
+    questionTimeInput: document.getElementById('question-time-input'),
+    secondChanceToggle: document.getElementById('second-chance-toggle'),
+    maxChancesInput: document.getElementById('max-chances-input'),
+    manualRevealToggle: document.getElementById('manual-reveal-toggle'),
+    shuffleQuestionsToggle: document.getElementById('shuffle-questions-toggle'),
+    shuffleChoicesToggle: document.getElementById('shuffle-choices-toggle'),
+    revealAnswerBtn: document.getElementById('reveal-answer-btn')
 };
 
 export const state = {
@@ -212,5 +221,10 @@ export const state = {
     incorrectQuestionsForRemedial: [],
     initialCustomizeState: {},
     activeShareStep: 'menu',
-    currentShareQuizKey: null
+    currentShareQuizKey: null,
+    // --- ADVANCED RUNTIME STATE ---
+    currentQuestionTimeRemaining: 0,
+    currentQuestionChancesLeft: 0,
+    selectedAnswerTemp: null,
+    questionTimerInterval: null
 };

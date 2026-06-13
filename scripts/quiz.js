@@ -44,7 +44,8 @@ import {
     handleTimeUp,
     displayNextQuestion,
     skipQuestion,
-    checkAnswer
+    checkAnswer,
+    revealAnswer
 } from './quiz/quizExecution.js';
 
 import { 
@@ -410,6 +411,44 @@ export function attachQuizEventListeners() {
     }));
     remedialCustomTimeLimitInput.addEventListener('input', validateRemedialInputs);
     remedialAttemptLimitInput.addEventListener('input', validateRemedialInputs);
+
+    // --- Advanced Customization Interface Event Handlers ---
+    if (elements.timerModeSelect) {
+        elements.timerModeSelect.addEventListener('change', () => {
+            const isQuestionMode = elements.timerModeSelect.value === 'question';
+            const qTimeContainer = document.getElementById('question-time-container');
+            if (qTimeContainer) qTimeContainer.classList.toggle('hidden', !isQuestionMode);
+            validateAllInputs();
+        });
+    }
+
+    if (elements.questionTimeInput) {
+        elements.questionTimeInput.addEventListener('input', validateAllInputs);
+    }
+
+    if (elements.secondChanceToggle) {
+        elements.secondChanceToggle.addEventListener('change', () => {
+            const sChanceOptions = document.getElementById('second-chance-options');
+            if (sChanceOptions) sChanceOptions.classList.toggle('hidden', !elements.secondChanceToggle.checked);
+            validateAllInputs();
+        });
+    }
+
+    if (elements.manualRevealToggle) {
+        elements.manualRevealToggle.addEventListener('change', validateAllInputs);
+    }
+    
+    if (elements.shuffleQuestionsToggle) {
+        elements.shuffleQuestionsToggle.addEventListener('change', validateAllInputs);
+    }
+    
+    if (elements.shuffleChoicesToggle) {
+        elements.shuffleChoicesToggle.addEventListener('change', validateAllInputs);
+    }
+
+    if (elements.revealAnswerBtn) {
+        elements.revealAnswerBtn.addEventListener('click', revealAnswer);
+    }
 }
 
 export function prepareResumeButton() {

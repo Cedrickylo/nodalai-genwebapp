@@ -53,6 +53,13 @@ export function resetApp(clearProg = true) {
     if (clearProg) clearInProgressQuiz();
     
     stopQuizTimer();
+
+    // --- Advanced Option Clearance Track ---
+    if (state.questionTimerInterval) {
+        clearInterval(state.questionTimerInterval);
+        state.questionTimerInterval = null;
+    }
+
     resetStartViewUI();
     
     state.fileContent = '';
