@@ -310,6 +310,16 @@ export function skipQuestion() {
     displayNextQuestion();
 }
 
+// --- NEW REVEAL ANSWER ROUTINE FOR DEFERRED VALIDATION MODE ---
+export function revealAnswer() {
+    if (!state.selectedAnswerTemp && state.selectedAnswerTemp !== "") {
+        showToast("Please provide or pick an answer first!", 2000, "warning");
+        return;
+    }
+    if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.add('hidden');
+    checkAnswer(state.selectedAnswerTemp);
+}
+
 export function checkAnswer(userAnswer) {
     if (answerAreaEl.classList.contains('disabled-options')) return;
 

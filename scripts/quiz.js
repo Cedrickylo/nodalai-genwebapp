@@ -496,6 +496,7 @@ export {
     displayNextQuestion,
     skipQuestion,
     checkAnswer,
+    revealAnswer,
     
     // Results
     displayExplanation,
