@@ -5,6 +5,13 @@
             /* Safe area spacing buffer to keep content above the bottom nav */
             .view { padding-bottom: 80px; }
 
+            /* ==================================================================
+            FIX: Prevent the floating mobile nav bar from overlapping content
+            ================================================================== */
+            .page-shell {
+                margin-bottom: 75px !important; /* Pushes the shell card container above the nav bar */
+            }
+
             /* Keep the history fullscreen card sized to the mobile viewport without its own scroll area */
             #history-fullscreen-view {
                 width: 100%;
