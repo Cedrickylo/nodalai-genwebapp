@@ -273,12 +273,12 @@ async function syncDatabaseCollections() {
     if (window.puter && puter.auth.isSignedIn()) {
         try {
             const rawAdmins = await puter.kv.get('nodal_cloud_whitelisted_admins');
-            adminState.subAdmins = rawAdmins ? JSON.parse(rawAdmins) : ['cedric'];
+            adminState.subAdmins = rawAdmins ? JSON.parse(rawAdmins) : ['cedrickylo'];
         } catch (e) {
-            adminState.subAdmins = ['cedric'];
+            adminState.subAdmins = ['cedrickylo'];
         }
     } else {
-        adminState.subAdmins = ['cedric'];
+        adminState.subAdmins = ['cedrickylo'];
     }
 
     // 3. Sync Application Version Metrics Configurations
