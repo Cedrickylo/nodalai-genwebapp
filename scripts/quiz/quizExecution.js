@@ -166,12 +166,62 @@ export function handleTimeUp() {
 }
 
 export function displayNextQuestion() {
-    // DOUBLE ACTION INTERCEPTION GATE: If answer-swapping is active, commit the choice silently now
-    if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection && state.selectedAnswerTemp !== null) {
-        const deferredChoice = state.selectedAnswerTemp;
-        state.selectedAnswerTemp = null; // Clear focus memory track
-        checkAnswer(deferredChoice);     // Grade and log selection cleanly into state.userAnswers
-        return;                         // Halt execution path; checkAnswer will recall displayNextQuestion for us
+    // DOUBLE ACTION STEP INTERCEPTION: If answer-swapping is active, commit selection right now
+    if (state.currentQuizConfig && state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection && state.selectedAnswerTemp !== null) {
+        let currOrigIdx = state.inSkippedRound 
+            ? state.currentSkippedArray[state.currentSkippedItemIndex] 
+            : state.shuffledIndices[state.currentShuffledIndexPos];
+            
+        const qData = state.questions[currOrigIdx];
+        const userAnswer = state.selectedAnswerTemp;
+        state.selectedAnswerTemp = null; // Flush active temp focus channel
+        
+        let isCorrect = false;
+        if (qData.type === 'multiple-choice') {
+            const selAns = (userAnswer || '').toString().trim().toLowerCase();
+            isCorrect = selAns === (qData.answer || '').toString().trim().toLowerCase();
+        } else if (qData.type === 'identification') {
+            isCorrect = (userAnswer || '').toString().trim().toLowerCase() === (qData.answer || '').toString().trim().toLowerCase();
+        } else if (qData.type === 'enumeration') {
+            let rawAnswer = qData.answer || [];
+            if (typeof rawAnswer === 'string') rawAnswer = rawAnswer.split(/[,|\n]/);
+            else if (!Array.isArray(rawAnswer)) rawAnswer = [rawAnswer];
+            const correctItems = rawAnswer.map(s => (s || '').toString().trim().toLowerCase()).sort();
+            const userItems = (userAnswer || []).map(s => (s || '').toString().trim().toLowerCase()).sort();
+            isCorrect = correctItems.length === userItems.length && correctItems.every((it, i) => it === userItems[i]);
+        }
+
+        if (isCorrect) {
+            state.score++;
+        }
+
+        state.userAnswers.push({ question: qData.question, userAnswer, correctAnswer: qData.answer, isCorrect, originalIndex: currOrigIdx });
+        state.answeredOriginalIndices.add(currOrigIdx);
+        
+        if (state.inSkippedRound) {
+            state.skippedOriginalIndices.delete(currOrigIdx);
+            state.currentSkippedItemIndex++;
+        } else {
+            state.skippedOriginalIndices.delete(currOrigIdx);
+            state.currentShuffledIndexPos++;
+        }
+
+        saveInProgressQuiz({
+            key: state.currentQuizKey,
+            questions: state.questions,
+            config: state.currentQuizConfig,
+            fileName: state.currentFileName,
+            shuffledIndexPos: state.currentShuffledIndexPos,
+            answeredIndices: Array.from(state.answeredOriginalIndices),
+            skippedIndices: Array.from(state.skippedOriginalIndices),
+            skippedIndexPos: state.currentSkippedItemIndex,
+            inSkippedRound: state.inSkippedRound,
+            score: state.score,
+            answers: state.userAnswers,
+            shuffledIndices: state.shuffledIndices,
+            timeRemaining: state.timeRemaining,
+            currentAttempts: state.currentAttempts
+        });
     }
 
     nextQuestionBtn.classList.add('hidden');
@@ -251,7 +301,6 @@ export function displayNextQuestion() {
         progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${state.questions.length}`;
     }
     
-    // SCORE MASKING: Hide score progress if summary limits are active
     if (state.currentQuizConfig.showAnswersInSummaryOnly) {
         scoreEl.textContent = `Score: Hidden`;
     } else {
@@ -276,24 +325,18 @@ export function displayNextQuestion() {
             btn.className = 'option-btn w-full text-left p-4 bg-gray-700 rounded-lg border-2 border-gray-600 hover:bg-gray-600 transition-colors';
             
             btn.onclick = () => {
-                const isSwapAllowed = state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection;
+                if (answerAreaEl.classList.contains('disabled-options')) return;
                 
-                if (isSwapAllowed) {
-                    // Update uncommitted active focus tracking variable
+                // NON-LOCKING CHOICE HIGHLIGHT INTERCEPTION
+                if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection) {
                     state.selectedAnswerTemp = opt;
-                    
-                    // Clear visual styles dynamically across sibling options panels
                     optsCont.querySelectorAll('.option-btn').forEach(b => {
                         b.classList.remove('border-blue-500', 'bg-blue-600/20');
                     });
-                    
-                    // Highlight the single clicked item frame
                     btn.classList.add('border-blue-500', 'bg-blue-600/20');
                     skipQuestionBtn.classList.add('hidden');
                     nextQuestionBtn.classList.remove('hidden');
                 } else {
-                    // Normal execution paths
-                    if (answerAreaEl.classList.contains('disabled-options')) return;
                     checkAnswer(opt);
                 }
             };
@@ -303,14 +346,30 @@ export function displayNextQuestion() {
     } else if (questionType === 'identification') {
         answerAreaEl.innerHTML = `<input type="text" id="id-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"><button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>`;
         const idIn = document.getElementById('id-ans');
-        document.getElementById('submit-btn').onclick = () => { checkAnswer(idIn.value); };
-        idIn.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(e.target.value); });
+        const sBtn = document.getElementById('submit-btn');
+
+        if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection) {
+            sBtn.classList.add('hidden');
+            nextQuestionBtn.classList.remove('hidden');
+            idIn.addEventListener('input', () => { state.selectedAnswerTemp = idIn.value; });
+        } else {
+            sBtn.onclick = () => { checkAnswer(idIn.value); };
+            idIn.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(e.target.value); });
+        }
         idIn.focus();
     } else if (questionType === 'enumeration') {
         answerAreaEl.innerHTML = `<textarea id="en-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" rows="4" placeholder="List items, one per line..."></textarea><button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>`;
         const enIn = document.getElementById('en-ans');
-        document.getElementById('submit-btn').onclick = () => { checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); };
-        enIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); } });
+        const sBtn = document.getElementById('submit-btn');
+
+        if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection) {
+            sBtn.classList.add('hidden');
+            nextQuestionBtn.classList.remove('hidden');
+            enIn.addEventListener('input', () => { state.selectedAnswerTemp = enIn.value.split('\n').map(s => s.trim()).filter(Boolean); });
+        } else {
+            sBtn.onclick = () => { checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); };
+            enIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); } });
+        }
         enIn.focus();
     }
 }
@@ -340,7 +399,6 @@ export function skipQuestion() {
     displayNextQuestion();
 }
 
-// --- NEW REVEAL ANSWER ROUTINE FOR DEFERRED VALIDATION MODE ---
 export function revealAnswer() {
     if (!state.selectedAnswerTemp && state.selectedAnswerTemp !== "") {
         showToast("Please provide or pick an answer first!", 2000, "warning");
@@ -376,7 +434,6 @@ export function checkAnswer(userAnswer) {
 
     const isManualReveal = state.currentQuizConfig && state.currentQuizConfig.manualReveal;
 
-    // SECOND CHANCE EXPIRATION REPAIR: Terminate loops correctly when attempts hit 0
     if (!isCorrect && state.currentQuizConfig.enableSecondChance && state.currentQuestionChancesLeft > 0 && !isManualReveal && userAnswer !== "Time Out") {
         state.currentQuestionChancesLeft--;
         if (state.incorrectSound) {
@@ -409,9 +466,7 @@ export function checkAnswer(userAnswer) {
     answerAreaEl.classList.add('disabled-options');
     skipQuestionBtn.classList.add('hidden');
 
-    // FEEDBACK STRATIFICATION ENGINE
     if (isManualReveal) {
-        // Silent Profile: Apply neutral selection highlights only
         if (qData.type === 'multiple-choice') {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 if (btn.textContent.trim().toLowerCase() === (userAnswer || '').toString().trim().toLowerCase()) {
@@ -423,7 +478,6 @@ export function checkAnswer(userAnswer) {
             if (txtInput) txtInput.classList.add('border-blue-500', 'bg-blue-600/10');
         }
     } else {
-        // Standard Profiles: Apply full correctness layout configurations
         if (qData.type === 'multiple-choice') {
             const selAns = (userAnswer || '').toString().trim().toLowerCase();
             document.querySelectorAll('.option-btn').forEach(btn => {
