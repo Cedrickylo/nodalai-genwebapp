@@ -78,7 +78,9 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         if (elements.manualRevealToggle) state.currentQuizConfig.manualReveal = elements.manualRevealToggle.checked;
         if (elements.shuffleQuestionsToggle) state.currentQuizConfig.randomizeQuestions = elements.shuffleQuestionsToggle.checked;
         if (elements.shuffleChoicesToggle) state.currentQuizConfig.randomizeChoices = elements.shuffleChoicesToggle.checked;
-        if (elements.allowChangeToggle) state.currentQuizConfig.allowChangeSelection = elements.allowChangeToggle.checked;
+        // FIX: Direct DOM element override to bypass stale cache lookups
+        const allowChangeToggleEl = document.getElementById('allow-change-toggle');
+        state.currentQuizConfig.allowChangeSelection = allowChangeToggleEl ? allowChangeToggleEl.checked : false;
 
         const newQuizId = CryptoJS.SHA256(JSON.stringify(state.questions) + JSON.stringify(state.currentQuizConfig) + newName).toString();
         if (newQuizId !== state.customizingQuizData.key && state.quizHistory[state.customizingQuizData.key]) {
@@ -203,7 +205,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const manualReveal = elements.manualRevealToggle ? elements.manualRevealToggle.checked : false;
     const randomizeQuestions = elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true;
     const randomizeChoices = elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true;
-    const allowChangeSelection = elements.allowChangeToggle ? elements.allowChangeToggle.checked : false;
+    // FIX: Read checkbox data directly out of active DOM window layout
+    const allowChangeSelection = document.getElementById('allow-change-toggle')?.checked || false;
 
     // If per-question timer is selected, implicitly mark activity as timed
     if (timerMode === 'question') state.isTimedQuiz = true;
