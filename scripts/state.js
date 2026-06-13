@@ -9,7 +9,8 @@ export const constants = {
     GENERATION_LOG_LOCAL_KEY: 'AIQuizGenerationLog',
     GENERATION_LOG_CLOUD_KEY: 'AIQuizGenerationLog_v1',
     MIN_QUIZ_QUESTIONS: 5,
-    MAX_QUIZ_QUESTIONS: 100
+    MAX_QUIZ_QUESTIONS: 100,
+    WELCOME_DISMISSED_KEY: 'nodal_welcome_dismissed_v1'
 };
 
 export const elements = {
@@ -173,7 +174,10 @@ export const elements = {
     // --- NEW ACCOUNT ELEMENTS ADDED HERE ---
     accountLoggedInContent: document.getElementById('account-logged-in-content'),
     accountLoggedOutContent: document.getElementById('account-logged-out-content'),
-    accountLoginBtn: document.getElementById('account-login-btn')
+    accountLoginBtn: document.getElementById('account-login-btn'),
+    welcomemodal: document.getElementById('welcome-modal-overlay'),
+    welcomeCloseBtn: document.getElementById('welcome-close-btn'),
+    welcomeCheckbox: document.getElementById('welcome-dont-show-again')
 };
 
 export const state = {

@@ -1320,3 +1320,28 @@ export function setupWelcomeModal() {
         overlay.classList.add('hidden');
     };
 }
+
+// ==========================================
+// STARTUP WELCOME MODAL CONTROLLER
+// ==========================================
+export function initWelcomeModal() {
+    const isDismissed = localStorage.getItem(constants.WELCOME_DISMISSED_KEY);
+    
+    // Safety check: if user already dismissed it permanently, do nothing
+    if (isDismissed === 'true') return;
+
+    const { welcomeModal, welcomeCloseBtn, welcomeCheckbox } = elements;
+
+    if (welcomeModal && welcomeCloseBtn) {
+        // Render modal overlay panel layout active
+        welcomeModal.classList.remove('hidden');
+
+        welcomeCloseBtn.onclick = () => {
+            // If the "don't show again" checkbox is ticked, save preference permanently
+            if (welcomeCheckbox && welcomeCheckbox.checked) {
+                localStorage.setItem(constants.WELCOME_DISMISSED_KEY, 'true');
+            }
+            welcomeModal.classList.add('hidden');
+        };
+    }
+}

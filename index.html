@@ -839,6 +839,26 @@
             </div>
         </div>
     </div>
+    <div id="welcome-modal-overlay" class="hidden fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+    <div class="bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl border border-gray-700 overflow-hidden p-8 text-center space-y-6">
+        <div class="flex justify-center">
+            <div class="p-4 bg-blue-500/20 rounded-full text-blue-400">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+            </div>
+        </div>
+        <h2 class="text-3xl font-bold text-blue-400">Welcome to Nodal AI!</h2>
+        <p class="text-gray-300 text-sm leading-relaxed">
+            Transform your study materials into interactive quizzes instantly. Upload documents, customize your experience, and sync your progress to the cloud.
+        </p>
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <input type="checkbox" id="welcome-dont-show-again" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
+            <label for="welcome-dont-show-again" class="text-sm text-gray-400 cursor-pointer user-select-none">Don't show this again</label>
+        </div>
+        <button id="welcome-close-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg transform hover:scale-[1.01]">
+            Get Started
+        </button>
+    </div>
+</div>
 
     <script type="module" src="scripts/main.js"></script>
 </body>
