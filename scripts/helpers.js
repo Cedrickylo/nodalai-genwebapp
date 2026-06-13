@@ -475,13 +475,21 @@ export async function updateAuthUI() {
 }
 
 export async function openAccountAsModal() {
+    // Show the small title card header when operating inside the floating overlay
+    const cardHeader = document.getElementById('account-card-header');
+    if (cardHeader) cardHeader.classList.remove('hidden');
+
     elements.accountModalOverlay.appendChild(elements.accountCard);
     elements.accountModalOverlay.classList.remove('hidden');
     await populateAccountData();
 }
 
-// Function for Nav Bar buttons (Shows as Full Page)
+// Function for Nav Bar buttons (Shows as Full Page Dashboard)
 export async function openAccountAsView() {
+    // Hide the card header to prevent duplicate title layouts with the sticky header navbar
+    const cardHeader = document.getElementById('account-card-header');
+    if (cardHeader) cardHeader.classList.add('hidden');
+
     elements.accountViewContainer.appendChild(elements.accountCard);
     showView('account');
     await populateAccountData();

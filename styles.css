@@ -257,3 +257,11 @@
         /* Hide Navigation during active Quiz execution */
         body.quiz-active aside { display: none !important; }
         body.quiz-active #mobile-bottom-nav { display: none !important; }
+
+        /* Responsive Layout Adjustments for Full-Screen Account Space Viewports */
+@media (min-width: 1024px) {
+    #account-view-container #account-card {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
