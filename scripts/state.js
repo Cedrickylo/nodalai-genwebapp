@@ -172,8 +172,8 @@ export const elements = {
     accountLoggedOutContent: document.getElementById('account-logged-out-content'),
     accountLoginBtn: document.getElementById('account-login-btn'),
     // FIXED: Changed 'welcomemodal' to match camelCase 'welcomeModal' in helpers.js
-    welcomeModal: document.getElementById('welcome-modal-overlay'),
-    welcomeCloseBtn: document.getElementById('welcome-close-btn'),
+    welcomemodal: document.getElementById('welcome-modal-overlay'),    
+    welcomeCloseBtn: document.getElementById('welcome-close-btn'),    
     welcomeCheckbox: document.getElementById('welcome-dont-show-again')
 };
 

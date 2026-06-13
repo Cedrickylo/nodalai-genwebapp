@@ -1,4 +1,4 @@
-// Updated version string to break stale browser cache memory
+// Incremented to v2 to immediately flush stale browser storage copies
 const CACHE_NAME = 'nodal-ai-cache-v2';
 
 // Pre-cache ONLY local files to ensure stable installation without CORS interference
@@ -58,15 +58,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) {
-                return cachedResponse; // Return cached match instantly
+                return cachedResponse;
             }
 
             return fetch(event.request).then((networkResponse) => {
-                // Check if the asset belongs to one of our approved CDNs or our local origin
                 const isLocal = requestUrl.origin === self.location.origin;
                 const isAllowedCDN = ALLOWED_CDN_ORIGINS.some(origin => requestUrl.hostname === origin);
 
-                // Allow both standard 200 responses AND 'opaque' (status 0) cross-origin CDN scripts
                 if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque') && (isLocal || isAllowedCDN)) {
                     const responseToCache = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
@@ -75,7 +73,6 @@ self.addEventListener('fetch', (event) => {
                 }
                 return networkResponse;
             }).catch(() => {
-                // Fail gracefully if completely offline and item isn't cached
                 return new Response('Offline resource unavailable.', {
                     status: 503,
                     statusText: 'Service Unavailable'
