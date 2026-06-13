@@ -592,6 +592,34 @@ export function updateNavHighlights(activeKey) {
         elements.mobileNavHistoryBtn.classList.toggle('text-gray-300', activeKey !== 'history');
     }
 
+    // --- NEW: Track if current layout is nested inside the Mobile Menu overlay drawer ---
+    const isMenuPage = ['help', 'about', 'account'].includes(activeKey);
+    if (elements.mobileNavMenuBtn) {
+        elements.mobileNavMenuBtn.classList.toggle('text-white', isMenuPage);
+        elements.mobileNavMenuBtn.classList.toggle('bg-blue-600', isMenuPage);
+        elements.mobileNavMenuBtn.classList.toggle('text-gray-300', !isMenuPage);
+    }
+
+    // --- NEW: Active context highlights directly on buttons inside the open Modal list ---
+    if (elements.mobileMenuHelpBtn) {
+        elements.mobileMenuHelpBtn.classList.toggle('text-white', activeKey === 'help');
+        elements.mobileMenuHelpBtn.classList.toggle('bg-blue-600', activeKey === 'help');
+        elements.mobileMenuHelpBtn.classList.toggle('bg-gray-700/30', activeKey !== 'help');
+        elements.mobileMenuHelpBtn.classList.toggle('text-gray-300', activeKey !== 'help');
+    }
+    if (elements.mobileMenuAboutBtn) {
+        elements.mobileMenuAboutBtn.classList.toggle('text-white', activeKey === 'about');
+        elements.mobileMenuAboutBtn.classList.toggle('bg-blue-600', activeKey === 'about');
+        elements.mobileMenuAboutBtn.classList.toggle('bg-gray-700/30', activeKey !== 'about');
+        elements.mobileMenuAboutBtn.classList.toggle('text-gray-300', activeKey !== 'about');
+    }
+    if (elements.mobileMenuAccountBtn) {
+        elements.mobileMenuAccountBtn.classList.toggle('text-white', activeKey === 'account');
+        elements.mobileMenuAccountBtn.classList.toggle('bg-blue-600', activeKey === 'account');
+        elements.mobileMenuAccountBtn.classList.toggle('bg-gray-700/30', activeKey !== 'account');
+        elements.mobileMenuAccountBtn.classList.toggle('text-gray-300', activeKey !== 'account');
+    }
+
     // 2. Update Desktop Nav
     const map = {
         home: elements.desktopNavHomeBtn,
