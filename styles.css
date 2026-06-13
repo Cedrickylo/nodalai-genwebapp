@@ -258,10 +258,21 @@
         body.quiz-active aside { display: none !important; }
         body.quiz-active #mobile-bottom-nav { display: none !important; }
 
-        /* Responsive Layout Adjustments for Full-Screen Account Space Viewports */
+/* Contextual Layout Adjustments for the Account Dashboard vs Modal Flyout */
 @media (min-width: 1024px) {
+    /* Force card wrapper layout to fill the main screen workspace workspace area */
     #account-view-container #account-card {
         max-width: 100% !important;
         width: 100% !important;
+    }
+    
+    /* CRITICAL FIX: Trigger 2 columns ONLY when attached to the full-screen view wrapper */
+    #account-view-container #account-logged-in-content {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    
+    /* Make sign out span across the grid setup layout floor contextually */
+    #account-view-container #account-logged-in-content > div:last-child {
+        grid-column: span 2 / span 2 !important;
     }
 }
