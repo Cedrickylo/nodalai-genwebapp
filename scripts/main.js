@@ -1,6 +1,23 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
-import { showToast, syncHistoryWithCloud, validateAllInputs } from './helpers.js';
+import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
+
+// ==================================================================
+// GLOBAL UNHANDLED REJECTION SAFETY NET
+// Prevents asynchronous network failures inside third-party cloud SDKs
+// from triggering browser crash cascades when operating offline.
+// ==================================================================
+window.addEventListener('unhandledrejection', (event) => {
+    const isPuterRelated = event.reason && (
+        event.reason.name === 'XMLHttpRequest' || 
+        String(event.reason).includes('puter') || 
+        String(event.reason.message || '').includes('puter')
+    );
+    if (isPuterRelated || !navigator.onLine) {
+        console.warn('Globally intercepted and suppressed offline cloud promise rejection:', event.reason);
+        event.preventDefault(); // Silences the red error crash trigger
+    }
+});
 
 async function initApp() {
     if (window.puter) puter.quiet = true;
@@ -25,7 +42,19 @@ async function initApp() {
         initializeAppState();
         attachAuthHandlers();
         attachQuizEventListeners();
-        await updateAuthUI();
+
+        // ==================================================================
+        // ISOLATED INITIALIZATION BLOCK
+        // Prevents spotty or offline credentials checks from throwing global 
+        // exceptions that trigger the "App Failed" crash layout screen.
+        // ==================================================================
+        try {
+            await updateAuthUI();
+        } catch (authError) {
+            console.warn('Non-fatal authentication UI initialization failure (handled gracefully offline):', authError);
+            setSyncing('offline');
+        }
+
         prepareSavedProgress();
         initWelcomeModal();
 

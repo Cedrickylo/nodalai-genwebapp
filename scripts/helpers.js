@@ -218,10 +218,16 @@ export function setSyncing(status) {
 
 export async function syncHistoryWithCloud(manual = false) {
     // 1. Authentication check
-    // Defensive Guard: Check if authentication systems are structurally reachable offline
     if (typeof puter === 'undefined' || !window.puter || !puter.auth.isSignedIn()) {
         setSyncing('offline');
         if (manual) showToast('Sign in to Puter to sync history.', 4000, 'warning');
+        return;
+    }
+
+    // CRITICAL FIX: Block cloud access immediately if offline to stop uncatchable SDK XMLHttp rejections
+    if (!navigator.onLine) {
+        setSyncing('offline');
+        if (manual) showToast('Cannot sync history while offline.', 4000, 'warning');
         return;
     }
     
@@ -253,7 +259,6 @@ export async function syncHistoryWithCloud(manual = false) {
             const localQuiz = localItems[key];
             
             if (cloudQuiz && localQuiz) {
-                // Last-Write-Wins based on precise item timestamps
                 if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
                     mergedItems[key] = cloudQuiz;
                 } else {
@@ -484,21 +489,33 @@ export async function updateAuthUI() {
                 }
             }
 
-            authBtnText.textContent = customName || 'Account';
-            authBtn.classList.remove('bg-blue-600');
-            authBtn.classList.add('bg-green-600');
+            if (elements.authBtnText) elements.authBtnText.textContent = customName || 'Account';
+            if (elements.authBtn) {
+                elements.authBtn.classList.remove('bg-blue-600');
+                elements.authBtn.classList.add('bg-green-600');
+            }
             
             // CRITICAL FIX: Only trigger background sync tracks if actively online
             if (navigator.onLine) {
-                await syncHistoryWithCloud();
-                await loadGenerationCooldownState();
+                try {
+                    await syncHistoryWithCloud();
+                } catch (err) {
+                    console.warn("syncHistoryWithCloud failed inside updateAuthUI:", err);
+                }
+                try {
+                    await loadGenerationCooldownState();
+                } catch (err) {
+                    console.warn("loadGenerationCooldownState failed inside updateAuthUI:", err);
+                }
             } else {
                 setSyncing('offline');
             }
         } else {
-            authBtnText.textContent = 'Puter Login';
-            authBtn.classList.remove('bg-green-600');
-            authBtn.classList.add('bg-blue-600');
+            if (elements.authBtnText) elements.authBtnText.textContent = 'Puter Login';
+            if (elements.authBtn) {
+                elements.authBtn.classList.remove('bg-green-600');
+                elements.authBtn.classList.add('bg-blue-600');
+            }
             setSyncing('offline'); 
         }
     } catch (err) {
@@ -556,6 +573,9 @@ export async function populateAccountData() {
                 email = user.email || (user.sessionId ? `Session ${user.sessionId}` : 'Not available');
             } catch (uErr) {
                 console.warn("Failed to fetch user data from cloud:", uErr);
+                username = localStorage.getItem('nodal_cached_username') || 'Account User';
+                uuid = 'Offline Mode';
+                email = 'Offline Mode';
             }
         } else {
             username = localStorage.getItem('nodal_cached_username') || 'Account User';
@@ -563,9 +583,9 @@ export async function populateAccountData() {
             email = 'Offline Mode';
         }
 
-        elements.modalUsername.textContent = username;
-        modalAccountId.textContent = uuid;
-        modalEmail.textContent = email;
+        if (elements.modalUsername) elements.modalUsername.textContent = username;
+        if (document.getElementById('modal-account-id')) document.getElementById('modal-account-id').textContent = uuid;
+        if (document.getElementById('modal-email')) document.getElementById('modal-email').textContent = email;
 
         let creditLabel = 'Balance unavailable';
         let progressWidth = 0;
@@ -592,13 +612,19 @@ export async function populateAccountData() {
             progressWidth = 0;
         }
 
-        modalCredits.textContent = creditLabel;
-        creditProgress.style.width = `${progressWidth}%`;
+        if (document.getElementById('modal-credits')) document.getElementById('modal-credits').textContent = creditLabel;
+        if (document.getElementById('credit-progress')) document.getElementById('credit-progress').style.width = `${progressWidth}%`;
 
         const showCredits = isUsingPuterAI();
-        modalCreditPanel.classList.toggle('hidden', !showCredits || !navigator.onLine);
-        modalStoragePanel.classList.remove('hidden');
-        modalStorageLabel.textContent = navigator.onLine ? 'Free' : 'Offline';
+        if (document.getElementById('modal-credit-panel')) {
+            document.getElementById('modal-credit-panel').classList.toggle('hidden', !showCredits || !navigator.onLine);
+        }
+        if (document.getElementById('modal-storage-panel')) {
+            document.getElementById('modal-storage-panel').classList.remove('hidden');
+        }
+        if (document.getElementById('modal-storage-label')) {
+            document.getElementById('modal-storage-label').textContent = navigator.onLine ? 'Free' : 'Offline';
+        }
 
         let customName = '';
         if (navigator.onLine) {
@@ -607,12 +633,13 @@ export async function populateAccountData() {
                 if (customName) localStorage.setItem('nodal_cached_username', customName);
             } catch (kvErr) {
                 console.warn("Failed to fetch display name:", kvErr);
+                customName = localStorage.getItem('nodal_cached_username') || '';
             }
         } else {
             customName = localStorage.getItem('nodal_cached_username') || '';
         }
-        displayNameInput.value = customName || '';
-        authBtnText.textContent = customName || (navigator.onLine ? 'Account' : 'Account (Offline)');
+        if (document.getElementById('display-name-input')) document.getElementById('display-name-input').value = customName || '';
+        if (elements.authBtnText) elements.authBtnText.textContent = customName || (navigator.onLine ? 'Account' : 'Account (Offline)');
 
         await refreshCooldownPanel();
     } catch (globalPanelErr) {
