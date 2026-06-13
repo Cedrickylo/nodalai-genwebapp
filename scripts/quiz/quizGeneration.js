@@ -1,5 +1,5 @@
 import { elements, state, constants } from '../state.js';
-import { generateQuestionsFromAI } from '../aiService.js';
+import { generateQuestionsFromAI, isUsingPuterAI } from '../aiService.js';
 import {
     showToast,
     showView,
@@ -122,6 +122,33 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         }
         return; // Halt generation process until they log in
     }
+    // ==================================================================
+    // NEW: ADMIN WORKSPACE ENFORCED SUSPENSION CHECK
+    // ==================================================================
+    if (window.puter && puter.auth.isSignedIn()) {
+        try {
+            const currentUserObj = await puter.auth.getUser();
+            const cloudBannedRaw = await puter.kv.get('nodal_cloud_suspended_users_array');
+            const bannedIds = cloudBannedRaw ? JSON.parse(cloudBannedRaw) : [];
+            
+            // Check if user's account handle or UUID matches the administrative suspension array
+            const isSuspended = bannedIds.includes(currentUserObj.username) || bannedIds.includes(currentUserObj.id);
+            
+            if (isSuspended) {
+                stopLoadingAnimation();
+                await customConfirm(
+                    "⚠️ Account Deactivated\n\nYour generation permissions have been suspended by an administrator. To request a review or reactivate your workspace profile, please submit an appeal directly to support@nodalai.example.com.",
+                    "Access Suspended",
+                    "Understand",
+                    ""
+                );
+                showView('start');
+                return; // Halt quiz initialization entirely
+            }
+        } catch (e) {
+            console.warn("Skipping background cloud suspension matrix check due to transient connection limitations.");
+        }
+    }
 
     // 2. UI PARSING & MATH LOGIC
     const qCountInput = isRemedial ? elements.remedialQuestionCountInput : questionCountInput;
@@ -235,6 +262,21 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         randomizeChoices,
         allowChangeSelection
     };
+
+    // ==================================================================
+    // NEW INSERTION: ADMIN WORKSPACE ENFORCED RATE LIMIT CEILING CHECK
+    // ==================================================================
+    const rollingGenerationLimitCap = (state && state.globalConfig && state.globalConfig.rateLimit) ? state.globalConfig.rateLimit : 5;
+    const logHistory = state.generationLog || [];
+    const recentGenerationsCount = logHistory.filter(timestamp => (Date.now() - timestamp) < constants.GENERATION_WINDOW_MS).length;
+
+    if (recentGenerationsCount >= rollingGenerationLimitCap && !isUsingPuterAI() && !isRemedial) {
+        const warningString = `Generation block triggered. You have generated ${recentGenerationsCount} quizzes within the past 3 hours, matching your profile limit. Please try again later.`;
+        await customConfirm(warningString, "Rate Limit Exceeded", "Understand", "");
+        if (!isRemedial) showView('start');
+        return;
+    }
+    // ==================================================================
 
     await loadGenerationCooldownState();
     const cooldownWarning = getGenerationCooldownWarning();

@@ -227,5 +227,13 @@ export const state = {
     currentQuestionTimeRemaining: 0,
     currentQuestionChancesLeft: 0,
     selectedAnswerTemp: null,
-    questionTimerInterval: null
+    questionTimerInterval: null,
+    // ==================================================================
+    // NEW: ADMIN CONTROLLED GLOBAL CONFIGURATION STATE
+    // ==================================================================
+    globalConfig: {
+        aiClient: 'groq',
+        rateLimit: 5,
+        version: { major: 1, minor: 0, patch: 0 }
+    }
 };

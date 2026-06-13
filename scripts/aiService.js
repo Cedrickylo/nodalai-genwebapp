@@ -4,11 +4,15 @@
 const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI
 
 export function isUsingPuterAI() {
-    return AI_SERVICE === 'puter';
+    // Dynamically respect the administrative override setting if synced
+    const activeEngine = (state && state.globalConfig && state.globalConfig.aiClient) ? state.globalConfig.aiClient : 'groq';
+    return activeEngine === 'puter';
 }
 
 export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
     try {
+        const activeEngine = (state && state.globalConfig && state.globalConfig.aiClient) ? state.globalConfig.aiClient : 'groq';
+
         if (AI_SERVICE === 'puter') {
             const response = await puter.ai.chat(systemPrompt + "\n\n" + userPrompt);
             return extractTextFromResponse(response);

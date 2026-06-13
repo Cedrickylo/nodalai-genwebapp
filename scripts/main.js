@@ -22,6 +22,27 @@ window.addEventListener('unhandledrejection', (event) => {
 async function initApp() {
     if (window.puter) puter.quiet = true;
     try {
+        // ==================================================================
+        // NEW: LOAD ADMINISTRATIVE CONFIGURATIONS ON BOOT
+        // ==================================================================
+        if (window.puter && puter.auth.isSignedIn() && navigator.onLine) {
+            try {
+                const cloudConfigRaw = await puter.kv.get('nodal_cloud_global_app_config');
+                if (cloudConfigRaw) {
+                    const parsedConfig = JSON.parse(cloudConfigRaw);
+                    state.globalConfig = parsedConfig;
+                    
+                    // Update dynamic footer version tag if an element exists
+                    const mainVersionLabel = document.getElementById('main-app-version-footer');
+                    if (mainVersionLabel) {
+                        mainVersionLabel.textContent = `v${parsedConfig.version.major}.${parsedConfig.version.minor}.${parsedConfig.version.patch}`;
+                    }
+                }
+            } catch (configError) {
+                console.warn("Falling back to local application defaults; cloud settings unreachable.");
+            }
+        }
+
         // Bind user gesture to resume AudioContext (Tone.js)
         function bindUserGestureToStartAudio() {
             const resumeAudio = async () => {
