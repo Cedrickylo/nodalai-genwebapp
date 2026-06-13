@@ -654,6 +654,11 @@ export function setupScrollReactiveHeader(viewId) {
         about: {
             headerSelector: '#about-view .scroll-reactive-header',
             sentinelId: 'about-header-sentinel'
+        },
+        // --- NEW: Registers Account panel into the Intersection Observer system ---
+        account: {
+            headerSelector: '#account-view .scroll-reactive-header',
+            sentinelId: 'account-header-sentinel'
         }
     };
 
