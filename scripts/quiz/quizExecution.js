@@ -166,6 +166,14 @@ export function handleTimeUp() {
 }
 
 export function displayNextQuestion() {
+    // DOUBLE ACTION INTERCEPTION GATE: If answer-swapping is active, commit the choice silently now
+    if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection && state.selectedAnswerTemp !== null) {
+        const deferredChoice = state.selectedAnswerTemp;
+        state.selectedAnswerTemp = null; // Clear focus memory track
+        checkAnswer(deferredChoice);     // Grade and log selection cleanly into state.userAnswers
+        return;                         // Halt execution path; checkAnswer will recall displayNextQuestion for us
+    }
+
     nextQuestionBtn.classList.add('hidden');
     skipQuestionBtn.classList.add('hidden');
     explanationAreaEl.classList.add('hidden');
@@ -266,7 +274,29 @@ export function displayNextQuestion() {
             const btn = document.createElement('button');
             btn.textContent = opt;
             btn.className = 'option-btn w-full text-left p-4 bg-gray-700 rounded-lg border-2 border-gray-600 hover:bg-gray-600 transition-colors';
-            btn.onclick = () => checkAnswer(opt);
+            
+            btn.onclick = () => {
+                const isSwapAllowed = state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection;
+                
+                if (isSwapAllowed) {
+                    // Update uncommitted active focus tracking variable
+                    state.selectedAnswerTemp = opt;
+                    
+                    // Clear visual styles dynamically across sibling options panels
+                    optsCont.querySelectorAll('.option-btn').forEach(b => {
+                        b.classList.remove('border-blue-500', 'bg-blue-600/20');
+                    });
+                    
+                    // Highlight the single clicked item frame
+                    btn.classList.add('border-blue-500', 'bg-blue-600/20');
+                    skipQuestionBtn.classList.add('hidden');
+                    nextQuestionBtn.classList.remove('hidden');
+                } else {
+                    // Normal execution paths
+                    if (answerAreaEl.classList.contains('disabled-options')) return;
+                    checkAnswer(opt);
+                }
+            };
             optsCont.appendChild(btn);
         });
         answerAreaEl.appendChild(optsCont);

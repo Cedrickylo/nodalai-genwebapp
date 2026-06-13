@@ -78,6 +78,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         if (elements.manualRevealToggle) state.currentQuizConfig.manualReveal = elements.manualRevealToggle.checked;
         if (elements.shuffleQuestionsToggle) state.currentQuizConfig.randomizeQuestions = elements.shuffleQuestionsToggle.checked;
         if (elements.shuffleChoicesToggle) state.currentQuizConfig.randomizeChoices = elements.shuffleChoicesToggle.checked;
+        if (elements.allowChangeToggle) state.currentQuizConfig.allowChangeSelection = elements.allowChangeToggle.checked;
 
         const newQuizId = CryptoJS.SHA256(JSON.stringify(state.questions) + JSON.stringify(state.currentQuizConfig) + newName).toString();
         if (newQuizId !== state.customizingQuizData.key && state.quizHistory[state.customizingQuizData.key]) {
@@ -202,6 +203,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const manualReveal = elements.manualRevealToggle ? elements.manualRevealToggle.checked : false;
     const randomizeQuestions = elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true;
     const randomizeChoices = elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true;
+    const allowChangeSelection = elements.allowChangeToggle ? elements.allowChangeToggle.checked : false;
 
     // If per-question timer is selected, implicitly mark activity as timed
     if (timerMode === 'question') state.isTimedQuiz = true;
@@ -227,7 +229,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         maxChances,
         manualReveal,
         randomizeQuestions,
-        randomizeChoices
+        randomizeChoices,
+        allowChangeSelection
     };
 
     await loadGenerationCooldownState();

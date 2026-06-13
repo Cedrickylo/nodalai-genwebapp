@@ -996,7 +996,8 @@ export function getCustomizeState() {
         maxChances: elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1,
         manualReveal: elements.manualRevealToggle ? elements.manualRevealToggle.checked : false,
         randomizeQuestions: elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true,
-        randomizeChoices: elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true
+        randomizeChoices: elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true,
+        allowChangeSelection: elements.allowChangeToggle ? elements.allowChangeToggle.checked : false
     };
 }
 
@@ -1127,6 +1128,13 @@ export function setupCustomizeView(config, name) {
     if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = config.randomizeQuestions !== false;
     if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = config.randomizeChoices !== false;
 
+    if (elements.manualRevealToggle) {
+        elements.manualRevealToggle.checked = config.manualReveal || false;
+    }
+    if (elements.allowChangeToggle) {
+        elements.allowChangeToggle.checked = config.allowChangeSelection || false;
+    }
+
     validateAllInputs();
 }
 
@@ -1197,26 +1205,34 @@ export function validateAllInputs() {
         }
     }
 
-    // 2. Manage Mutual Exclusions Between Manual Reveal and Second Chance Configurations
+    // 2. Manage Mutual Exclusions and Advanced Sub-Option Cleanups
     const isManualRevealActive = elements.manualRevealToggle && elements.manualRevealToggle.checked;
     const secondChanceWrapper = attemptLimitToggle.closest('.grid')?.querySelector('div:has(#second-chance-toggle)') || document.getElementById('second-chance-toggle')?.closest('div');
-    
+    const allowChangeContainer = document.getElementById('allow-change-container');
+
     if (isManualRevealActive) {
-        // Clear active checkmark, force property values dry, and inject grayed-out styles
+        // Lock out Second Chance settings to prevent pipeline collision
         if (elements.secondChanceToggle) {
             elements.secondChanceToggle.checked = false;
             elements.secondChanceToggle.disabled = true;
         }
-        if (secondChanceWrapper) {
-            secondChanceWrapper.classList.add('opacity-40', 'pointer-events-none', 'transition-opacity');
-        }
+        if (secondChanceWrapper) secondChanceWrapper.classList.add('opacity-40', 'pointer-events-none', 'transition-opacity');
         const sOptions = document.getElementById('second-chance-options');
         if (sOptions) sOptions.classList.add('hidden');
+
+        // UNLOCK Choice-Swapping settings panel
+        if (elements.allowChangeToggle) elements.allowChangeToggle.disabled = false;
+        if (allowChangeContainer) allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
     } else {
         if (elements.secondChanceToggle) elements.secondChanceToggle.disabled = false;
-        if (secondChanceWrapper) {
-            secondChanceWrapper.classList.remove('opacity-40', 'pointer-events-none');
+        if (secondChanceWrapper) secondChanceWrapper.classList.remove('opacity-40', 'pointer-events-none');
+
+        // AUTOMATED PURGE: Uncheck, lock out, and apply greyed-out visual layout styles
+        if (elements.allowChangeToggle) {
+            elements.allowChangeToggle.checked = false;
+            elements.allowChangeToggle.disabled = true;
         }
+        if (allowChangeContainer) allowChangeContainer.classList.add('opacity-50', 'pointer-events-none');
     }
 
     // 3. Evaluate Verification Bounds on Timed Quiz Variations

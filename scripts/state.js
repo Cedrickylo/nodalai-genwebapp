@@ -183,7 +183,8 @@ export const elements = {
     manualRevealToggle: document.getElementById('manual-reveal-toggle'),
     shuffleQuestionsToggle: document.getElementById('shuffle-questions-toggle'),
     shuffleChoicesToggle: document.getElementById('shuffle-choices-toggle'),
-    revealAnswerBtn: document.getElementById('reveal-answer-btn')
+    revealAnswerBtn: document.getElementById('reveal-answer-btn'),
+    allowchangetoggle: document.getElementById('allow-change-toggle')
 };
 
 export const state = {

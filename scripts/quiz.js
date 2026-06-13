@@ -128,7 +128,8 @@ export function attachQuizEventListeners() {
         remedialTimeLimitOptions,
         remedialAttemptLimitOptions,
         remedialOptionsView,
-        resultsActions
+        resultsActions,
+        allowChangeToggle
     } = elements;
 
     resumeQuizBtn.addEventListener('click', () => { if (state.savedProgress) resumeQuiz(state.savedProgress); });
