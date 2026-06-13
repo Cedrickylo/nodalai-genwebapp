@@ -262,7 +262,7 @@ async function syncDatabaseCollections() {
         adminState.users = JSON.parse(savedUsers);
     } else {
         adminState.users = [
-            { id: 'usr_cedric_nu', name: 'John Cedrick Siason', usage: 4, limit: 5, active: true },
+            { id: 'usr_cedrickylo_nu', name: 'John Cedrick Siason', usage: 4, limit: 5, active: true },
             { id: 'usr_test_alpha', name: 'Jane Doe Developer', usage: 1, limit: 5, active: true },
             { id: 'usr_spam_bot', name: 'Abusive Token Requester', usage: 45, limit: 5, active: false }
         ];
@@ -482,7 +482,7 @@ async function registerNewSubAdminAccount() {
 }
 
 window.revokeSubAdminPrivileges = async function(username) {
-    if (username === 'cedric') {
+    if (username === 'cedrickylo') {
         showAdminToast('Sovereign primary platform owner profile cannot be unlinked from administrative tracks.', 'error');
         return;
     }
