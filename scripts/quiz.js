@@ -380,7 +380,9 @@ export function attachQuizEventListeners() {
     cancelRemedialBtn.addEventListener('click', () => {
         remedialOptionsView.classList.add('hidden');
         resultsActions.classList.remove('hidden');
-        createRemedialBtn.classList.add('hidden');
+        
+        // FIXED: Changed .add('hidden') to .remove('hidden') so button returns safely
+        createRemedialBtn.classList.remove('hidden'); 
     });
     generateRemedialQuizBtn.addEventListener('click', () => handleQuizGeneration(true, false));
     remedialDifficultyRadios.forEach(r => r.addEventListener('change', handleRemedialDifficultyChange));

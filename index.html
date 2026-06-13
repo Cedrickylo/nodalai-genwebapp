@@ -89,10 +89,19 @@
                 <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
                 <p id="start-subtitle" class="text-gray-400 mb-8 text-center">Transform your documents into tailored assessments instantly.</p>
                 
-                <div id="file-actions" class="grid grid-cols-2 gap-4 mb-6">
-                     <label for="file-upload-input" class="w-full inline-block bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate"><span id="file-name">Select Documents</span></label>
-                    <label for="import-quiz-input" class="w-full inline-block bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer">Import Quiz</label>
-                    <input type="file" id="file-upload-input" multiple><input type="file" id="import-quiz-input" accept=".json">
+                <div id="file-actions" class="flex items-center gap-2 mb-6">
+                    <label for="file-upload-input" class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate">
+                        <span id="file-name">Select Documents</span>
+                    </label>
+                    <label for="import-quiz-input" class="w-12 h-12 flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition cursor-pointer flex-shrink-0" title="Import Quiz">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </label>
+                    <input type="file" id="file-upload-input" multiple>
+                    <input type="file" id="import-quiz-input" accept=".json">
                 </div>
 
                 <div id="customize-section" class="hidden mb-6">
@@ -293,53 +302,40 @@
                 <div class="relative z-10 pt-0 sm:pt-0">
                     <div id="help-header-sentinel" class="h-px" aria-hidden="true"></div>
                     <div class="page-sticky-header scroll-reactive-header mb-4 sm:mb-5">
-                    <button id="help-back-btn" class="inline-flex items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">
-                        <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                        <span>Back</span>
-                    </button>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Help</h2>
+                        <button id="help-back-btn" class="inline-flex items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">
+                            <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            <span>Back</span>
+                        </button>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Frequently Asked Questions</h2>
                         <span class="header-spacer" aria-hidden="true"></span>
                     </div>
-                    <!-- <div class="page-subtitle text-center mb-4 sm:mb-5">
-                        <p class="text-sm text-gray-400 text-center mb-0">How to use Nodal AI Quiz Generator</p>
-                    </div> -->
 
-                    <div class="info-grid space-y-4">
-		    <section class="info-card">
-                            <h3>Quick Steps</h3>
-                            <ol class="list-decimal list-inside mb-0">
-                                <li>Select or upload documents using "Select Documents".</li>
-                                <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
-                                <li>Click "Generate Quiz" to create questions from your documents.</li>
-                                <li>Take the quiz, review results, and export or save to the cloud.</li>
-                            </ol>
+                    <div class="info-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <section class="info-card">
+                            <h3>How does Nodal AI generate quizzes?</h3>
+                            <p>It processes text from your uploaded PDFs or Word documents locally and uses on-device smart rules alongside secure cloud processing to instantly construct multiple-choice, identification, or enumeration questions.</p>
                         </section>
 
                         <section class="info-card">
-                            <h3>What this site does</h3>
-                            <p>It analyzes uploaded documents and generates assessment-style questions (multiple choice, identification, enumeration, or a mix) using on-device logic and cloud helpers. You can save quizzes to your Puter account or export them locally.</p>
+                            <h3>Can I use Nodal AI completely offline?</h3>
+                            <p>Yes! Once the app loads on your device, you can review your entire local history, customize options, and play any previously generated quiz without an active internet connection. Generating new quizzes requires network access.</p>
                         </section>
 
                         <section class="info-card">
-                            <h3>Limitations & Notes</h3>
-                            <ul class="list-disc list-inside mb-0">
-                                <li>Quality of questions depends on the clarity and structure of the source document.</li>
-                                <li>Processing large or scanned PDFs may be slower and may not extract text perfectly.</li>
-                                <li>There is a rate limit on quiz generation to prevent abuse (see account modal).</li>
-                                <li>Some features rely on Puter cloud services; offline behavior is limited.</li>
-                            </ul>
+                            <h3>Where is my quiz history stored?</h3>
+                            <p>Your history is saved locally in your browser's secure cache database. If you log in with your Puter account, your records will automatically synchronize seamlessly across all your devices.</p>
                         </section>
 
                         <section class="info-card">
-                            <h3>Troubleshooting</h3>
-                            <p>If uploads fail or generation stalls, try re-uploading a simpler file, check your internet connection for cloud sync features, or refresh the page.</p>
+                            <h3>Is there a daily quiz generation limit?</h3>
+                            <p>To prevent abuse, there is a sliding rate limit of 5 quizzes every 3 hours per user session. You can monitor your current cooldown status inside your Account tab.</p>
                         </section>
 
-                        <section class="info-card">
-                            <h3>Privacy</h3>
-                            <p>Uploaded documents may be temporarily processed by Puter services when cloud features are enabled. Please avoid uploading sensitive personal data.</p>
+                        <section class="info-card md:col-span-2">
+                            <h3>Contact Information & Support</h3>
+                            <p>For feedback, bug reports, or feature requests, feel free to reach out to the project maintainers via the repository issues section or contact support at <span class="text-blue-400 font-medium">support@nodalai.example.com</span>.</p>
                         </section>
                     </div>
                 </div>
@@ -362,12 +358,9 @@
                         <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">About</h2>
                         <span class="header-spacer" aria-hidden="true"></span>
                     </div>
-                    <!-- <div class="page-subtitle text-center mb-4 sm:mb-5">
-                        <p class="text-sm text-gray-400 text-center mb-0">Purpose, credits, and Terms of Service</p>
-                    </div> -->
 
                     <div class="info-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
-		            <section class="info-card">
+                        <section class="info-card">
                             <h3>Purpose</h3>
                             <p>Nodal AI Quiz Generator is a lightweight tool to convert learning materials into practice quizzes quickly. It's designed for educators and learners to create formative assessments from documents.</p>
                         </section>
@@ -377,10 +370,40 @@
                             <p>Created by the Nodal AI team (or contributor). For inquiries, contact the project owner listed in the repository.</p>
                         </section>
 
+                        <section class="info-card">
+                            <h3>Quick Steps</h3>
+                            <ol class="list-decimal list-inside mb-0 space-y-1">
+                                <li>Select or upload documents using "Select Documents".</li>
+                                <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
+                                <li>Click "Generate Quiz" to create questions from your documents.</li>
+                                <li>Take the quiz, review results, and export or save to the cloud.</li>
+                            </ol>
+                        </section>
+
+                        <section class="info-card">
+                            <h3>What this site does</h3>
+                            <p>It analyzes uploaded documents and generates assessment-style questions (multiple choice, identification, enumeration, or a mix) using on-device logic and cloud helpers. You can save quizzes to your Puter account or export them locally.</p>
+                        </section>
+
+                        <section class="info-card lg:col-span-2">
+                            <h3>Limitations & Notes</h3>
+                            <ul class="list-disc list-inside mb-0 space-y-1">
+                                <li>Quality of questions depends on the clarity and structure of the source document.</li>
+                                <li>Processing large or scanned PDFs may be slower and may not extract text perfectly.</li>
+                                <li>There is a rate limit on quiz generation to prevent abuse (see account modal).</li>
+                                <li>Some features rely on Puter cloud services; offline behavior is limited.</li>
+                            </ul>
+                        </section>
+
+                        <section class="info-card lg:col-span-2">
+                            <h3>Troubleshooting</h3>
+                            <p>If uploads fail or generation stalls, try re-uploading a simpler file, check your internet connection for cloud sync features, or refresh the page.</p>
+                        </section>
+
                         <section class="info-card lg:col-span-2">
                             <h3>Services & Credits</h3>
                             <p>This project uses the following third-party services and libraries:</p>
-                            <ul class="list-disc list-inside mb-0">
+                            <ul class="list-disc list-inside mb-0 space-y-1">
                                 <li>Puter.js — cloud sync & user accounts (credits apply to some operations).</li>
                                 <li>mammoth.js — Word document parsing.</li>
                                 <li>pdf.js — PDF text extraction.</li>
@@ -390,9 +413,14 @@
                         </section>
 
                         <section class="info-card lg:col-span-2">
+                            <h3>Privacy</h3>
+                            <p>Uploaded documents may be temporarily processed by Puter services when cloud features are enabled. Please avoid uploading sensitive personal data.</p>
+                        </section>
+
+                        <section class="info-card lg:col-span-2">
                             <h3>Terms of Service</h3>
-                            <p class="text-xs text-gray-400">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
-                            <p class="text-xs text-gray-400">For full terms, see the project repository or contact the developer for the official TOS document.</p>
+                            <p class="text-xs text-gray-400 leading-relaxed">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
+                            <p class="text-xs text-gray-400 leading-relaxed mt-2">For full terms, see the project repository or contact the developer for the official TOS document.</p>
                         </section>
                     </div>
                 </div>
@@ -469,7 +497,7 @@
                 <div id="summary-container" class="space-y-4 max-h-96 overflow-y-auto pr-2 rounded-lg"></div>
                 
                 <div id="results-actions" class="flex gap-4 mt-8">
-                    <button id="restart-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">Try Another Quiz</button>
+                    <button id="restart-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">Go to Home</button>
                     <button id="export-quiz-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition">Export Quiz</button>
                 </div>
                 <div id="remedial-container" class="mt-4">
@@ -713,8 +741,7 @@
         </div>
 
         <div class="lg:col-span-2 w-full pt-2">
-            <button id="logout-btn" class="w-full bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/20 hover:border-transparent font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button id="logout-btn" class="w-full bg-red-600/10 hover:bg-red-600/30 text-red-400 hover:text-white border border-red-500/20 hover:border-transparent font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">                <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
                     <line x1="21" y1="12" x2="9" y2="12"></line>
