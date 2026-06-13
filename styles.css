@@ -1,15 +1,29 @@
 ﻿        /* Mobile Responsiveness & Layout Fixes */
-        body { font-family: 'Inter', sans-serif; overflow-x: hidden; max-width: 100vw; }
+        html, body { 
+            font-family: 'Inter', sans-serif; 
+            overflow-x: hidden; 
+            max-width: 100vw; 
+            width: 100%;
+        }
         @media (max-width: 768px) {
+            body { padding-bottom: 120px; }
             body { padding-bottom: 120px; }
             /* Safe area spacing buffer to keep content above the bottom nav */
             .view { padding-bottom: 80px; }
 
-            /* ==================================================================
-            FIX: Prevent the floating mobile nav bar from overlapping content
-            ================================================================== */
             .page-shell {
-                margin-bottom: 75px !important; /* Pushes the shell card container above the nav bar */
+                margin-bottom: 75px !important; 
+            }
+
+            /* ==================================================================
+            FIX: Pull background ambient glow blurs inside mobile view boundaries
+            ================================================================== */
+            .page-shell::before {
+                right: 0rem !important; /* Eliminates the -4rem exterior bleed row */
+            }
+            
+            .page-shell::after {
+                left: 0rem !important; /* Eliminates the -4rem exterior bleed row */
             }
 
             /* Keep the history fullscreen card sized to the mobile viewport without its own scroll area */
