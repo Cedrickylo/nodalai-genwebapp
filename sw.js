@@ -65,10 +65,10 @@ self.addEventListener('fetch', (event) => {
                 const isLocal = requestUrl.origin === self.location.origin;
                 const isAllowedCDN = ALLOWED_CDN_ORIGINS.some(origin => requestUrl.hostname === origin);
 
-                if (networkResponse && networkResponse.status === 200 && (isLocal || isAllowedCDN)) {
+                // CRITICAL FIX: Allow both standard 200 responses AND 'opaque' (status 0) cross-origin CDN scripts
+                if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque') && (isLocal || isAllowedCDN)) {
                     const responseToCache = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        // cache.put safely handles opaque responses from third-party scripts
                         cache.put(event.request, responseToCache);
                     });
                 }

@@ -218,7 +218,8 @@ export function setSyncing(status) {
 
 export async function syncHistoryWithCloud(manual = false) {
     // 1. Authentication check
-    if (!window.puter || !puter.auth.isSignedIn()) {
+    // Defensive Guard: Check if authentication systems are structurally reachable offline
+    if (typeof puter === 'undefined' || !window.puter || !puter.auth.isSignedIn()) {
         setSyncing('offline');
         if (manual) showToast('Sign in to Puter to sync history.', 4000, 'warning');
         return;
@@ -455,6 +456,12 @@ export function getUniqueName(baseName) {
 }
 
 export async function updateAuthUI() {
+    // Defensive Guard: Check if the Puter cloud script failed to load or is missing entirely
+    if (typeof puter === 'undefined') {
+        if (elements.authBtnText) elements.authBtnText.textContent = 'Offline';
+        setSyncing('offline');
+        return;
+    }
     const signedIn = puter.auth.isSignedIn();
 
     if (signedIn) {
@@ -499,8 +506,8 @@ export async function populateAccountData() {
     const loggedInContent = document.getElementById('account-logged-in-content');
     const loggedOutContent = document.getElementById('account-logged-out-content');
 
-    if (!window.puter || !puter.auth.isSignedIn()) {
-        // Show login prompt if they open account page while logged out
+    // Defensive Guard: Block runtime account tracking lookups if variable is missing
+    if (typeof puter === 'undefined' || !window.puter || !puter.auth.isSignedIn()) {
         if (loggedInContent) loggedInContent.classList.add('hidden');
         if (loggedOutContent) loggedOutContent.classList.remove('hidden');
         return;
@@ -1086,6 +1093,11 @@ export function attachAuthHandlers() {
     // 1. Home Screen Auth Button (Shows as Popup)
     if (authBtn) {
         authBtn.onclick = async () => {
+            // Defensive Guard: Catch offline button clicks if script failed to mount
+            if (typeof puter === 'undefined') {
+                showToast('Authentication unavailable offline.', 4000, 'warning');
+                return;
+            }
             if (!puter.auth.isSignedIn()) {
                 try {
                     // 1. Wait for the user to finish logging in
