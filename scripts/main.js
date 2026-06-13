@@ -1,10 +1,11 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, setupWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
+import { showToast, syncHistoryWithCloud, validateAllInputs } from './helpers.js'; // Added imports
 
 async function initApp() {
     if (window.puter) puter.quiet = true;
     try {
-        // Bind a one-time user gesture to resume the AudioContext (Tone.js) when needed
+        // Bind user gesture to resume AudioContext (Tone.js)
         function bindUserGestureToStartAudio() {
             const resumeAudio = async () => {
                 try {
@@ -26,15 +27,42 @@ async function initApp() {
         attachQuizEventListeners();
         await updateAuthUI();
         prepareSavedProgress();
-        setupWelcomeModal();
+        initWelcomeModal();
+
+        // ==================================================================
+        // NEW: REGISTER PWA BACKGROUND SERVICE WORKER FOR OFFLINE MODE
+        // ==================================================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registered successfully with scope: ', registration.scope);
+                    })
+                    .catch((err) => {
+                        console.warn('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // ==================================================================
+        // NEW: LISTEN FOR CONNECTIVITY SHIFTS TO RE-DOCK NETWORK UTILITIES
+        // ==================================================================
+        window.addEventListener('online', () => {
+            showToast('You are back online! Reconnecting to Puter cloud...', 3000, 'success');
+            syncHistoryWithCloud(true);
+            validateAllInputs();
+        });
+
+        window.addEventListener('offline', () => {
+            showToast('Connection lost. Running in Offline Mode (Quiz Generation disabled).', 4000, 'warning');
+            validateAllInputs();
+        });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const shareId = urlParams.get('share'); // Changed from 'q' to 'share'
+        const shareId = urlParams.get('share');
         
-        if (shareId) {
-            // Hide the ID from the URL bar to keep it looking clean
+        if (shareId && navigator.onLine) { // Added online check protection guardrail
             window.history.replaceState({}, document.title, window.location.pathname);
-            // Download and load it!
             loadSharedQuiz(shareId);
         }
                 

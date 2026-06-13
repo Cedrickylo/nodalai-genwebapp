@@ -190,8 +190,8 @@ export async function clearHistory() {
 }
 
 export function setSyncing(status) {
-    // Determine if the user is completely offline/logged out
-    const isOffline = !window.puter || !puter.auth.isSignedIn();
+    // Determine if the user is completely offline/logged out OR system reports offline status
+    const isOffline = !navigator.onLine || !window.puter || !puter.auth.isSignedIn();
     const finalStatus = isOffline ? 'offline' : status;
 
     // 1. Target Global Sync Buttons (Using Class to hit both Home and Full views)
@@ -206,7 +206,7 @@ export function setSyncing(status) {
         if (offline) offline.classList.toggle('hidden', finalStatus !== 'offline');
     });
 
-    // 2. Target Quiz View Sync Indicator (Existing)
+    // 2. Target Quiz View Sync Indicator
     const quizDone = document.querySelector('#quiz-sync-indicator .sync-icon-done');
     const quizLoad = document.querySelector('#quiz-sync-indicator .sync-icon-loading');
     const quizOffline = document.querySelector('#quiz-sync-indicator .sync-icon-offline');
@@ -1010,13 +1010,14 @@ export function handleCustomTypeChange() {
 }
 
 export function validateAllInputs() {
+    const isOnline = navigator.onLine;
     const hasSource = typeof state.fileContent === 'string' && state.fileContent.trim().length > 0;
     const hasCustomize = !!state.customizingQuizData || state.isCustomizingHistory;
     const totalCount = parseInt(questionCountInput.value, 10) || 0;
-    // Fix: If editing an existing quiz from history, bypass the count > 0 requirement
+
+    // Check configuration parameters
     let enabled = state.isCustomizingHistory ? hasCustomize : ((hasSource || hasCustomize) && totalCount > 0);
 
-    // Fix: Wrap the question structure checks so they only run for NEW quizzes
     if (!state.isCustomizingHistory) {
         const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value;
         if (difficulty === 'custom') {
@@ -1041,6 +1042,28 @@ export function validateAllInputs() {
     if (attemptLimitToggle.checked) {
         const maxAttempts = parseInt(attemptLimitInput.value, 10) || 0;
         enabled = enabled && maxAttempts > 0;
+    }
+
+    // ==================================================================
+    // NEW: OFFLINE LOCKOUT RULES FOR AI GENERATION UTILITIES
+    // ==================================================================
+    if (!isOnline) {
+        // If we are customization editing an EXISTING quiz from history, let them load it!
+        // But if it's a completely NEW quiz generation attempt, lock it down.
+        if (!state.isCustomizingHistory) {
+            enabled = false;
+            statusMessage.textContent = 'Quiz generation requires an internet connection.';
+        }
+        
+        // Always block remedial generation when offline since it synthesizes new items via prompts
+        if (elements.generateRemedialQuizBtn) {
+            elements.generateRemedialQuizBtn.disabled = true;
+        }
+    } else {
+        // Clear offline structural text warning if status recovers to online status
+        if (statusMessage.textContent === 'Quiz generation requires an internet connection.') {
+            statusMessage.textContent = '';
+        }
     }
 
     generateQuizBtn.disabled = !enabled;
