@@ -1,6 +1,6 @@
-import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, setupWelcomeModal } from './helpers.js';
+import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
-import { showToast, syncHistoryWithCloud, validateAllInputs } from './helpers.js'; // Added imports
+import { showToast, syncHistoryWithCloud, validateAllInputs } from './helpers.js';
 
 async function initApp() {
     if (window.puter) puter.quiet = true;

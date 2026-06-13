@@ -1298,29 +1298,6 @@ export function exportQuizAsJSON(quizKey) {
     }
 }
 
-export function setupWelcomeModal() {
-    const overlay = document.getElementById('welcome-modal-overlay');
-    const closeBtn = document.getElementById('welcome-close-btn');
-    const checkbox = document.getElementById('welcome-checkbox');
-
-    if (!overlay || !closeBtn || !checkbox) return;
-
-    // Check if user previously saved permanent dismissal
-    const isDismissed = localStorage.getItem(WELCOME_DISMISSED_KEY);
-    if (isDismissed === 'true') return;
-
-    // Reveal modal if flag is not set
-    overlay.classList.remove('hidden');
-
-    // Dismissal button interaction
-    closeBtn.onclick = () => {
-        if (checkbox.checked) {
-            localStorage.setItem(WELCOME_DISMISSED_KEY, 'true');
-        }
-        overlay.classList.add('hidden');
-    };
-}
-
 // ==========================================
 // STARTUP WELCOME MODAL CONTROLLER
 // ==========================================
