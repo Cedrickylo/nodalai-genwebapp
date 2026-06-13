@@ -1,4 +1,5 @@
-const CACHE_NAME = 'nodal-ai-cache-v1';
+// Updated version string to break stale browser cache memory
+const CACHE_NAME = 'nodal-ai-cache-v2';
 
 // Pre-cache ONLY local files to ensure stable installation without CORS interference
 const LOCAL_ASSETS_TO_CACHE = [
@@ -65,7 +66,7 @@ self.addEventListener('fetch', (event) => {
                 const isLocal = requestUrl.origin === self.location.origin;
                 const isAllowedCDN = ALLOWED_CDN_ORIGINS.some(origin => requestUrl.hostname === origin);
 
-                // CRITICAL FIX: Allow both standard 200 responses AND 'opaque' (status 0) cross-origin CDN scripts
+                // Allow both standard 200 responses AND 'opaque' (status 0) cross-origin CDN scripts
                 if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque') && (isLocal || isAllowedCDN)) {
                     const responseToCache = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {

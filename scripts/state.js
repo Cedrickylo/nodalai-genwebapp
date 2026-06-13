@@ -2,7 +2,6 @@ export const constants = {
     DB_NAME: 'AIQuizGeneratorDB_v4',
     CLOUD_SYNC_KEY: 'puter_quiz_sync_v4',
     IN_PROGRESS_QUIZ_KEY: 'AIQuizInProgress',
-    WELCOME_DISMISSED_KEY: 'NodalAI_WelcomeDismissed',
     MAX_GENERATION_ATTEMPTS: 5,
     MAX_GENERATIONS_PER_WINDOW: 5,
     GENERATION_WINDOW_MS: 3 * 60 * 60 * 1000,
@@ -10,7 +9,7 @@ export const constants = {
     GENERATION_LOG_CLOUD_KEY: 'AIQuizGenerationLog_v1',
     MIN_QUIZ_QUESTIONS: 5,
     MAX_QUIZ_QUESTIONS: 100,
-    WELCOME_DISMISSED_KEY: 'nodal_welcome_dismissed_v1'
+    WELCOME_DISMISSED_KEY: 'nodal_welcome_dismissed_v1' // Cleaned up duplicate
 };
 
 export const elements = {
@@ -85,7 +84,6 @@ export const elements = {
     mobileMenuAboutBtn: document.getElementById('mobile-menu-about-btn'),
     mobileMenuAccountBtn: document.getElementById('mobile-menu-account-btn'),
     mobileMenuBackdrop: document.getElementById('mobile-menu-backdrop'),
-    // Desktop nav
     desktopNavHomeBtn: document.getElementById('desktop-nav-home-btn'),
     desktopNavHistoryBtn: document.getElementById('desktop-nav-history-btn'),
     desktopNavHelpBtn: document.getElementById('desktop-nav-help-btn'),
@@ -155,7 +153,6 @@ export const elements = {
     confirmMessage: document.getElementById('confirm-message'),
     acceptConfirmBtn: document.getElementById('accept-confirm-btn'),
     cancelConfirmBtn: document.getElementById('cancel-confirm-btn'),
-    // --- Share Gateway Modal Elements ---
     shareModal: document.getElementById('share-modal'),
     shareBackBtn: document.getElementById('share-back-btn'),
     closeShareModalBtn: document.getElementById('close-share-modal-btn'),
@@ -171,12 +168,12 @@ export const elements = {
     disableShareBtn: document.getElementById('disable-share-btn'),
     shareExpiryDisplay: document.getElementById('share-expiry-display'),
     clearFilesBtn: document.getElementById('clear-files-btn'),
-    // --- NEW ACCOUNT ELEMENTS ADDED HERE ---
     accountLoggedInContent: document.getElementById('account-logged-in-content'),
     accountLoggedOutContent: document.getElementById('account-logged-out-content'),
     accountLoginBtn: document.getElementById('account-login-btn'),
-    welcomemodal: document.getElementById('welcome-modal-overlay'),    
-    welcomeCloseBtn: document.getElementById('welcome-close-btn'),    
+    // FIXED: Changed 'welcomemodal' to match camelCase 'welcomeModal' in helpers.js
+    welcomeModal: document.getElementById('welcome-modal-overlay'),
+    welcomeCloseBtn: document.getElementById('welcome-close-btn'),
     welcomeCheckbox: document.getElementById('welcome-dont-show-again')
 };
 
@@ -214,7 +211,6 @@ export const state = {
     customizingQuizData: null,
     incorrectQuestionsForRemedial: [],
     initialCustomizeState: {},
-    // --- Share Gateway State ---
     activeShareStep: 'menu',
     currentShareQuizKey: null
 };
