@@ -1,6 +1,8 @@
 // aiService.js
 // Main function to generate quiz questions using AI
 
+import { state } from './state.js';
+
 const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI
 
 export function isUsingPuterAI() {
