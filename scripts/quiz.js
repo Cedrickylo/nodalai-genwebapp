@@ -99,6 +99,7 @@ export function attachQuizEventListeners() {
         restartQuizBtn,
         exportQuizBtn,
         homeBtn,
+        summaryOnlyToggle,
         saveQuizBtn,
         historyList,
         showAllHistoryBtn,
