@@ -1208,6 +1208,9 @@ export function validateAllInputs() {
     // 2. Manage Mutual Exclusions and Advanced Sub-Option Cleanups
     const isManualRevealActive = elements.manualRevealToggle && elements.manualRevealToggle.checked;
     const secondChanceWrapper = attemptLimitToggle.closest('.grid')?.querySelector('div:has(#second-chance-toggle)') || document.getElementById('second-chance-toggle')?.closest('div');
+    
+    // Direct DOM Lookups to bypass any stale state.js script caching issues
+    const allowChangeToggleEl = document.getElementById('allow-change-toggle');
     const allowChangeContainer = document.getElementById('allow-change-container');
 
     if (isManualRevealActive) {
@@ -1221,16 +1224,16 @@ export function validateAllInputs() {
         if (sOptions) sOptions.classList.add('hidden');
 
         // UNLOCK Choice-Swapping settings panel
-        if (elements.allowChangeToggle) elements.allowChangeToggle.disabled = false;
+        if (allowChangeToggleEl) allowChangeToggleEl.disabled = false;
         if (allowChangeContainer) allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
     } else {
         if (elements.secondChanceToggle) elements.secondChanceToggle.disabled = false;
         if (secondChanceWrapper) secondChanceWrapper.classList.remove('opacity-40', 'pointer-events-none');
 
         // AUTOMATED PURGE: Uncheck, lock out, and apply greyed-out visual layout styles
-        if (elements.allowChangeToggle) {
-            elements.allowChangeToggle.checked = false;
-            elements.allowChangeToggle.disabled = true;
+        if (allowChangeToggleEl) {
+            allowChangeToggleEl.checked = false;
+            allowChangeToggleEl.disabled = true;
         }
         if (allowChangeContainer) allowChangeContainer.classList.add('opacity-50', 'pointer-events-none');
     }
