@@ -325,7 +325,13 @@ export function saveLocalGenerationLog(log = []) {
 
 export async function loadGenerationCooldownState() {
     let log = getLocalGenerationLog();
-    if (!puter.auth.isSignedIn()) {
+    if (typeof puter === 'undefined' || !puter.auth.isSignedIn()) {
+        state.generationLog = log;
+        return log;
+    }
+
+    // CRITICAL FIX: Fall back immediately to local logs if offline to avoid network rejections
+    if (!navigator.onLine) {
         state.generationLog = log;
         return log;
     }
@@ -456,28 +462,49 @@ export function getUniqueName(baseName) {
 }
 
 export async function updateAuthUI() {
-    // Defensive Guard: Check if the Puter cloud script failed to load or is missing entirely
+    // 1. Defensive Guard: Check if the Puter cloud script failed to load or is missing entirely
     if (typeof puter === 'undefined') {
         if (elements.authBtnText) elements.authBtnText.textContent = 'Offline';
         setSyncing('offline');
         return;
     }
-    const signedIn = puter.auth.isSignedIn();
 
-    if (signedIn) {
-        const customName = await puter.kv.get('custom_display_name');
-        authBtnText.textContent = customName || 'Account';
-        authBtn.classList.remove('bg-blue-600');
-        authBtn.classList.add('bg-green-600');
-        await syncHistoryWithCloud();
-        await loadGenerationCooldownState();
-    } else {
-        authBtnText.textContent = 'Puter Login';
-        authBtn.classList.remove('bg-green-600');
-        authBtn.classList.add('bg-blue-600');
-        
-        // ADD THIS LINE: Force the icon to show "Can't Sync" when logged out
-        setSyncing('offline'); 
+    try {
+        const signedIn = puter.auth.isSignedIn();
+
+        if (signedIn) {
+            let customName = null;
+            
+            // CRITICAL FIX: Only query the cloud KV store if the browser is online
+            if (navigator.onLine) {
+                try {
+                    customName = await puter.kv.get('custom_display_name');
+                } catch (kvError) {
+                    console.warn("Failed to fetch custom name from cloud while online:", kvError);
+                }
+            }
+
+            authBtnText.textContent = customName || 'Account';
+            authBtn.classList.remove('bg-blue-600');
+            authBtn.classList.add('bg-green-600');
+            
+            // CRITICAL FIX: Only trigger background sync tracks if actively online
+            if (navigator.onLine) {
+                await syncHistoryWithCloud();
+                await loadGenerationCooldownState();
+            } else {
+                setSyncing('offline');
+            }
+        } else {
+            authBtnText.textContent = 'Puter Login';
+            authBtn.classList.remove('bg-green-600');
+            authBtn.classList.add('bg-blue-600');
+            setSyncing('offline'); 
+        }
+    } catch (err) {
+        console.error("Error during auth UI check:", err);
+        if (elements.authBtnText) elements.authBtnText.textContent = 'Account';
+        setSyncing('offline');
     }
 }
 
@@ -506,59 +533,91 @@ export async function populateAccountData() {
     const loggedInContent = document.getElementById('account-logged-in-content');
     const loggedOutContent = document.getElementById('account-logged-out-content');
 
-    // Defensive Guard: Block runtime account tracking lookups if variable is missing
     if (typeof puter === 'undefined' || !window.puter || !puter.auth.isSignedIn()) {
         if (loggedInContent) loggedInContent.classList.add('hidden');
         if (loggedOutContent) loggedOutContent.classList.remove('hidden');
         return;
     }
 
-    // Hide prompt, show data
     if (loggedInContent) loggedInContent.classList.remove('hidden');
     if (loggedOutContent) loggedOutContent.classList.add('hidden');
 
-    const user = await puter.auth.getUser();
-    elements.modalUsername.textContent = user.username;
-
-    modalUsername.textContent = user.username || 'Unknown';
-    modalAccountId.textContent = user.uuid || user.id || user.accountId || 'Unknown';
-    modalEmail.textContent = user.email
-        ? user.email
-        : user.sessionId
-            ? `Session ${user.sessionId}`
-            : user.accountId || user.uuid || user.id || 'Not available';
-
-    let creditLabel = 'Balance unavailable';
-    let progressWidth = 40;
     try {
-        const usage = await puter.auth.getMonthlyUsage();
-        const remaining = usage?.allowanceInfo?.remaining;
-        const allowance = usage?.allowanceInfo?.monthUsageAllowance;
-        if (typeof remaining === 'number') {
-            creditLabel = allowance ? `${Math.round(remaining)} / ${Math.round(allowance)} remaining` : `${Math.round(remaining)} remaining`;
-            if (typeof allowance === 'number' && allowance > 0) {
-                progressWidth = Math.min(100, Math.max(0, (remaining / allowance) * 100));
-            } else {
-                progressWidth = 100;
+        let username = 'User';
+        let uuid = 'Unavailable';
+        let email = 'Unavailable';
+
+        // CRITICAL FIX: Only poll profile parameters from cloud if online
+        if (navigator.onLine) {
+            try {
+                const user = await puter.auth.getUser();
+                username = user.username || 'Unknown';
+                uuid = user.uuid || user.id || user.accountId || 'Unknown';
+                email = user.email || (user.sessionId ? `Session ${user.sessionId}` : 'Not available');
+            } catch (uErr) {
+                console.warn("Failed to fetch user data from cloud:", uErr);
             }
+        } else {
+            username = localStorage.getItem('nodal_cached_username') || 'Account User';
+            uuid = 'Offline Mode';
+            email = 'Offline Mode';
         }
-    } catch (err) {
-        console.error('Failed to fetch monthly usage', err);
+
+        elements.modalUsername.textContent = username;
+        modalAccountId.textContent = uuid;
+        modalEmail.textContent = email;
+
+        let creditLabel = 'Balance unavailable';
+        let progressWidth = 0;
+
+        // CRITICAL FIX: Only poll monthly usages if online
+        if (navigator.onLine) {
+            try {
+                const usage = await puter.auth.getMonthlyUsage();
+                const remaining = usage?.allowanceInfo?.remaining;
+                const allowance = usage?.allowanceInfo?.monthUsageAllowance;
+                if (typeof remaining === 'number') {
+                    creditLabel = allowance ? `${Math.round(remaining)} / ${Math.round(allowance)} remaining` : `${Math.round(remaining)} remaining`;
+                    if (typeof allowance === 'number' && allowance > 0) {
+                        progressWidth = Math.min(100, Math.max(0, (remaining / allowance) * 100));
+                    } else {
+                        progressWidth = 100;
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch monthly usage', err);
+            }
+        } else {
+            creditLabel = 'Offline (Usage details hidden)';
+            progressWidth = 0;
+        }
+
+        modalCredits.textContent = creditLabel;
+        creditProgress.style.width = `${progressWidth}%`;
+
+        const showCredits = isUsingPuterAI();
+        modalCreditPanel.classList.toggle('hidden', !showCredits || !navigator.onLine);
+        modalStoragePanel.classList.remove('hidden');
+        modalStorageLabel.textContent = navigator.onLine ? 'Free' : 'Offline';
+
+        let customName = '';
+        if (navigator.onLine) {
+            try {
+                customName = await puter.kv.get('custom_display_name');
+                if (customName) localStorage.setItem('nodal_cached_username', customName);
+            } catch (kvErr) {
+                console.warn("Failed to fetch display name:", kvErr);
+            }
+        } else {
+            customName = localStorage.getItem('nodal_cached_username') || '';
+        }
+        displayNameInput.value = customName || '';
+        authBtnText.textContent = customName || (navigator.onLine ? 'Account' : 'Account (Offline)');
+
+        await refreshCooldownPanel();
+    } catch (globalPanelErr) {
+        console.error("Error populating layout panel values:", globalPanelErr);
     }
-
-    modalCredits.textContent = creditLabel;
-    creditProgress.style.width = `${progressWidth}%`;
-
-    const showCredits = isUsingPuterAI();
-    modalCreditPanel.classList.toggle('hidden', !showCredits);
-    modalStoragePanel.classList.remove('hidden');
-    modalStorageLabel.textContent = 'Free';
-
-    const customName = await puter.kv.get('custom_display_name');
-    displayNameInput.value = customName || '';
-    authBtnText.textContent = customName || 'Account';
-
-    await refreshCooldownPanel();
 }
 
 export async function saveDisplayName() {
