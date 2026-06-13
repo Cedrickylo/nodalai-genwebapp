@@ -180,6 +180,7 @@ export function displayNextQuestion() {
         if (qData.type === 'multiple-choice') {
             const selAns = (userAnswer || '').toString().trim().toLowerCase();
             isCorrect = selAns === (qData.answer || '').toString().trim().toLowerCase();
+
         } else if (qData.type === 'identification') {
             isCorrect = (userAnswer || '').toString().trim().toLowerCase() === (qData.answer || '').toString().trim().toLowerCase();
         } else if (qData.type === 'enumeration') {
@@ -322,18 +323,25 @@ export function displayNextQuestion() {
         opts.forEach(opt => {
             const btn = document.createElement('button');
             btn.textContent = opt;
-            btn.className = 'option-btn w-full text-left p-4 bg-gray-700 rounded-lg border-2 border-gray-600 hover:bg-gray-600 transition-colors';
+            btn.className = 'option-btn w-full text-left p-4 bg-gray-700 rounded-lg border-2 border-gray-600 text-gray-300 hover:bg-gray-600 transition-colors';
             
             btn.onclick = () => {
                 if (answerAreaEl.classList.contains('disabled-options')) return;
                 
-                // NON-LOCKING CHOICE HIGHLIGHT INTERCEPTION
+                // HIGH CONTRAST SOLID BLUE SELECTION SWAPPING
                 if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection) {
                     state.selectedAnswerTemp = opt;
+                    
+                    // Reset all sibling option layout styles to default unselected gray metrics
                     optsCont.querySelectorAll('.option-btn').forEach(b => {
-                        b.classList.remove('border-blue-500', 'bg-blue-600/20');
+                        b.classList.remove('bg-blue-600', 'border-blue-400', 'text-white', 'font-bold');
+                        b.classList.add('bg-gray-700', 'border-gray-600', 'text-gray-300', 'hover:bg-gray-600');
                     });
-                    btn.classList.add('border-blue-500', 'bg-blue-600/20');
+                    
+                    // Apply explicit high-contrast solid blue selected color block onto the active item
+                    btn.classList.remove('bg-gray-700', 'border-gray-600', 'text-gray-300', 'hover:bg-gray-600');
+                    btn.classList.add('bg-blue-600', 'border-blue-400', 'text-white', 'font-bold');
+                    
                     skipQuestionBtn.classList.add('hidden');
                     nextQuestionBtn.classList.remove('hidden');
                 } else {
@@ -470,12 +478,17 @@ export function checkAnswer(userAnswer) {
         if (qData.type === 'multiple-choice') {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 if (btn.textContent.trim().toLowerCase() === (userAnswer || '').toString().trim().toLowerCase()) {
-                    btn.classList.add('border-blue-500', 'bg-blue-600/20');
+                    // Update final commit highlights to solid high-contrast blue profiles
+                    btn.classList.remove('bg-gray-700', 'border-gray-600', 'text-gray-300', 'hover:bg-gray-600');
+                    btn.classList.add('bg-blue-600', 'border-blue-400', 'text-white', 'font-bold');
                 }
             });
         } else {
             const txtInput = document.getElementById('id-ans') || document.getElementById('en-ans');
-            if (txtInput) txtInput.classList.add('border-blue-500', 'bg-blue-600/10');
+            if (txtInput) {
+                txtInput.classList.remove('bg-gray-700', 'border-gray-600');
+                txtInput.classList.add('border-blue-500', 'bg-blue-600/20', 'text-blue-400', 'font-semibold');
+            }
         }
     } else {
         if (qData.type === 'multiple-choice') {
