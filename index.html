@@ -172,28 +172,52 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Timed Quiz Configurations Block -->
                             <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
                                 <div class="flex items-center gap-2">
-                                    <input type="checkbox" id="time-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
-                                    <label for="time-limit-toggle" class="font-medium text-gray-300">Enable Timed Quiz</label>
-                                    <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">Sets a total time limit for the entire quiz. The quiz will end automatically when time runs out.</span></span>
+                                    <input type="checkbox" id="time-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
+                                    <label for="time-limit-toggle" class="font-medium text-gray-300 cursor-pointer">Enable Timed Quiz</label>
+                                    <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">Sets an assessment timer limit. Choose between a running countdown for the entire quiz or a fresh localized timer for each separate question.</span></span>
                                 </div>
-                                <div id="time-limit-options" class="hidden space-y-3 pt-2">
-                                    <label class="block text-sm font-medium text-gray-300">Select Duration:</label>
-                                    <div class="grid grid-cols-3 gap-2">
-                                        <div><input type="radio" id="time-5m" name="time_preset" value="5" class="hidden peer"><label for="time-5m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">5m</label></div>
-                                        <div><input type="radio" id="time-10m" name="time_preset" value="10" class="hidden peer" checked><label for="time-10m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">10m</label></div>
-                                        <div><input type="radio" id="time-30m" name="time_preset" value="30" class="hidden peer"><label for="time-30m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">30m</label></div>
-                                        <div><input type="radio" id="time-1h" name="time_preset" value="60" class="hidden peer"><label for="time-1h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">1h</label></div>
-                                        <div><input type="radio" id="time-2h" name="time_preset" value="120" class="hidden peer"><label for="time-2h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">2h</label></div>
-                                        <div><input type="radio" id="time-custom" name="time_preset" value="custom" class="hidden peer"><label for="time-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition-colors duration-150 text-sm font-medium">Custom</label></div>
+                                
+                                <!-- Nested Timing System Layout Parameters -->
+                                <div id="time-limit-options" class="hidden space-y-4 pt-2 border-t border-gray-600/30 animate-fade-in">
+                                    <div class="space-y-1">
+                                        <label for="timer-mode-select" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Timer Style</label>
+                                        <select id="timer-mode-select" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 cursor-pointer">
+                                            <option value="quiz" selected>Quiz-Wide (Total Time Limit)</option>
+                                            <option value="question">Per-Question (Individual Time Limit)</option>
+                                        </select>
                                     </div>
-                                    <div id="custom-time-input-container" class="hidden flex items-center gap-2 pt-2">
-                                        <input type="number" id="custom-time-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="15" min="1">
-                                        <label for="custom-time-limit-input" class="text-sm text-gray-400">minutes</label>
+
+                                    <!-- Quiz-Wide Selection Block -->
+                                    <div id="quiz-time-presets-container" class="space-y-2">
+                                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Select Total Duration</label>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <div><input type="radio" id="time-5m" name="time_preset" value="5" class="hidden peer"><label for="time-5m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition text-sm font-medium">5m</label></div>
+                                            <div><input type="radio" id="time-10m" name="time_preset" value="10" class="hidden peer" checked><label for="time-10m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition text-sm font-medium">10m</label></div>
+                                            <div><input type="radio" id="time-30m" name="time_preset" value="30" class="hidden peer"><label for="time-30m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition text-sm font-medium">30m</label></div>
+                                            <div><input type="radio" id="time-1h" name="time_preset" value="60" class="hidden peer"><label for="time-1h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition text-sm font-medium">1h</label></div>
+                                            <div><input type="radio" id="time-2h" name="time_preset" value="120" class="hidden peer"><label for="time-2h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition text-sm font-medium">2h</label></div>
+                                            <div><input type="radio" id="time-custom" name="time_preset" value="custom" class="hidden peer"><label for="time-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-700 peer-checked:text-white transition text-sm font-medium">Custom</label></div>
+                                        </div>
+                                        <div id="custom-time-input-container" class="hidden flex items-center gap-2 pt-2 animate-fade-in">
+                                            <input type="number" id="custom-time-limit-input" class="w-20 bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-white text-sm" value="15" min="1">
+                                            <label for="custom-time-limit-input" class="text-xs text-gray-400">minutes total</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Per-Question Selection Block -->
+                                    <div id="question-time-container" class="hidden space-y-1 animate-fade-in">
+                                        <label for="question-time-input" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Question Timeout Duration</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="question-time-input" class="w-20 bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-white text-sm focus:outline-none" value="30" min="5">
+                                            <span class="text-xs text-gray-400">seconds per question</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
                              <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" id="attempt-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
@@ -209,11 +233,23 @@
                             </div>
                         </div>
 
-                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                        <!-- Summary and Validation Options Component Row -->
+                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-4">
                             <div class="flex items-center gap-2">
-                                <input type="checkbox" id="summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600">
-                                <label for="summary-only-toggle" class="font-medium text-gray-300">Show Answers in Summary Only</label>
-                                <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">If checked, immediate feedback and correct answers will be hidden during the quiz. You will only see all answers in the final summary.</span></span>
+                                <input type="checkbox" id="summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
+                                <label for="summary-only-toggle" class="font-medium text-gray-300 cursor-pointer">Show Answers in Summary Only</label>
+                                <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">If checked, immediate feedback is hidden during active quiz play. All answers populate strictly on the final results page.</span></span>
+                            </div>
+
+                            <!-- Nested Child Option: Manual Evaluation Toggle Block -->
+                            <div id="manual-reveal-container" class="hidden pl-7 pt-2 border-t border-gray-600/20 space-y-2 transition-all duration-200 animate-fade-in">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" id="manual-reveal-toggle" class="h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
+                                    <div class="flex flex-col">
+                                        <label for="manual-reveal-toggle" class="text-sm font-medium text-gray-300 cursor-pointer">Don't auto-validate answers (Manual Reveal)</label>
+                                        <span class="text-[11px] text-gray-400 leading-tight">Lets you click options and proceed forward instantly without checking correctness until the final screen.</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <!-- Advanced Quiz Configurations Block Row -->
@@ -221,19 +257,6 @@
                             <!-- Advanced Feature Mechanics -->
                             <div class="bg-gray-700/50 p-4 rounded-lg space-y-4">
                                 <h4 class="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2">Advanced Options</h4>
-                                
-                                <!-- Timer Mode Customizer Split -->
-                                <div class="space-y-2">
-                                    <label for="timer-mode-select" class="block text-sm text-gray-300">Timer Target Configuration</label>
-                                    <select id="timer-mode-select" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                                        <option value="quiz" selected>Quiz-Wide (Total Time Limit)</option>
-                                        <option value="question">Per-Question (Individual Time Limit)</option>
-                                    </select>
-                                    <div id="question-time-container" class="hidden flex items-center gap-2 pt-1 animate-fade-in">
-                                        <input type="number" id="question-time-input" class="w-20 bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-sm text-white" value="30" min="5">
-                                        <span class="text-xs text-gray-400">seconds per question</span>
-                                    </div>
-                                </div>
 
                                 <!-- Second Chance Engine Options Selector -->
                                 <div class="space-y-2 pt-2 border-t border-gray-800/60">

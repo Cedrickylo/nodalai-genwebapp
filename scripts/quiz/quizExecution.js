@@ -5,7 +5,6 @@ import {
     saveInProgressQuiz,
     clearInProgressQuiz
 } from '../helpers.js';
-//  FIX: Added browser-compatible ES Module import here
 import { showResults, displayExplanation } from './quizResults.js';
 
 const {
@@ -38,7 +37,7 @@ export function startQuiz() {
     state.currentSkippedArray = [];
     state.currentAttempts = 0;
 
-    // RANDOMIZATION FIX: Only sort randomly if randomizeQuestions evaluates to true
+    // Shuffle Gate Configuration
     const shouldShuffle = state.currentQuizConfig.randomizeQuestions !== false;
     const shuffled = Array.from(Array(state.questions.length).keys());
     if (shouldShuffle) {
@@ -67,7 +66,6 @@ export function startQuiz() {
     updateAttemptDisplay();
     displayNextQuestion();
     
-    // TIMER MODE FIX: Block total quiz timer track if using per-question counters
     if (state.isTimedQuiz && state.currentQuizConfig.timerMode !== 'question') {
         startQuizTimer(state.totalQuizTime);
     } else {
@@ -108,12 +106,7 @@ export function updateTimerDisplay() {
 export function stopQuizTimer() {
     if (state.quizTimerInterval) clearInterval(state.quizTimerInterval);
     state.quizTimerInterval = null;
-    
-    // Safeguard: Let the active question-level interval manage layout views if running
-    if (state.currentQuizConfig && state.currentQuizConfig.timerMode === 'question') {
-        return;
-    }
-    
+    if (state.currentQuizConfig && state.currentQuizConfig.timerMode === 'question') return;
     timerDisplayEl.classList.add('hidden');
     timerDisplayEl.classList.remove('text-red-400');
     timerDisplayEl.textContent = '';
@@ -123,7 +116,6 @@ export function stopQuizTimer() {
     visualTimerBar.classList.add('bg-blue-500');
 }
 
-// --- NEW INDEPENDENT PER-QUESTION COUNTDOWN CONTROLLERS ---
 export function startQuestionTimer(startTime) {
     timerDisplayEl.classList.remove('hidden', 'text-red-400');
     visualTimerContainer.classList.remove('hidden');
@@ -131,18 +123,15 @@ export function startQuestionTimer(startTime) {
     visualTimerBar.classList.remove('bg-red-500');
     visualTimerBar.classList.add('bg-blue-500');
     state.currentQuestionTimeRemaining = startTime;
-    
     timerDisplayEl.textContent = `0:${state.currentQuestionTimeRemaining < 10 ? '0' : ''}${state.currentQuestionTimeRemaining}`;
     
     if (state.questionTimerInterval) clearInterval(state.questionTimerInterval);
     state.questionTimerInterval = setInterval(() => {
         state.currentQuestionTimeRemaining--;
-        
         const secs = state.currentQuestionTimeRemaining;
         timerDisplayEl.textContent = `0:${secs < 10 ? '0' : ''}${secs}`;
         const perc = startTime > 0 ? Math.max(0, (secs / startTime) * 100) : 0;
         visualTimerBar.style.width = `${perc}%`;
-        
         const isWarn = secs <= 5;
         timerDisplayEl.classList.toggle('text-red-400', isWarn);
         visualTimerBar.classList.toggle('bg-red-500', isWarn);
@@ -151,15 +140,10 @@ export function startQuestionTimer(startTime) {
         if (state.currentQuestionTimeRemaining <= 0) {
             clearInterval(state.questionTimerInterval);
             state.questionTimerInterval = null;
-            handleQuestionTimeUp();
+            showToast("Question Time's Up!", 3000, 'error');
+            checkAnswer("Time Out");
         }
     }, 1000);
-}
-
-function handleQuestionTimeUp() {
-    showToast("Question Time's Up!", 3000, 'error');
-    if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.add('hidden');
-    checkAnswer("Time Out");
 }
 
 export function updateAttemptDisplay() {
@@ -169,7 +153,6 @@ export function updateAttemptDisplay() {
         attemptDisplayEl.textContent = `Attempts: ${state.currentAttempts}/${state.maxAttempts}`;
     } else {
         attemptDisplayEl.classList.add('hidden');
-        attemptDisplayEl.textContent = '';
     }
 }
 
@@ -179,10 +162,7 @@ export function handleTimeUp() {
     answerAreaEl.classList.add('disabled-options');
     nextQuestionBtn.classList.add('hidden');
     skipQuestionBtn.classList.add('hidden');
-    setTimeout(() => {
-        //  FIX: Removed inline require
-        showResults();
-    }, 1500);
+    setTimeout(() => { showResults(); }, 1500);
 }
 
 export function displayNextQuestion() {
@@ -194,12 +174,9 @@ export function displayNextQuestion() {
     answerAreaEl.className = 'space-y-4';
     answerAreaEl.classList.remove('disabled-options');
 
-    // --- Reset Advanced Feature Trackers for the Incoming Question ---
     state.currentQuestionChancesLeft = state.currentQuizConfig.enableSecondChance ? (state.currentQuizConfig.maxChances || 1) : 0;
     state.selectedAnswerTemp = null;
-    if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.add('hidden');
 
-    // --- Local Question-Level Timer Trigger Hook ---
     if (state.currentQuizConfig.timerMode === 'question') {
         startQuestionTimer(state.currentQuizConfig.questionTime || 30);
     } else {
@@ -266,16 +243,20 @@ export function displayNextQuestion() {
         progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${state.questions.length}`;
     }
     
-    scoreEl.textContent = `Score: ${state.score}`;
+    // SCORE MASKING: Hide score progress if summary limits are active
+    if (state.currentQuizConfig.showAnswersInSummaryOnly) {
+        scoreEl.textContent = `Score: Hidden`;
+    } else {
+        scoreEl.textContent = `Score: ${state.score}`;
+    }
+    
     questionTextEl.textContent = qData.question;
-
     const questionType = (qData.type || '').toString().trim().toLowerCase();
 
     if (!state.inSkippedRound) {
         skipQuestionBtn.classList.remove('hidden');
     }
 
-    // --- MULTIPLE CHOICE TYPE LAYER ---
     if (qData.type === 'multiple-choice') {
         const shuffleChoices = state.currentQuizConfig.randomizeChoices !== false;
         const opts = qData.options ? (shuffleChoices ? [...qData.options].sort(() => Math.random() - 0.5) : [...qData.options]) : [];
@@ -285,84 +266,21 @@ export function displayNextQuestion() {
             const btn = document.createElement('button');
             btn.textContent = opt;
             btn.className = 'option-btn w-full text-left p-4 bg-gray-700 rounded-lg border-2 border-gray-600 hover:bg-gray-600 transition-colors';
-            
-            btn.onclick = () => {
-                if (answerAreaEl.classList.contains('disabled-options')) return;
-                
-                // DEFERRED VALIDATION CHECK: Capture temporary choice instead of instant scoring
-                if (state.currentQuizConfig.manualReveal) {
-                    state.selectedAnswerTemp = opt;
-                    optsCont.querySelectorAll('.option-btn').forEach(b => b.classList.remove('border-blue-500', 'bg-gray-600/50'));
-                    btn.classList.add('border-blue-500', 'bg-gray-600/50');
-                    skipQuestionBtn.classList.add('hidden');
-                    if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.remove('hidden');
-                } else {
-                    checkAnswer(opt);
-                }
-            };
+            btn.onclick = () => checkAnswer(opt);
             optsCont.appendChild(btn);
         });
         answerAreaEl.appendChild(optsCont);
-
-    // --- IDENTIFICATION TYPE LAYER ---
     } else if (questionType === 'identification') {
-        answerAreaEl.innerHTML = `
-            <input type="text" id="id-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>
-        `;
+        answerAreaEl.innerHTML = `<input type="text" id="id-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"><button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>`;
         const idIn = document.getElementById('id-ans');
-        const sBtn = document.getElementById('submit-btn');
-
-        const submitAction = () => {
-            if (answerAreaEl.classList.contains('disabled-options') || !idIn.value.trim()) return;
-            
-            if (state.currentQuizConfig.manualReveal) {
-                state.selectedAnswerTemp = idIn.value;
-                idIn.readOnly = true;
-                sBtn.classList.add('hidden');
-                skipQuestionBtn.classList.add('hidden');
-                if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.remove('hidden');
-            } else {
-                checkAnswer(idIn.value);
-            }
-        };
-
-        sBtn.onclick = submitAction;
-        idIn.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitAction(); });
+        document.getElementById('submit-btn').onclick = () => { checkAnswer(idIn.value); };
+        idIn.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(e.target.value); });
         idIn.focus();
-
-    // --- ENUMERATION TYPE LAYER ---
     } else if (questionType === 'enumeration') {
-        answerAreaEl.innerHTML = `
-            <textarea id="en-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" rows="4" placeholder="List items, one per line..."></textarea>
-            <button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>
-        `;
+        answerAreaEl.innerHTML = `<textarea id="en-ans" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" rows="4" placeholder="List items, one per line..."></textarea><button id="submit-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Submit</button>`;
         const enIn = document.getElementById('en-ans');
-        const sBtn = document.getElementById('submit-btn');
-
-        const submitAction = () => {
-            if (answerAreaEl.classList.contains('disabled-options')) return;
-            const lines = enIn.value.split('\n').map(s => s.trim()).filter(Boolean);
-            if (lines.length === 0) return;
-
-            if (state.currentQuizConfig.manualReveal) {
-                state.selectedAnswerTemp = lines;
-                enIn.readOnly = true;
-                sBtn.classList.add('hidden');
-                skipQuestionBtn.classList.add('hidden');
-                if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.remove('hidden');
-            } else {
-                checkAnswer(lines);
-            }
-        };
-
-        sBtn.onclick = submitAction;
-        enIn.addEventListener('keydown', (e) => { 
-            if (e.key === 'Enter' && e.ctrlKey) { 
-                e.preventDefault(); 
-                submitAction(); 
-            } 
-        });
+        document.getElementById('submit-btn').onclick = () => { checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); };
+        enIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); checkAnswer(enIn.value.split('\n').map(s => s.trim()).filter(Boolean)); } });
         enIn.focus();
     }
 }
@@ -395,12 +313,6 @@ export function skipQuestion() {
 export function checkAnswer(userAnswer) {
     if (answerAreaEl.classList.contains('disabled-options')) return;
 
-    // Halt question timer instantly upon receiving a grading confirmation
-    if (state.questionTimerInterval) {
-        clearInterval(state.questionTimerInterval);
-        state.questionTimerInterval = null;
-    }
-
     let currOrigIdx = state.inSkippedRound 
         ? state.currentSkippedArray[state.currentSkippedItemIndex] 
         : state.shuffledIndices[state.currentShuffledIndexPos];
@@ -408,7 +320,6 @@ export function checkAnswer(userAnswer) {
     const qData = state.questions[currOrigIdx];
     let isCorrect = false;
 
-    // 1. Evaluate correctness metrics
     if (qData.type === 'multiple-choice') {
         const selAns = (userAnswer || '').toString().trim().toLowerCase();
         isCorrect = selAns === (qData.answer || '').toString().trim().toLowerCase();
@@ -418,83 +329,88 @@ export function checkAnswer(userAnswer) {
         let rawAnswer = qData.answer || [];
         if (typeof rawAnswer === 'string') rawAnswer = rawAnswer.split(/[,|\n]/);
         else if (!Array.isArray(rawAnswer)) rawAnswer = [rawAnswer];
-        
         const correctItems = rawAnswer.map(s => (s || '').toString().trim().toLowerCase()).sort();
         const userItems = (userAnswer || []).map(s => (s || '').toString().trim().toLowerCase()).sort();
         isCorrect = correctItems.length === userItems.length && correctItems.every((it, i) => it === userItems[i]);
     }
 
-    // 2. SECOND CHANCE INTERCEPTION: Catch errors and allow retries if allowed
-    if (!isCorrect && state.currentQuizConfig.enableSecondChance && state.currentQuestionChancesLeft > 0 && userAnswer !== "Time Out") {
+    const isManualReveal = state.currentQuizConfig && state.currentQuizConfig.manualReveal;
+
+    // SECOND CHANCE EXPIRATION REPAIR: Terminate loops correctly when attempts hit 0
+    if (!isCorrect && state.currentQuizConfig.enableSecondChance && state.currentQuestionChancesLeft > 0 && !isManualReveal && userAnswer !== "Time Out") {
         state.currentQuestionChancesLeft--;
-        
         if (state.incorrectSound) {
             try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
         }
-        
         showToast(`Incorrect response! Attempts remaining: ${state.currentQuestionChancesLeft + 1}`, 3000, 'warning');
 
-        // Flag the wrong selection without locking inputs
         if (qData.type === 'multiple-choice') {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 if (btn.textContent.trim().toLowerCase() === (userAnswer || '').toString().trim().toLowerCase()) {
                     btn.classList.add('incorrect');
-                    btn.style.pointerEvents = 'none'; // Lock out this wrong option
+                    btn.style.pointerEvents = 'none';
                 }
             });
-            if (state.currentQuizConfig.manualReveal) {
-                state.selectedAnswerTemp = null;
-                if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.add('hidden');
-            }
         } else {
-            // Text components: Restore fields for correction edits
             const txtInput = document.getElementById('id-ans') || document.getElementById('en-ans');
             if (txtInput) {
                 txtInput.classList.add('incorrect');
-                txtInput.readOnly = false;
                 setTimeout(() => txtInput.classList.remove('incorrect'), 1500);
             }
-            const sBtn = document.getElementById('submit-btn');
-            if (sBtn) sBtn.classList.remove('hidden');
-            
-            if (state.currentQuizConfig.manualReveal) {
-                state.selectedAnswerTemp = null;
-                if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.add('hidden');
-            }
-        }
-
-        // Restart local countdown if question timer mode is enabled
-        if (state.currentQuizConfig.timerMode === 'question') {
-            startQuestionTimer(state.currentQuestionTimeRemaining);
         }
         return; 
     }
 
-    // 3. Finalize question inputs and apply styling
+    if (state.questionTimerInterval) {
+        clearInterval(state.questionTimerInterval);
+        state.questionTimerInterval = null;
+    }
+
     answerAreaEl.classList.add('disabled-options');
     skipQuestionBtn.classList.add('hidden');
 
-    if (qData.type === 'multiple-choice') {
-        const selAns = (userAnswer || '').toString().trim().toLowerCase();
-        document.querySelectorAll('.option-btn').forEach(btn => {
-            const btnTxt = btn.textContent.trim().toLowerCase();
-            if (btnTxt === (qData.answer || '').toString().trim().toLowerCase()) btn.classList.add('correct');
-            else if (btnTxt === selAns) btn.classList.add('incorrect');
-        });
+    // FEEDBACK STRATIFICATION ENGINE
+    if (isManualReveal) {
+        // Silent Profile: Apply neutral selection highlights only
+        if (qData.type === 'multiple-choice') {
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                if (btn.textContent.trim().toLowerCase() === (userAnswer || '').toString().trim().toLowerCase()) {
+                    btn.classList.add('border-blue-500', 'bg-blue-600/20');
+                }
+            });
+        } else {
+            const txtInput = document.getElementById('id-ans') || document.getElementById('en-ans');
+            if (txtInput) txtInput.classList.add('border-blue-500', 'bg-blue-600/10');
+        }
     } else {
-        const txtInput = document.getElementById('id-ans') || document.getElementById('en-ans');
-        if (txtInput) {
-            txtInput.classList.remove('incorrect');
-            txtInput.classList.add(isCorrect ? 'correct' : 'incorrect');
+        // Standard Profiles: Apply full correctness layout configurations
+        if (qData.type === 'multiple-choice') {
+            const selAns = (userAnswer || '').toString().trim().toLowerCase();
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                const btnTxt = btn.textContent.trim().toLowerCase();
+                if (btnTxt === (qData.answer || '').toString().trim().toLowerCase()) btn.classList.add('correct');
+                else if (btnTxt === selAns) btn.classList.add('incorrect');
+            });
+        } else {
+            const txtInput = document.getElementById('id-ans') || document.getElementById('en-ans');
+            if (txtInput) txtInput.classList.add(isCorrect ? 'correct' : 'incorrect');
+        }
+
+        if (isCorrect) {
+            if (state.correctSound) {
+                try { state.correctSound.triggerAttackRelease('C4', '8n', Tone.now()); } catch (e) {}
+            }
+        } else {
+            if (state.incorrectSound) {
+                try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
+            }
         }
     }
 
-    // 4. Update core grading logs
-    if (!isCorrect) {
-        if (state.incorrectSound) {
-            try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
-        }
-        if (state.isAttemptLimited) {
+    if (isCorrect) {
+        state.score++;
+    } else {
+        if (state.isAttemptLimited && !isManualReveal) {
             state.currentAttempts++;
             updateAttemptDisplay();
             if (state.currentAttempts >= state.maxAttempts) {
@@ -505,11 +421,6 @@ export function checkAnswer(userAnswer) {
                 setTimeout(() => { showResults(); }, 1500);
                 return;
             }
-        }
-    } else {
-        state.score++;
-        if (state.correctSound) {
-            try { state.correctSound.triggerAttackRelease('C4', '8n', Tone.now()); } catch (e) {}
         }
     }
 
@@ -523,17 +434,12 @@ export function checkAnswer(userAnswer) {
         state.skippedOriginalIndices.delete(currOrigIdx);
         state.currentShuffledIndexPos++;
     }
-    
-    scoreEl.textContent = `Score: ${state.score}`;
-    displayExplanation(qData, isCorrect);
-}
 
-// --- NEW REVEAL ANSWER ROUTINE FOR DEFERRED VALIDATION MODE ---
-export function revealAnswer() {
-    if (!state.selectedAnswerTemp && state.selectedAnswerTemp !== "") {
-        showToast("Please provide or pick an answer first!", 2000, "warning");
-        return;
+    if (state.currentQuizConfig.showAnswersInSummaryOnly) {
+        scoreEl.textContent = `Score: Hidden`;
+    } else {
+        scoreEl.textContent = `Score: ${state.score}`;
     }
-    if (elements.revealAnswerBtn) elements.revealAnswerBtn.classList.add('hidden');
-    checkAnswer(state.selectedAnswerTemp);
+
+    displayExplanation(qData, isCorrect);
 }

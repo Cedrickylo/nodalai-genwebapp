@@ -123,13 +123,28 @@ export function toggleContainerVisibility(containerId, isVisible) {
 // --- Consolidated Toggle Functions ---
 
 export function handleTimeToggle() {
-    // Show/hide the entire options container
     timeLimitOptions.classList.toggle('hidden', !timeLimitToggle.checked);
     
     if (timeLimitToggle.checked) {
-        handleTimePresetChange(); // Show specific sub-option if enabled
+        // Evaluate dynamic internal displays based on active settings select index value
+        const timerMode = elements.timerModeSelect ? elements.timerModeSelect.value : 'quiz';
+        const isQuestionMode = timerMode === 'question';
+        
+        document.getElementById('quiz-time-presets-container')?.classList.toggle('hidden', isQuestionMode);
+        document.getElementById('question-time-container')?.classList.toggle('hidden', !isQuestionMode);
+        
+        if (!isQuestionMode) {
+            handleTimePresetChange();
+        }
     } else {
+        // PARSE PURGE: Clear inputs/checkbox parameters if hidden or disabled
+        if (elements.timerModeSelect) elements.timerModeSelect.value = 'quiz';
+        if (elements.questionTimeInput) elements.questionTimeInput.value = 30;
+        const time10m = document.getElementById('time-10m');
+        if (time10m) time10m.checked = true;
         customTimeInputContainer.classList.add('hidden');
+        document.getElementById('quiz-time-presets-container')?.classList.remove('hidden');
+        document.getElementById('question-time-container')?.classList.add('hidden');
     }
 }
 
@@ -1091,21 +1106,24 @@ export function setupCustomizeView(config, name) {
         }
     }
 
-    // --- Populating Advanced Config Form Fields ---
+    // --- Unpacking Form Field Variables and Syncing Sub-Containers ---
     if (elements.timerModeSelect) {
         elements.timerModeSelect.value = config.timerMode || 'quiz';
-        const qTimeContainer = document.getElementById('question-time-container');
-        if (qTimeContainer) qTimeContainer.classList.toggle('hidden', config.timerMode !== 'question');
+        const isQuestionMode = config.timerMode === 'question';
+        document.getElementById('quiz-time-presets-container')?.classList.toggle('hidden', isQuestionMode);
+        document.getElementById('question-time-container')?.classList.toggle('hidden', !isQuestionMode);
     }
     if (elements.questionTimeInput) elements.questionTimeInput.value = config.questionTime || 30;
     
     if (elements.secondChanceToggle) {
         elements.secondChanceToggle.checked = config.enableSecondChance || false;
-        const sChanceOptions = document.getElementById('second-chance-options');
-        if (sChanceOptions) sChanceOptions.classList.toggle('hidden', !config.enableSecondChance);
+        document.getElementById('second-chance-options')?.classList.toggle('hidden', !config.enableSecondChance);
     }
     if (elements.maxChancesInput) elements.maxChancesInput.value = config.maxChances || 1;
-    if (elements.manualRevealToggle) elements.manualRevealToggle.checked = config.manualReveal || false;
+    
+    if (elements.manualRevealToggle) {
+        elements.manualRevealToggle.checked = config.manualReveal || false;
+    }
     if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = config.randomizeQuestions !== false;
     if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = config.randomizeChoices !== false;
 
@@ -1163,10 +1181,56 @@ export function validateAllInputs() {
         enabled = enabled && maxAttempts > 0;
     }
 
-    // --- Validate Advanced Feature Parameters ---
-    if (elements.timerModeSelect && elements.timerModeSelect.value === 'question') {
-        const qTime = elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 0 : 0;
-        enabled = enabled && qTime >= 5; // Enforce minimum 5 seconds constraint
+    // --- NESTED NEIGHBOR DEPENDENCY AND CLEARANCE CONTROLLERS ---
+    
+    // 1. Manage Parental Layout Rules for Summary Only vs Manual Reveal Toggles
+    const manualRevealContainer = document.getElementById('manual-reveal-container');
+    if (summaryOnlyToggle.checked) {
+        if (manualRevealContainer) manualRevealContainer.classList.remove('hidden');
+        if (elements.manualRevealToggle) elements.manualRevealToggle.disabled = false;
+    } else {
+        if (manualRevealContainer) manualRevealContainer.classList.add('hidden');
+        // AUTOMATED PURGE: Uncheck and lock sub-toggle parameter if parent is disabled
+        if (elements.manualRevealToggle) {
+            elements.manualRevealToggle.checked = false;
+            elements.manualRevealToggle.disabled = true;
+        }
+    }
+
+    // 2. Manage Mutual Exclusions Between Manual Reveal and Second Chance Configurations
+    const isManualRevealActive = elements.manualRevealToggle && elements.manualRevealToggle.checked;
+    const secondChanceWrapper = attemptLimitToggle.closest('.grid')?.querySelector('div:has(#second-chance-toggle)') || document.getElementById('second-chance-toggle')?.closest('div');
+    
+    if (isManualRevealActive) {
+        // Clear active checkmark, force property values dry, and inject grayed-out styles
+        if (elements.secondChanceToggle) {
+            elements.secondChanceToggle.checked = false;
+            elements.secondChanceToggle.disabled = true;
+        }
+        if (secondChanceWrapper) {
+            secondChanceWrapper.classList.add('opacity-40', 'pointer-events-none', 'transition-opacity');
+        }
+        const sOptions = document.getElementById('second-chance-options');
+        if (sOptions) sOptions.classList.add('hidden');
+    } else {
+        if (elements.secondChanceToggle) elements.secondChanceToggle.disabled = false;
+        if (secondChanceWrapper) {
+            secondChanceWrapper.classList.remove('opacity-40', 'pointer-events-none');
+        }
+    }
+
+    // 3. Evaluate Verification Bounds on Timed Quiz Variations
+    if (timeLimitToggle.checked && elements.timerModeSelect) {
+        if (elements.timerModeSelect.value === 'question') {
+            const qTime = elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 0 : 0;
+            enabled = enabled && qTime >= 5;
+        } else {
+            const selectedPreset = document.querySelector('input[name="time_preset"]:checked')?.value;
+            if (selectedPreset === 'custom') {
+                const cTime = parseInt(customTimeLimitInput.value, 10) || 0;
+                enabled = enabled && cTime > 0;
+            }
+        }
     }
 
     // ==================================================================

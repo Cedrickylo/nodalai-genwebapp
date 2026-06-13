@@ -33,30 +33,35 @@ const {
 } = elements;
 
 export function displayExplanation(qData, isCorrect) {
-    const resCol = isCorrect ? 'text-green-400' : 'text-red-400';
-    const resTxt = isCorrect ? 'Correct!' : 'Incorrect';
-    let ansDisp = '';
-    let explanationDisp = '';
+    
+    // OFFLINE PROGRESS SILENCE GATE: If manual reveal is enabled, mask the prompt card entirely
+    if (state.currentQuizConfig && state.currentQuizConfig.manualReveal) {
+        explanationAreaEl.innerHTML = '';
+        explanationAreaEl.classList.add('hidden');
+    } else {
+        const resCol = isCorrect ? 'text-green-400' : 'text-red-400';
+        const resTxt = isCorrect ? 'Correct!' : 'Incorrect';
+        let ansDisp = '';
+        let explanationDisp = '';
 
-    if (!state.currentQuizConfig.showAnswersInSummaryOnly) {
-        if (!isCorrect) {
-            const corrAns = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
-            ansDisp = `<p class="text-sm text-gray-400 mt-2">Correct: <strong class="font-semibold text-white">${corrAns || 'N/A'}</strong></p>`;
+        if (!state.currentQuizConfig.showAnswersInSummaryOnly) {
+            if (!isCorrect) {
+                const corrAns = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
+                ansDisp = `<p class="text-sm text-gray-400 mt-2">Correct: <strong class="font-semibold text-white">${corrAns || 'N/A'}</strong></p>`;
+            }
+            explanationDisp = `<p class="mt-2 text-gray-300">${qData.explanation || 'No explanation.'}</p>`;
         }
-        explanationDisp = `<p class="mt-2 text-gray-300">${qData.explanation || 'No explanation.'}</p>`;
+
+        explanationAreaEl.innerHTML = `<div class="bg-gray-900/50 p-4 rounded-lg"><h3 class="font-bold text-lg ${resCol}">${resTxt}</h3>${ansDisp}${explanationDisp}</div>`;
+        explanationAreaEl.classList.remove('hidden');
     }
 
-    explanationAreaEl.innerHTML = `<div class="bg-gray-900/50 p-4 rounded-lg"><h3 class="font-bold text-lg ${resCol}">${resTxt}</h3>${ansDisp}${explanationDisp}</div>`;
-    explanationAreaEl.classList.remove('hidden');
-    elements.nextQuestionBtn.classList.remove('hidden');
+    nextQuestionBtn.classList.remove('hidden');
     skipQuestionBtn.classList.add('hidden');
     
-    let currOrigIdx;
-    if (state.inSkippedRound) {
-        currOrigIdx = state.currentSkippedArray[state.currentSkippedItemIndex];
-    } else {
-        currOrigIdx = state.shuffledIndices[state.currentShuffledIndexPos];
-    }
+    let currOrigIdx = state.inSkippedRound 
+        ? state.currentSkippedArray[state.currentSkippedItemIndex] 
+        : state.shuffledIndices[state.currentShuffledIndexPos - 1];
     
     saveInProgressQuiz({
         key: state.currentQuizKey,
@@ -92,30 +97,27 @@ export async function showResults() {
     summaryCont.innerHTML = '';
     state.incorrectQuestionsForRemedial = [];
 
-    // Loop through ALL original questions, not just the answered ones
     state.questions.forEach((qData, origIdx) => {
-        // Find if the user submitted an answer for this specific question
         const userAnsObj = state.userAnswers.find(a => a.originalIndex === origIdx);
         const isCorrect = userAnsObj ? userAnsObj.isCorrect : false;
         
         const item = document.createElement('div');
         item.className = `summary-item bg-gray-700/50 p-4 rounded-lg ${isCorrect ? 'summary-correct' : 'summary-incorrect'}`;
         
-        // Format the User's Answer text
         let userAnsTxt = 'No answer';
         if (userAnsObj && userAnsObj.userAnswer !== undefined && userAnsObj.userAnswer !== null && userAnsObj.userAnswer !== '') {
             userAnsTxt = Array.isArray(userAnsObj.userAnswer) ? userAnsObj.userAnswer.join(', ') : userAnsObj.userAnswer;
         }
         
-        // Format the Correct Answer text
         const corrAnsTxt = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
         
-        item.innerHTML = `<p class="font-semibold text-gray-300">Q${origIdx + 1}: ${qData.question}</p>
-                          <p class="text-sm mt-2">You: <span class="font-mono text-gray-400">${userAnsTxt}</span></p>
-                          ${!isCorrect ? `<p class="text-sm">Correct: <span class="font-mono text-green-400">${corrAnsTxt || 'N/A'}</span></p>` : ''}`;
+        item.innerHTML = `
+            <p class="font-semibold text-gray-300">Q${origIdx + 1}: ${qData.question}</p>
+            <p class="text-sm mt-2">You: <span class="font-mono text-gray-400">${userAnsTxt}</span></p>
+            ${!isCorrect ? `<p class="text-sm">Correct: <span class="font-mono text-green-400">${corrAnsTxt || 'N/A'}</span></p>` : ''}
+        `;
         
         summaryCont.appendChild(item);
-        
         if (!isCorrect) {
             state.incorrectQuestionsForRemedial.push(qData);
         }
@@ -135,7 +137,6 @@ export function setupRemedialView() {
     remedialOptionsView.classList.remove('hidden');
     createRemedialBtn.classList.add('hidden');
 
-    // Pre-fill Remedial Title Name
     elements.remedialQuizNameInput.value = (state.currentFileName || 'Quiz') + ' - Remedial';
 
     const defaultTotal = Math.min(10, state.incorrectQuestionsForRemedial.length * 2);
