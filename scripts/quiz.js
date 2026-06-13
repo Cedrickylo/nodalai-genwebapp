@@ -100,6 +100,7 @@ export function attachQuizEventListeners() {
         exportQuizBtn,
         homeBtn,
         summaryOnlyToggle,
+        timerModeSelect,
         saveQuizBtn,
         historyList,
         showAllHistoryBtn,
@@ -264,6 +265,32 @@ export function attachQuizEventListeners() {
 
     // FIX: Add change listener to dynamically trigger visibility/clearance code
     summaryOnlyToggle.addEventListener('change', validateAllInputs);
+
+    // FIX: Listen for timer style changes to instantly toggle and sanitize hidden fields
+    if (timerModeSelect) {
+        timerModeSelect.addEventListener('change', () => {
+            const isQuestionMode = timerModeSelect.value === 'question';
+            
+            // Toggle containers cleanly using your existing layout IDs
+            document.getElementById('quiz-time-presets-container')?.classList.toggle('hidden', isQuestionMode);
+            document.getElementById('question-time-container')?.classList.toggle('hidden', !isQuestionMode);
+            
+            // AUTOMATED PURGE: Safely clear inputs when they become hidden or disabled
+            if (isQuestionMode) {
+                // Reset hidden total quiz time limit parameters to default state values
+                const time10m = document.getElementById('time-10m');
+                if (time10m) time10m.checked = true;
+                if (elements.customTimeLimitInput) elements.customTimeLimitInput.value = 15;
+                document.getElementById('custom-time-input-container')?.classList.add('hidden');
+            } else {
+                // Reset hidden question timeout inputs back to standard defaults
+                if (elements.questionTimeInput) elements.questionTimeInput.value = 30;
+            }
+            
+            validateAllInputs();
+        });
+    }
+
             // Mobile nav active state helper
             function setMobileNavActive(key) {
                 const homeBtn = elements.mobileNavHomeBtn;
