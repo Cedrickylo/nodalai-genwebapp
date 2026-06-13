@@ -2,6 +2,7 @@ export const constants = {
     DB_NAME: 'AIQuizGeneratorDB_v4',
     CLOUD_SYNC_KEY: 'puter_quiz_sync_v4',
     IN_PROGRESS_QUIZ_KEY: 'AIQuizInProgress',
+    WELCOME_DISMISSED_KEY: 'NodalAI_WelcomeDismissed',
     MAX_GENERATION_ATTEMPTS: 5,
     MAX_GENERATIONS_PER_WINDOW: 5,
     GENERATION_WINDOW_MS: 3 * 60 * 60 * 1000,

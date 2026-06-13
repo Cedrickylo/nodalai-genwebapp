@@ -1,4 +1,4 @@
-import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress } from './helpers.js';
+import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, setupWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 
 async function initApp() {
@@ -26,6 +26,7 @@ async function initApp() {
         attachQuizEventListeners();
         await updateAuthUI();
         prepareSavedProgress();
+        setupWelcomeModal();
 
         const urlParams = new URLSearchParams(window.location.search);
         const shareId = urlParams.get('share'); // Changed from 'q' to 'share'

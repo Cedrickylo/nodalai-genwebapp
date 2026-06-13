@@ -72,7 +72,7 @@ const {
     accountLoginBtn
 } = elements;
 
-const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS } = constants;
+const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS, WELCOME_DISMISSED_KEY } = constants;
 
 // Add this to helpers.js
 const setVisibility = (element, isVisible) => {
@@ -1232,4 +1232,27 @@ export function exportQuizAsJSON(quizKey) {
         console.error('Export Error:', err);
         showToast('Failed to export quiz.', 3000, 'error');
     }
+}
+
+export function setupWelcomeModal() {
+    const overlay = document.getElementById('welcome-modal-overlay');
+    const closeBtn = document.getElementById('welcome-close-btn');
+    const checkbox = document.getElementById('welcome-checkbox');
+
+    if (!overlay || !closeBtn || !checkbox) return;
+
+    // Check if user previously saved permanent dismissal
+    const isDismissed = localStorage.getItem(WELCOME_DISMISSED_KEY);
+    if (isDismissed === 'true') return;
+
+    // Reveal modal if flag is not set
+    overlay.classList.remove('hidden');
+
+    // Dismissal button interaction
+    closeBtn.onclick = () => {
+        if (checkbox.checked) {
+            localStorage.setItem(WELCOME_DISMISSED_KEY, 'true');
+        }
+        overlay.classList.add('hidden');
+    };
 }
