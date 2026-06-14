@@ -38,8 +38,8 @@ exports.handler = async (event) => {
       const settingsResult = await pool.query('SELECT * FROM global_settings WHERE id = 1');
       const globalConfig = settingsResult.rows[0] || {};
 
-      // Pull registered platform users telemetry metrics
-      const usersResult = await pool.query('SELECT puter_id AS id, display_name AS name, usage_count AS usage, generation_limit AS limit, is_active AS active FROM users_telemetry ORDER BY last_active_at DESC');
+      // FIX: Wrapped the reserved keyword 'limit' in double quotes ("limit") to prevent Postgres syntax crash
+      const usersResult = await pool.query('SELECT puter_id AS id, display_name AS name, usage_count AS usage, generation_limit AS "limit", is_active AS active FROM users_telemetry ORDER BY last_active_at DESC');
       
       // Pull dynamic whitelisted sub-administrators usernames
       const adminsResult = await pool.query('SELECT puter_username FROM admin_whitelist ORDER BY created_at ASC');
