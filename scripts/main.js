@@ -1,6 +1,7 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
+import { state } from './state.js';
 
 // ==================================================================
 // GLOBAL UNHANDLED REJECTION SAFETY NET
@@ -41,6 +42,24 @@ async function initApp() {
             } catch (configError) {
                 console.warn("Falling back to local application defaults; cloud settings unreachable.");
             }
+
+            // ==================================================================
+            // NEW BACKGROUND LOGGING GATE: UPSERT USER METRICS ON LOG IN
+            // ==================================================================
+            puter.auth.getUser().then(async (currentUserObj) => {
+                try {
+                    await fetch('/.netlify/functions/user-checkin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            puterId: currentUserObj.username || currentUserObj.id,
+                            displayName: currentUserObj.username || 'Puter User'
+                        })
+                    });
+                } catch (err) {
+                    console.warn("Background admin telemetry tracking synchronization failed.");
+                }
+            });
         }
 
         // Bind user gesture to resume AudioContext (Tone.js)

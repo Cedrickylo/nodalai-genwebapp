@@ -255,44 +255,6 @@ async function unlockWorkspaceShell() {
     renderActivePanelCanvas();
 }
 
-async function syncDatabaseCollections() {
-    // 1. Core Seed: Read or generate Mock user directory mappings 
-    const savedUsers = localStorage.getItem('nodal_admin_mock_users');
-    if (savedUsers) {
-        adminState.users = JSON.parse(savedUsers);
-    } else {
-        adminState.users = [
-            { id: 'usr_cedrickylo_nu', name: 'John Cedrick Siason', usage: 4, limit: 5, active: true },
-            { id: 'usr_test_alpha', name: 'Jane Doe Developer', usage: 1, limit: 5, active: true },
-            { id: 'usr_spam_bot', name: 'Abusive Token Requester', usage: 45, limit: 5, active: false }
-        ];
-        saveUsersToMockStore();
-    }
-
-    // 2. Fetch Whitelisted Sub-Admins list from cloud storage
-    if (window.puter && puter.auth.isSignedIn()) {
-        try {
-            const rawAdmins = await puter.kv.get('nodal_cloud_whitelisted_admins');
-            adminState.subAdmins = rawAdmins ? JSON.parse(rawAdmins) : ['cedrickylo'];
-        } catch (e) {
-            adminState.subAdmins = ['cedrickylo'];
-        }
-    } else {
-        adminState.subAdmins = ['cedrickylo'];
-    }
-
-    // 3. Sync Application Version Metrics Configurations
-    const savedConfig = localStorage.getItem('nodal_admin_global_config');
-    if (savedConfig) {
-        adminState.globalConfig = JSON.parse(savedConfig);
-    } else {
-        localStorage.setItem('nodal_admin_global_config', JSON.stringify(adminState.globalConfig));
-    }
-
-    // Push state properties to active UI wrappers
-    syncGlobalConfigUIElements();
-}
-
 function syncGlobalConfigUIElements() {
     const cfg = adminState.globalConfig;
     adminElements.selectGlobalClient.value = cfg.aiClient || 'groq';
@@ -410,43 +372,6 @@ window.openEditUserModal = function(id, currentName, currentLimit) {
     adminElements.modalEditUserOverlay.classList.remove('hidden');
 };
 
-function commitUserProfileChanges() {
-    const id = adminElements.modalEditUserId.value;
-    const name = adminElements.modalEditUserName.value.trim();
-    const limit = parseInt(adminElements.modalEditUserLimit.value, 10) || 5;
-    
-    if (!name) {
-        showAdminToast('Profile display name string cannot be empty.', 'error');
-        return;
-    }
-    
-    const userIndex = adminState.users.findIndex(u => u.id === id);
-    if (userIndex !== -1) {
-        adminState.users[userIndex].name = name;
-        adminState.users[userIndex].limit = limit;
-        
-        saveUsersToMockStore();
-        renderUserDirectoryMatrix();
-        adminElements.modalEditUserOverlay.classList.add('hidden');
-        showAdminToast(`Profile constraints overridden for ID: ${id}`, 'success');
-    }
-}
-
-window.toggleUserStatus = function(id, shouldReinstate) {
-    const userIndex = adminState.users.findIndex(u => u.id === id);
-    if (userIndex !== -1) {
-        adminState.users[userIndex].active = shouldReinstate;
-        saveUsersToMockStore();
-        renderUserDirectoryMatrix();
-        
-        const actionMsg = shouldReinstate ? 'reinstated to standard active state' : 'suspended from platform generation access';
-        showAdminToast(`User session context ${id} successfully ${actionMsg}.`, 'info');
-        
-        // Push the ban list updates up to the Puter Cloud key space to enforce it in production right away
-        pushBanDatabaseToCloudStore();
-    }
-};
-
 async function pushBanDatabaseToCloudStore() {
     if (window.puter && puter.auth.isSignedIn() && navigator.onLine) {
         const disabledIds = adminState.users.filter(u => !u.active).map(u => u.id);
@@ -458,73 +383,156 @@ async function pushBanDatabaseToCloudStore() {
     }
 }
 
+// =====================================================================
+// NEW DATABASE INTEGRATIONS FOR adminWorkspace.js
+// =====================================================================
+
+async function syncDatabaseCollections() {
+    try {
+        const response = await fetch('/.netlify/functions/admin-data', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${adminState.token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+
+        adminState.users = data.users || [];
+        adminState.subAdmins = data.subAdmins || [];
+        adminState.globalConfig = {
+            aiClient: data.globalConfig.ai_client,
+            rateLimit: data.globalConfig.global_rate_limit,
+            version: {
+                major: data.globalConfig.version_major,
+                minor: data.globalConfig.version_minor,
+                version_patch: data.globalConfig.version_patch || 0
+            },
+            autoVersion: data.globalConfig.auto_version,
+            totalRequestsLog: data.globalConfig.total_requests_log
+        };
+        
+        // Manual patching sync workaround
+        adminState.globalConfig.version.patch = data.globalConfig.version_patch;
+
+        syncGlobalConfigUIElements();
+    } catch (err) {
+        showAdminToast(`Data sync failed: ${err.message}`, 'error');
+    }
+}
+
+async function commitUserProfileChanges() {
+    const id = adminElements.modalEditUserId.value;
+    const name = adminElements.modalEditUserName.value.trim();
+    const limit = parseInt(adminElements.modalEditUserLimit.value, 10) || 5;
+
+    try {
+        const response = await fetch('/.netlify/functions/admin-data', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${adminState.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'editUserProfile', userId: id, name, limit })
+        });
+        if (!response.ok) throw new Error('Could not override user details.');
+        
+        adminElements.modalEditUserOverlay.classList.add('hidden');
+        showAdminToast('User profile constraints overridden.', 'success');
+        await syncDatabaseCollections();
+        renderActivePanelCanvas();
+    } catch (e) {
+        showAdminToast(e.message, 'error');
+    }
+}
+
+window.toggleUserStatus = async function(id, shouldReinstate) {
+    try {
+        const response = await fetch('/.netlify/functions/admin-data', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${adminState.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'toggleUserStatus', userId: id, active: shouldReinstate })
+        });
+        if (!response.ok) throw new Error('Database status change failed.');
+
+        showAdminToast('User account clearance updated.', 'info');
+        await syncDatabaseCollections();
+        renderActivePanelCanvas();
+    } catch (e) {
+        showAdminToast(e.message, 'error');
+    }
+};
+
 async function registerNewSubAdminAccount() {
-    const username = adminElements.inputNewAdminUsername.value.trim().toLowerCase();
-    if (!username) {
-        showAdminToast('Please provide an authentic Puter user registry handle.', 'warning');
-        return;
+    const username = adminElements.inputNewAdminUsername.value.trim();
+    if (!username) return;
+
+    try {
+        const response = await fetch('/.netlify/functions/admin-data', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${adminState.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'registerAdmin', username })
+        });
+        if (!response.ok) throw new Error('Failed to authorize admin account.');
+
+        adminElements.inputNewAdminUsername.value = '';
+        showAdminToast(`Privileges granted to ${username}`, 'success');
+        await syncDatabaseCollections();
+        renderActivePanelCanvas();
+    } catch (e) {
+        showAdminToast(e.message, 'error');
     }
-    
-    if (adminState.subAdmins.includes(username)) {
-        showAdminToast('Target user account profile already holds administrative privileges.', 'warning');
-        return;
-    }
-    
-    adminState.subAdmins.push(username);
-    adminElements.inputNewAdminUsername.value = '';
-    
-    if (window.puter && puter.auth.isSignedIn() && navigator.onLine) {
-        await puter.kv.set('nodal_cloud_whitelisted_admins', JSON.stringify(adminState.subAdmins));
-    }
-    
-    renderAdminHierarchyMatrix();
-    showAdminToast(`Administrative credentials granted to: ${username}`, 'success');
 }
 
 window.revokeSubAdminPrivileges = async function(username) {
-    if (username === 'cedrickylo') {
-        showAdminToast('Sovereign primary platform owner profile cannot be unlinked from administrative tracks.', 'error');
-        return;
+    try {
+        const response = await fetch('/.netlify/functions/admin-data', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${adminState.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'revokeAdmin', username })
+        });
+        if (!response.ok) throw new Error('Could not remove administrator access tokens.');
+
+        showAdminToast('Administrative credentials revoked.', 'info');
+        await syncDatabaseCollections();
+        renderActivePanelCanvas();
+    } catch (e) {
+        showAdminToast(e.message, 'error');
     }
-    
-    adminState.subAdmins = adminState.subAdmins.filter(u => u !== username);
-    
-    if (window.puter && puter.auth.isSignedIn() && navigator.onLine) {
-        await puter.kv.set('nodal_cloud_whitelisted_admins', JSON.stringify(adminState.subAdmins));
-    }
-    
-    renderAdminHierarchyMatrix();
-    showAdminToast(`Administrative permissions revoked from: ${username}`, 'info');
 };
 
-function saveGlobalConfigurationSettings() {
-    const initialConfig = { ...adminState.globalConfig };
-    
-    // Map inputs back to data objects
-    adminState.globalConfig.aiClient = adminElements.selectGlobalClient.value;
-    adminState.globalConfig.rateLimit = parseInt(adminElements.inputGlobalRateLimit.value, 10) || 5;
-    
-    adminState.globalConfig.version.major = parseInt(adminElements.versionMajor.value, 10) || 1;
-    adminState.globalConfig.version.minor = parseInt(adminElements.versionMinor.value, 10) || 0;
-    adminState.globalConfig.version.patch = parseInt(adminElements.versionPatch.value, 10) || 0;
-    adminState.globalConfig.autoVersion = adminElements.toggleAutoVersion.checked;
-    
-    // Check if configuration parameters were edited to handle auto-patch bumps
-    const hasConfigShift = initialConfig.aiClient !== adminState.globalConfig.aiClient || 
-                           initialConfig.rateLimit !== adminState.globalConfig.rateLimit;
-                           
-    if (hasConfigShift && adminState.globalConfig.autoVersion) {
-        adminState.globalConfig.version.patch += 1;
-        adminElements.versionPatch.value = adminState.globalConfig.version.patch;
+async function saveGlobalConfigurationSettings() {
+    try {
+        const response = await fetch('/.netlify/functions/admin-data', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${adminState.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'updateSettings',
+                aiClient: adminElements.selectGlobalClient.value,
+                rateLimit: parseInt(adminElements.inputGlobalRateLimit.value, 10),
+                versionMajor: parseInt(adminElements.versionMajor.value, 10),
+                versionMinor: parseInt(adminElements.versionMinor.value, 10),
+                versionPatch: parseInt(adminElements.versionPatch.value, 10),
+                autoVersion: adminElements.toggleAutoVersion.checked
+            })
+        });
+        if (!response.ok) throw new Error('Failed to write updates to global parameters.');
+
+        showAdminToast('System parameters committed successfully.', 'success');
+        await syncDatabaseCollections();
+    } catch (e) {
+        showAdminToast(e.message, 'error');
     }
-    
-    localStorage.setItem('nodal_admin_global_config', JSON.stringify(adminState.globalConfig));
-    
-    // Broadcast updates to all client endpoints via Puter KV synchronization
-    broadcastGlobalConfigurationToCloud();
-    
-    syncGlobalConfigUIElements();
-    showAdminToast('Global system parameters committed and broadcast successfully.', 'success');
 }
 
 async function broadcastGlobalConfigurationToCloud() {
