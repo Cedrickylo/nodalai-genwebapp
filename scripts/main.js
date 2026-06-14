@@ -24,19 +24,23 @@ async function initApp() {
     if (window.puter) puter.quiet = true;
     try {
         // ==================================================================
-        // NEW: LOAD ADMINISTRATIVE CONFIGURATIONS ON BOOT
+        // NEW: LOAD ADMINISTRATIVE CONFIGURATIONS ON BOOT WITH DEFENSIVE CHECKS
         // ==================================================================
         if (window.puter && puter.auth.isSignedIn() && navigator.onLine) {
             try {
                 const cloudConfigRaw = await puter.kv.get('nodal_cloud_global_app_config');
                 if (cloudConfigRaw) {
                     const parsedConfig = JSON.parse(cloudConfigRaw);
-                    state.globalConfig = parsedConfig;
                     
-                    // Update dynamic footer version tag if an element exists
-                    const mainVersionLabel = document.getElementById('main-app-version-footer');
-                    if (mainVersionLabel) {
-                        mainVersionLabel.textContent = `v${parsedConfig.version.major}.${parsedConfig.version.minor}.${parsedConfig.version.patch}`;
+                    // FIX: Enforce defensive object existence check before parsing sub-properties
+                    if (parsedConfig && parsedConfig.version) {
+                        state.globalConfig = parsedConfig;
+                        
+                        // Update dynamic footer version tag if an element exists
+                        const mainVersionLabel = document.getElementById('main-app-version-footer');
+                        if (mainVersionLabel) {
+                            mainVersionLabel.textContent = `v${parsedConfig.version.major || 1}.${parsedConfig.version.minor || 0}.${parsedConfig.version.patch || 0}`;
+                        }
                     }
                 }
             } catch (configError) {
