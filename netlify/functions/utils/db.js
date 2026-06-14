@@ -2,7 +2,7 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  connectionString: process.env.NETLIFY_DB_URL,
+  connectionString: process.env.netlifydb_owner,
   ssl: {
     rejectUnauthorized: false
   }
