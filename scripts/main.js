@@ -1,7 +1,7 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
-import { initAdmin } from './admin.js';
+import { initAdmin, syncProfileToSupabase } from './admin.js';
 
 // ==================================================================
 // GLOBAL UNHANDLED REJECTION SAFETY NET
@@ -51,6 +51,12 @@ async function initApp() {
         // ==================================================================
         try {
             await updateAuthUI();
+            // Sync Puter.js user profile to Supabase database
+            try {
+                await syncProfileToSupabase();
+            } catch (profileErr) {
+                console.warn('Profile sync to Supabase failed (non-blocking):', profileErr);
+            }
         } catch (authError) {
             console.warn('Non-fatal authentication UI initialization failure (handled gracefully offline):', authError);
             setSyncing('offline');

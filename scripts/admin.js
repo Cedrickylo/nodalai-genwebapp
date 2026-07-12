@@ -3,12 +3,72 @@ import { showToast } from './helpers.js';
 
 let currentAdminTab = 'users';
 
+// Helper: get current Puter.js user ID
+function getPuterUserId() {
+    if (typeof puter !== 'undefined' && puter.auth && puter.auth.isSignedIn() && puter.auth.getUser) {
+        // Puter.js getUser() returns a promise, but we need the UUID synchronously for some calls
+        // We cache it after first fetch
+        return window.__puterUserId || null;
+    }
+    return null;
+}
+
+// Fetch and cache Puter user ID
+async function fetchPuterUserId() {
+    if (window.__puterUserId) return window.__puterUserId;
+    if (typeof puter === 'undefined' || !puter.auth || !puter.auth.isSignedIn()) return null;
+    try {
+        const user = await puter.auth.getUser();
+        window.__puterUserId = user.uuid || user.id || user.accountId;
+        return window.__puterUserId;
+    } catch (e) {
+        console.warn('Failed to get Puter user ID:', e);
+        return null;
+    }
+}
+
+// Sync Puter.js user profile to Supabase
+export async function syncProfileToSupabase() {
+    const userId = await fetchPuterUserId();
+    if (!userId) return null;
+
+    try {
+        const puterUser = await puter.auth.getUser();
+        const email = puterUser.email || '';
+        const displayName = puterUser.username || 'User';
+
+        // Check if profile exists
+        const { data: existing } = await supabase.from('profiles').select('*').eq('id', userId).single();
+
+        if (existing) {
+            // Update last seen
+            await supabase.from('profiles').update({ updated_at: new Date().toISOString() }).eq('id', userId);
+            return existing;
+        }
+
+        // Create new profile
+        const { data: newProfile, error } = await supabase.from('profiles').insert({
+            id: userId,
+            email: email,
+            display_name: displayName,
+            plan: 'free',
+            is_admin: false
+        }).select().single();
+
+        if (error) throw error;
+        return newProfile;
+    } catch (e) {
+        console.warn('Profile sync failed:', e);
+        return null;
+    }
+}
+
 // Guard: only admins can access
 export async function isAdmin() {
+    const userId = await fetchPuterUserId();
+    if (!userId) return false;
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return false;
-        const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+        const { data } = await supabase.from('profiles').select('is_admin').eq('id', userId).single();
         return data?.is_admin === true;
     } catch (e) {
         console.warn('Admin check failed:', e);
@@ -17,10 +77,10 @@ export async function isAdmin() {
 }
 
 export async function getCurrentProfile() {
+    const userId = await fetchPuterUserId();
+    if (!userId) return null;
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return null;
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
         return data;
     } catch (e) {
         console.warn('Profile fetch failed:', e);
@@ -58,20 +118,20 @@ export async function checkQuizLimits() {
 }
 
 export async function incrementQuizCount() {
+    const userId = await fetchPuterUserId();
+    if (!userId) return;
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        await supabase.rpc('increment_quiz_count', { user_id: user.id });
+        await supabase.rpc('increment_quiz_count', { p_user_id: userId });
     } catch (e) {
         console.warn('Failed to increment quiz count:', e);
     }
 }
 
 export async function logQuizAnalytics(quizData) {
+    const userId = await fetchPuterUserId();
     try {
-        const { data: { user } } = await supabase.auth.getUser();
         await supabase.from('quiz_analytics').insert({
-            user_id: user?.id || null,
+            user_id: userId || null,
             quiz_id: quizData.id,
             questions_count: quizData.questionsCount,
             score: quizData.score,
