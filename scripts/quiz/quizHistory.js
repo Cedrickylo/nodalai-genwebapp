@@ -14,6 +14,7 @@ import {
     exportQuizAsJSON,
     setupScrollReactiveHeader
 } from '../helpers.js';
+import { canShare } from '../admin.js';
 
 const {
     historyList
@@ -58,6 +59,13 @@ export async function generateShareableLink(quizKey) {
     const originalMessage = elements.loadingMessage ? elements.loadingMessage.textContent : 'Contacting AI...';
 
     try {
+        // Check share limits before proceeding
+        const shareCheck = await canShare();
+        if (!shareCheck.allowed) {
+            showToast(shareCheck.reason, 5000, 'warning');
+            return;
+        }
+
         // Hide the modal immediately so it doesn't block the loader screen
         if (elements.shareModal) {
             elements.shareModal.classList.add('hidden');

@@ -133,6 +133,50 @@ export async function incrementQuizCount() {
     }
 }
 
+// ==========================================
+// SHARE LIMITS
+// ==========================================
+
+const SHARE_LIMITS = {
+    free: 3,
+    pro: Infinity,
+    enterprise: Infinity
+};
+
+export function getActiveShareCount() {
+    const now = Date.now();
+    let count = 0;
+    try {
+        const history = JSON.parse(localStorage.getItem('AIQuizGeneratorDB_v4') || '{}');
+        for (const quiz of Object.values(history)) {
+            if (quiz.share && quiz.share.isShared && quiz.share.expiryTimestamp > now) {
+                count++;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to count active shares:', e);
+    }
+    return count;
+}
+
+export async function canShare() {
+    const profile = await getCurrentProfile();
+    if (!profile) return { allowed: false, reason: 'Not signed in', remaining: 0 };
+
+    const limit = SHARE_LIMITS[profile.plan] ?? SHARE_LIMITS.free;
+    const active = getActiveShareCount();
+    const remaining = Math.max(0, limit - active);
+
+    if (active >= limit) {
+        return {
+            allowed: false,
+            reason: `Share limit reached (${limit} active links). Upgrade to Pro for unlimited.`,
+            remaining: 0
+        };
+    }
+    return { allowed: true, reason: null, remaining };
+}
+
 export async function logQuizAnalytics(quizData) {
     const userId = await fetchPuterUserId();
     try {
