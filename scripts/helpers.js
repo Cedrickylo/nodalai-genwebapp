@@ -1,5 +1,6 @@
 import { elements, state, constants } from './state.js';
 import { isUsingPuterAI } from './aiService.js';
+import supabase from './supabaseClient.js';
 
 const {
     views,
@@ -1534,4 +1535,32 @@ export function initWelcomeModal() {
             welcomeModal.classList.add('hidden');
         };
     }
+}
+
+// ==========================================
+// SUPABASE AUTH FUNCTIONS
+// ==========================================
+
+export async function signUpWithEmail(email, password, displayName) {
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name: displayName } }
+    });
+    return { data, error };
+}
+
+export async function signInWithEmail(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    return { data, error };
+}
+
+export async function signOutSupabase() {
+    const { error } = await supabase.auth.signOut();
+    return { error };
+}
+
+export async function getSupabaseUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
 }

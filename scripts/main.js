@@ -1,6 +1,7 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
+import { initAdmin } from './admin.js';
 
 // ==================================================================
 // GLOBAL UNHANDLED REJECTION SAFETY NET
@@ -57,6 +58,23 @@ async function initApp() {
 
         prepareSavedProgress();
         initWelcomeModal();
+
+        // Initialize admin panel (adds Admin nav button if user is admin)
+        try {
+            const isAdminUser = await initAdmin();
+            if (isAdminUser) {
+                // Setup admin back button
+                const adminBackBtn = document.getElementById('admin-back-btn');
+                if (adminBackBtn) {
+                    adminBackBtn.onclick = async () => {
+                        const { showView } = await import('./helpers.js');
+                        showView('start');
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn('Admin init failed (non-blocking):', e);
+        }
 
         // ==================================================================
         // NEW: REGISTER PWA BACKGROUND SERVICE WORKER FOR OFFLINE MODE

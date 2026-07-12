@@ -21,7 +21,8 @@ export const elements = {
         'history-fullscreen': document.getElementById('history-fullscreen-view'),
         help: document.getElementById('help-view'),
         about: document.getElementById('about-view'),
-        account: document.getElementById('account-view')
+        account: document.getElementById('account-view'),
+        admin: document.getElementById('admin-view')
     },
     account: document.getElementById('account-view'),
     globalSyncDone: document.getElementById('sync-icon-done'),

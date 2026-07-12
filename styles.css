@@ -1,4 +1,4 @@
-﻿        /* Mobile Responsiveness & Layout Fixes */
+        /* Mobile Responsiveness & Layout Fixes */
         html, body { 
             font-family: 'Inter', sans-serif; 
             overflow-x: clip; 
@@ -310,4 +310,38 @@
     #account-view-container #account-logged-in-content > div:last-child {
         grid-column: span 2 / span 2 !important;
     }
+}
+
+/* ==========================================
+   ADMIN PANEL STYLES
+   ========================================== */
+
+#admin-view {
+    width: 100%;
+}
+
+/* Admin table responsiveness */
+#admin-users-table-body tr:hover {
+    background: rgba(31, 41, 55, 0.5);
+}
+
+/* Admin tab active state */
+[data-admin-tab].text-white {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Admin stat cards */
+#admin-analytics-tab .bg-gray-900\/50 {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#admin-analytics-tab .bg-gray-900\/50:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Feature flag toggle styling */
+#feature-flags-list input[type="checkbox"]:checked {
+    background-color: #3b82f6;
+    border-color: #2563eb;
 }

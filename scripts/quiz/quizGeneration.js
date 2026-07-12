@@ -11,6 +11,7 @@ import {
     refreshCooldownPanel,
     refreshHistory
 } from '../helpers.js';
+import { checkQuizLimits, incrementQuizCount } from '../admin.js';
 
 const {
     statusMessage,
@@ -121,6 +122,18 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             }
         }
         return; // Halt generation process until they log in
+    }
+
+    // ADDED: Check Supabase quiz limits before generation
+    try {
+        const limits = await checkQuizLimits();
+        if (!limits.allowed) {
+            showToast(limits.reason, 7000, 'warning');
+            if (!isRemedial) showView('start');
+            return;
+        }
+    } catch (e) {
+        console.warn('Quiz limit check failed (non-blocking):', e);
     }
 
     // 2. UI PARSING & MATH LOGIC
@@ -545,9 +558,10 @@ Remember to output ONLY the raw JSON array string.`;
 
         state.questions = allQs;
         saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
-        
+
         if (typeof recordGenerationEvent === 'function') await recordGenerationEvent();
         if (typeof refreshCooldownPanel === 'function') await refreshCooldownPanel();
+        incrementQuizCount().catch(e => console.warn('Failed to increment quiz count:', e));
         
         refreshHistory();
         const { startQuiz } = await import('./quizExecution.js');
