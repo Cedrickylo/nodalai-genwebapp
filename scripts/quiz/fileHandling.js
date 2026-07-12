@@ -353,52 +353,44 @@ export async function resumeQuiz(savedData) {
     }
 }
 
-export async function loadSharedQuiz(publicUrl) {
+export async function loadSharedQuiz(shareId) {
     try {
         elements.statusMessage.textContent = 'Verifying shared quiz...';
-        
-        // 1. Fetch the data from the Puter public URL
-        const response = await fetch(publicUrl);
-        if (!response.ok) throw new Error("Link is invalid or has been removed.");
-        
-        const data = await response.json();
-        
-        // 2. Expiration Validation Logic
-        if (data.expiryTimestamp && Date.now() > data.expiryTimestamp) {
-            // Link has expired!
-            // Clean up the file from Puter to save space
-            try {
-                // The publicUrl usually contains the file path; we need the filename
-                // This assumes standard Puter URL structure
-                await puter.fs.unlink(publicUrl.split('/').pop().split('?')[0]);
-            } catch (err) {
-                console.warn("Cleanup of expired file failed (already deleted?)");
-            }
+
+        // Fetch quiz data from Supabase via Netlify function
+        const response = await fetch(`/.netlify/functions/get-shared-quiz?id=${encodeURIComponent(shareId)}`);
+
+        if (response.status === 410) {
             throw new Error("This shared link has expired.");
         }
-        
-        // 3. Load the quiz if valid
+        if (response.status === 404) {
+            throw new Error("This shared link has been removed or is invalid.");
+        }
+        if (!response.ok) {
+            throw new Error("Failed to load shared quiz.");
+        }
+
+        const data = await response.json();
+
+        // Load the quiz
         state.questions = data.q;
         state.currentQuizConfig = data.c;
         state.currentFileName = data.n;
 
-        // ADDED: Generate a temporary key so it behaves like a saved history item
         state.currentQuizKey = 'shared-' + Date.now();
-        
-        // ADDED: Register this as an existing quiz to bypass AI generation logic
+
         state.customizingQuizData = {
             key: state.currentQuizKey,
             questions: state.questions,
             config: state.currentQuizConfig,
             fileName: state.currentFileName
         };
-        
-        // Setup view and toast
+
         setupCustomizeView(state.currentQuizConfig, state.currentFileName);
         showView('start');
         showToast('Shared quiz loaded successfully!');
         elements.statusMessage.textContent = '';
-        
+
     } catch (e) {
         console.error('Shared Link Error:', e);
         showToast(e.message || 'Error loading shared quiz.', 'error');

@@ -79,22 +79,36 @@ export async function generateShareableLink(quizKey) {
         // Get expiry duration from the dropdown
         const days = parseInt(elements.shareExpirySelect.value);
         const expiryTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
-        
-        // Prepare payload with metadata
-        const shareId = 'quiz-' + Math.random().toString(36).substring(2, 10) + '.json';
-        const sharePayload = { 
-            n: quiz.fileName, 
-            c: quiz.config, 
-            q: quiz.questions,
-            expiryTimestamp: expiryTimestamp
-        };
-        
-        // Save to Puter filesystem
-        await puter.fs.write(shareId, JSON.stringify(sharePayload));
-        
-        // Generate public access URL
-        const publicUrl = await puter.fs.getReadURL(shareId);
-        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
+
+        // Get Puter user ID if signed in
+        let userId = null;
+        try {
+            if (puter.auth.isSignedIn()) {
+                const user = await puter.auth.getUser();
+                userId = user.uuid || user.id;
+            }
+        } catch (e) { /* not signed in */ }
+
+        // Save to Supabase via Netlify function
+        const res = await fetch('/.netlify/functions/share-quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quizData: quiz.questions,
+                fileName: quiz.fileName,
+                config: quiz.config,
+                userId: userId,
+                days: days
+            })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to create share link');
+        }
+
+        const { id: shareId, expiresAt } = await res.json();
+        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${shareId}`;
         
         // Update local state and commit persistence matrices
         quiz.share = {

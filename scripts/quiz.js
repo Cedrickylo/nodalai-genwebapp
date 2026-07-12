@@ -187,10 +187,14 @@ export function attachQuizEventListeners() {
         if (quiz && quiz.share && quiz.share.shareId) {
             try {
                 const { syncHistoryWithCloud, closeShareModal } = await import('./helpers.js');
-                
-                // Delete from Puter FS
-                await puter.fs.delete(quiz.share.shareId);
-                
+
+                // Deactivate in Supabase via Netlify function
+                await fetch('/.netlify/functions/share-quiz', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: quiz.share.shareId })
+                });
+
                 // Reset metadata
                 quiz.share = { isShared: false };
                 quiz.timestamp = Date.now();
