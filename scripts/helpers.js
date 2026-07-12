@@ -444,10 +444,19 @@ export async function refreshCooldownPanel() {
                 shareStatus.className = 'text-sm font-bold text-green-400';
                 if (shareDetail) shareDetail.textContent = 'You can create unlimited active share links.';
             } else {
-                const active = getActiveShareCount();
-                shareStatus.textContent = `${active} / 3 active links`;
-                shareStatus.className = 'text-sm font-bold text-blue-400';
-                if (shareDetail) shareDetail.textContent = `${3 - active} more link${(3 - active) === 1 ? '' : 's'} available. Upgrade to Pro for unlimited.`;
+                const profile = await getCurrentProfile();
+                const shareLimit = profile?.share_limit ?? 3;
+                if (shareLimit === -1) {
+                    shareStatus.textContent = 'Unlimited';
+                    shareStatus.className = 'text-sm font-bold text-green-400';
+                    if (shareDetail) shareDetail.textContent = 'You can create unlimited active share links.';
+                } else {
+                    const active = getActiveShareCount();
+                    const remaining = Math.max(0, shareLimit - active);
+                    shareStatus.textContent = `${active} / ${shareLimit} active links`;
+                    shareStatus.className = 'text-sm font-bold text-blue-400';
+                    if (shareDetail) shareDetail.textContent = `${remaining} more link${remaining === 1 ? '' : 's'} available.`;
+                }
             }
         }
     } catch (e) {

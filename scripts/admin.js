@@ -58,7 +58,9 @@ export async function syncProfileToSupabase() {
             email: email,
             display_name: displayName,
             plan: 'free',
-            is_admin: false
+            is_admin: false,
+            share_limit: 3,
+            quizzes_limit: 5
         }).select().single();
 
         if (error) throw error;
@@ -113,10 +115,12 @@ export async function checkQuizLimits() {
     const hasUnlimited = await hasFeatureAccess('unlimited_quizzes');
     if (hasUnlimited) return { allowed: true, reason: null, profile };
 
-    if (profile.quizzes_generated >= profile.quizzes_limit) {
+    // Use custom_gen_limit if set, otherwise use plan-based default
+    const effectiveLimit = profile.custom_gen_limit ?? 5;
+    if (profile.quizzes_generated >= effectiveLimit) {
         return {
             allowed: false,
-            reason: `Free plan limit reached (${profile.quizzes_limit} quizzes). Upgrade to Pro for unlimited.`,
+            reason: `Generation limit reached (${effectiveLimit} quizzes). Upgrade to Pro for unlimited.`,
             profile
         };
     }
@@ -163,7 +167,10 @@ export async function canShare() {
     const profile = await getCurrentProfile();
     if (!profile) return { allowed: false, reason: 'Not signed in', remaining: 0 };
 
-    const limit = SHARE_LIMITS[profile.plan] ?? SHARE_LIMITS.free;
+    // -1 means unlimited
+    const limit = profile.share_limit ?? 3;
+    if (limit === -1) return { allowed: true, reason: null, remaining: Infinity };
+
     const active = getActiveShareCount();
     const remaining = Math.max(0, limit - active);
 
@@ -324,7 +331,7 @@ async function loadUsers() {
         console.warn('[Admin] Could not find #admin-users-table-body');
         return;
     }
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">Loading users...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-8">Loading users...</td></tr>';
 
     try {
         const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
@@ -335,21 +342,26 @@ async function loadUsers() {
         console.log('[Admin] Loaded profiles:', data?.length, data);
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-4">No users found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-4">No users found.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = data.map(u => `
-            <tr class="border-t border-gray-700/50">
+        tbody.innerHTML = data.map(u => {
+            const shareLimit = u.share_limit;
+            const shareText = shareLimit === -1 ? 'Unlimited' : (shareLimit ?? 3);
+            const genLimit = u.custom_gen_limit;
+            const genText = genLimit != null ? genLimit : 'Default';
+
+            return `
+            <tr class="border-t border-gray-700/50 cursor-pointer hover:bg-gray-700/20 transition-colors" onclick="window.__adminOpenUserDetail('${u.id}')">
                 <td class="py-3 px-4 text-sm text-white font-medium truncate max-w-[200px]" title="${u.email || ''}">${u.display_name || u.email || 'N/A'}</td>
                 <td class="py-3 px-4">
-                    <select onchange="window.__adminUpdatePlan('${u.id}', this.value)" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white">
-                        <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Free</option>
-                        <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro</option>
-                        <option value="enterprise" ${u.plan === 'enterprise' ? 'selected' : ''}>Enterprise</option>
-                    </select>
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full ${u.plan === 'enterprise' ? 'bg-yellow-500/20 text-yellow-400' : u.plan === 'pro' ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-600/30 text-gray-400'}">
+                        ${u.plan || 'free'}
+                    </span>
                 </td>
-                <td class="py-3 px-4 text-sm text-gray-300">${u.quizzes_generated || 0} / ${u.quizzes_limit || 5}</td>
+                <td class="py-3 px-4 text-sm text-gray-300">${u.quizzes_generated || 0} / ${genText}</td>
+                <td class="py-3 px-4 text-sm text-gray-300">${shareText}</td>
                 <td class="py-3 px-4">
                     <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full ${u.is_admin ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-600/30 text-gray-400'}">
                         ${u.is_admin ? 'Admin' : 'User'}
@@ -357,15 +369,15 @@ async function loadUsers() {
                 </td>
                 <td class="py-3 px-4 text-xs text-gray-400">${new Date(u.created_at).toLocaleDateString()}</td>
                 <td class="py-3 px-4">
-                    <button onclick="window.__adminToggleAdmin('${u.id}', ${!u.is_admin})" class="text-xs px-2 py-1 rounded ${u.is_admin ? 'bg-red-600/20 text-red-400 hover:bg-red-600/40' : 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/40'} transition-colors">
-                        ${u.is_admin ? 'Remove Admin' : 'Make Admin'}
+                    <button onclick="event.stopPropagation(); window.__adminOpenUserDetail('${u.id}')" class="text-xs px-3 py-1.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 rounded transition-colors">
+                        Edit
                     </button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     } catch (e) {
         console.error('Failed to load users:', e);
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red-400 py-4">Failed to load users.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-red-400 py-4">Failed to load users.</td></tr>';
     }
 }
 
@@ -389,6 +401,148 @@ window.__adminToggleAdmin = async (userId, makeAdmin) => {
     } catch (e) {
         console.error('Failed to toggle admin:', e);
         showToast('Failed to update admin status', 3000, 'error');
+    }
+};
+
+// ==========================================
+// USER DETAIL EDITOR
+// ==========================================
+
+window.__adminOpenUserDetail = async (userId) => {
+    const { data: user, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    if (error || !user) {
+        showToast('Failed to load user details', 3000, 'error');
+        return;
+    }
+
+    const isUnlimited = user.plan === 'pro' || user.plan === 'enterprise';
+
+    const modal = document.getElementById('admin-user-detail-modal');
+    const content = document.getElementById('admin-user-detail-content');
+
+    content.innerHTML = `
+        <div class="space-y-5">
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-white">${user.display_name || user.email || 'Unknown'}</h3>
+                    <p class="text-xs text-gray-400 mt-1">${user.email || ''}</p>
+                    <p class="text-[10px] text-gray-500 font-mono mt-0.5">${user.id}</p>
+                </div>
+                <button onclick="document.getElementById('admin-user-detail-modal').classList.add('hidden')" class="text-gray-400 hover:text-white">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Plan -->
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Plan</label>
+                <select id="ud-plan" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm mt-2">
+                    <option value="free" ${user.plan === 'free' ? 'selected' : ''}>Free</option>
+                    <option value="pro" ${user.plan === 'pro' ? 'selected' : ''}>Pro</option>
+                    <option value="enterprise" ${user.plan === 'enterprise' ? 'selected' : ''}>Enterprise</option>
+                </select>
+            </div>
+
+            <!-- Quiz Generation Limits -->
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Quiz Generation</label>
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                        <label class="text-[11px] text-gray-500">Generated</label>
+                        <p class="text-sm text-white font-medium">${user.quizzes_generated || 0}</p>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-gray-500">Custom Limit</label>
+                        <input type="number" id="ud-gen-limit" value="${user.custom_gen_limit ?? ''}" min="0" placeholder="Default (5)" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm">
+                        <p class="text-[10px] text-gray-500 mt-1">Leave empty for plan default</p>
+                    </div>
+                </div>
+                <button onclick="window.__adminResetGenCount('${user.id}')" class="mt-2 text-xs text-yellow-400 hover:text-yellow-300 transition-colors">
+                    Reset generation count to 0
+                </button>
+            </div>
+
+            <!-- Quiz Limit (Max quizzes allowed) -->
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Max Saved Quizzes</label>
+                <input type="number" id="ud-quiz-limit" value="${user.quizzes_limit || 5}" min="1" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm mt-2">
+                <p class="text-[10px] text-gray-500 mt-1">Maximum number of quizzes the user can save in history</p>
+            </div>
+
+            <!-- Share Link Limits -->
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Share Link Limit</label>
+                <div class="mt-2">
+                    <label class="flex items-center gap-2 mb-2">
+                        <input type="checkbox" id="ud-unlimited-shares" ${user.share_limit === -1 ? 'checked' : ''} onchange="document.getElementById('ud-share-limit').disabled = this.checked; if(this.checked) document.getElementById('ud-share-limit').value = '';" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-500">
+                        <span class="text-sm text-gray-300">Unlimited share links</span>
+                    </label>
+                    <input type="number" id="ud-share-limit" value="${user.share_limit != null && user.share_limit !== -1 ? user.share_limit : ''}" min="0" placeholder="Default (3)" ${user.share_limit === -1 ? 'disabled' : ''} class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm">
+                    <p class="text-[10px] text-gray-500 mt-1">Leave empty for plan default (3 for free)</p>
+                </div>
+            </div>
+
+            <!-- Admin Toggle -->
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin Status</label>
+                <div class="flex items-center gap-3 mt-2">
+                    <button onclick="window.__adminToggleAdmin('${user.id}', ${!user.is_admin})" class="text-xs px-3 py-1.5 rounded ${user.is_admin ? 'bg-red-600/20 text-red-400 hover:bg-red-600/40' : 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/40'} transition-colors">
+                        ${user.is_admin ? 'Remove Admin' : 'Make Admin'}
+                    </button>
+                    <span class="text-xs ${user.is_admin ? 'text-purple-400' : 'text-gray-500'}">${user.is_admin ? 'Admin' : 'Regular User'}</span>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <button onclick="window.__adminSaveUserDetail('${user.id}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg">
+                Save Changes
+            </button>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+};
+
+window.__adminSaveUserDetail = async (userId) => {
+    const plan = document.getElementById('ud-plan').value;
+    const genLimitRaw = document.getElementById('ud-gen-limit').value;
+    const quizLimit = parseInt(document.getElementById('ud-quiz-limit').value, 10) || 5;
+    const unlimitedShares = document.getElementById('ud-unlimited-shares').checked;
+    const shareLimitRaw = document.getElementById('ud-share-limit').value;
+
+    const customGenLimit = genLimitRaw !== '' ? parseInt(genLimitRaw, 10) : null;
+    const shareLimit = unlimitedShares ? -1 : (shareLimitRaw !== '' ? parseInt(shareLimitRaw, 10) : 3);
+
+    try {
+        const { error } = await supabase.from('profiles').update({
+            plan,
+            custom_gen_limit: customGenLimit,
+            quizzes_limit: quizLimit,
+            share_limit: shareLimit,
+            updated_at: new Date().toISOString()
+        }).eq('id', userId);
+
+        if (error) throw error;
+        showToast('User settings saved!', 2000, 'success');
+        document.getElementById('admin-user-detail-modal').classList.add('hidden');
+        loadUsers();
+    } catch (e) {
+        console.error('Failed to save user:', e);
+        showToast('Failed to save changes', 3000, 'error');
+    }
+};
+
+window.__adminResetGenCount = async (userId) => {
+    try {
+        const { error } = await supabase.from('profiles').update({ quizzes_generated: 0, updated_at: new Date().toISOString() }).eq('id', userId);
+        if (error) throw error;
+        showToast('Generation count reset', 2000, 'success');
+        // Re-open the detail modal with refreshed data
+        window.__adminOpenUserDetail(userId);
+    } catch (e) {
+        console.error('Failed to reset count:', e);
+        showToast('Failed to reset', 3000, 'error');
     }
 };
 

@@ -745,9 +745,10 @@
                             <table class="w-full text-left">
                                 <thead class="bg-gray-900/50">
                                     <tr>
-                                        <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</th>
+                                        <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
                                         <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Plan</th>
                                         <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Quizzes</th>
+                                        <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Shares</th>
                                         <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Role</th>
                                         <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Joined</th>
                                         <th class="py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
@@ -1045,6 +1046,16 @@
         </div>
     </div>
 </div>
+
+<!-- Admin User Detail Modal -->
+<div id="admin-user-detail-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="p-5 overflow-y-auto flex-1" id="admin-user-detail-content">
+            <p class="text-gray-400 text-sm">Loading...</p>
+        </div>
+    </div>
+</div>
+
     <div id="custom-confirm-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300">
         <div class="bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300">
             <div class="p-6">
