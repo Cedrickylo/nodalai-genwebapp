@@ -1,7 +1,7 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
-import { initAdmin, syncProfileToSupabase } from './admin.js';
+import { initAdmin, syncProfileToSupabase, refreshAdminVisibility } from './admin.js';
 
 // ==================================================================
 // GLOBAL UNHANDLED REJECTION SAFETY NET

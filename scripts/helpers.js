@@ -172,6 +172,8 @@ export async function handleLogout() {
         if (elements.accountModalOverlay) elements.accountModalOverlay.classList.add('hidden');
         // 1. Sign out of Puter
         await puter.auth.signOut();
+        // Clear cached Puter user ID
+        window.__puterUserId = null;
         // accountModal.classList.add('hidden');
         
         // --- NEW CLEANUP LOGIC ---
@@ -190,6 +192,8 @@ export async function handleLogout() {
 
         // 5. Update Auth buttons and notify user
         updateAuthUI();
+        // Hide admin buttons on logout
+        try { const { refreshAdminVisibility } = await import('./admin.js'); refreshAdminVisibility(); } catch {}
         showToast('Logged out successfully and cleared local history');
     }
 }
@@ -422,17 +426,52 @@ export async function recordGenerationEvent() {
 
 export async function refreshCooldownPanel() {
     if (!modalCooldownPanel) return;
-    const log = await loadGenerationCooldownState();
-    const info = getGenerationCooldownInfo(log);
+
+    // Check if user has unlimited quizzes (pro/enterprise)
+    let hasUnlimited = false;
+    try {
+        const { getCurrentProfile, hasFeatureAccess, getActiveShareCount } = await import('../admin.js');
+        hasUnlimited = await hasFeatureAccess('unlimited_quizzes');
+
+        // Update share links info if the element exists
+        const sharePanel = document.getElementById('modal-share-panel');
+        const shareStatus = document.getElementById('modal-share-status');
+        const shareDetail = document.getElementById('modal-share-detail');
+        if (sharePanel && shareStatus) {
+            sharePanel.classList.remove('hidden');
+            if (hasUnlimited) {
+                shareStatus.textContent = 'Unlimited';
+                shareStatus.className = 'text-sm font-bold text-green-400';
+                if (shareDetail) shareDetail.textContent = 'You can create unlimited active share links.';
+            } else {
+                const active = getActiveShareCount();
+                shareStatus.textContent = `${active} / 3 active links`;
+                shareStatus.className = 'text-sm font-bold text-blue-400';
+                if (shareDetail) shareDetail.textContent = `${3 - active} more link${(3 - active) === 1 ? '' : 's'} available. Upgrade to Pro for unlimited.`;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to check unlimited status:', e);
+    }
+
     modalCooldownPanel.classList.remove('hidden');
-    if (info.isAllowed) {
-        modalCooldownStatus.textContent = `${info.remaining} / ${MAX_GENERATIONS_PER_WINDOW} available`;
+
+    if (hasUnlimited) {
+        modalCooldownStatus.textContent = 'Unlimited';
         modalCooldownStatus.className = 'text-sm font-bold text-green-400';
-        modalCooldownDetail.textContent = `You can generate ${info.remaining} more quiz${info.remaining === 1 ? '' : 'zes'} in the next 3 hours.`;
+        modalCooldownDetail.textContent = 'No generation limits on your current plan.';
     } else {
-        modalCooldownStatus.textContent = 'Cooldown active';
-        modalCooldownStatus.className = 'text-sm font-bold text-yellow-400';
-        modalCooldownDetail.textContent = `Next generation available in ${formatMsDuration(info.nextAvailableInMs)}.`;
+        const log = await loadGenerationCooldownState();
+        const info = getGenerationCooldownInfo(log);
+        if (info.isAllowed) {
+            modalCooldownStatus.textContent = `${info.remaining} / ${MAX_GENERATIONS_PER_WINDOW} available`;
+            modalCooldownStatus.className = 'text-sm font-bold text-green-400';
+            modalCooldownDetail.textContent = `You can generate ${info.remaining} more quiz${info.remaining === 1 ? '' : 'zes'} in the next 3 hours.`;
+        } else {
+            modalCooldownStatus.textContent = 'Cooldown active';
+            modalCooldownStatus.className = 'text-sm font-bold text-yellow-400';
+            modalCooldownDetail.textContent = `Next generation available in ${formatMsDuration(info.nextAvailableInMs)}.`;
+        }
     }
 }
 
@@ -1306,8 +1345,10 @@ export function attachAuthHandlers() {
                     await puter.auth.signIn();
                     
                     // 2. Wait for the UI to update with their username and credits
-                    await updateAuthUI(); 
-                    
+                    await updateAuthUI();
+                    // Show admin button if user is admin
+                    try { const { refreshAdminVisibility } = await import('./admin.js'); await refreshAdminVisibility(); } catch {}
+
                     // 3. Immediately pull their saved quizzes from the cloud!
                     syncHistoryWithCloud(); 
                     
@@ -1355,9 +1396,11 @@ export function attachAuthHandlers() {
         accountLoginBtn.onclick = async () => {
             try {
                 await puter.auth.signIn();
-                await updateAuthUI(); 
+                await updateAuthUI();
                 syncHistoryWithCloud();
-                await populateAccountData(); // Refresh the account view immediately
+                await populateAccountData();
+                // Show admin button if user is admin
+                try { const { refreshAdminVisibility } = await import('./admin.js'); await refreshAdminVisibility(); } catch {}
             } catch (e) {
                 console.error("Sign in failed", e);
             }

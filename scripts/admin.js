@@ -215,6 +215,31 @@ export async function initAdmin() {
     return true;
 }
 
+// Show/hide admin buttons based on current auth state
+// Called after login/logout to update UI in real time
+export async function refreshAdminVisibility() {
+    const adminStatus = await isAdmin();
+
+    // If admin but buttons don't exist yet, create them
+    if (adminStatus && !document.getElementById('desktop-nav-admin-btn')) {
+        setupAdminNavButtons();
+        setupAdminTabListeners();
+    }
+
+    const desktopBtn = document.getElementById('desktop-nav-admin-btn');
+    const mobileBtn = document.getElementById('mobile-menu-admin-btn');
+
+    if (desktopBtn) desktopBtn.classList.toggle('hidden', !adminStatus);
+    if (mobileBtn) mobileBtn.classList.toggle('hidden', !adminStatus);
+
+    // If on admin view but not admin anymore, redirect to start
+    if (!adminStatus && document.getElementById('admin-view')?.classList.contains('active')) {
+        const { showView } = await import('./helpers.js');
+        showView('start');
+        showToast('Admin access revoked.', 3000, 'warning');
+    }
+}
+
 function setupAdminNavButtons() {
     // Desktop sidebar admin button
     const desktopNav = document.querySelector('#desktop-nav-home-btn')?.closest('.space-y-2');
@@ -316,7 +341,7 @@ async function loadUsers() {
 
         tbody.innerHTML = data.map(u => `
             <tr class="border-t border-gray-700/50">
-                <td class="py-3 px-4 text-sm text-gray-300 truncate max-w-[200px]" title="${u.email || ''}">${u.email || 'N/A'}</td>
+                <td class="py-3 px-4 text-sm text-white font-medium truncate max-w-[200px]" title="${u.email || ''}">${u.display_name || u.email || 'N/A'}</td>
                 <td class="py-3 px-4">
                     <select onchange="window.__adminUpdatePlan('${u.id}', this.value)" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white">
                         <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Free</option>
