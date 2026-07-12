@@ -83,17 +83,19 @@ async function initApp() {
         }
 
         // ==================================================================
-        // NEW: REGISTER PWA BACKGROUND SERVICE WORKER FOR OFFLINE MODE
+        // SERVICE WORKER: Register + auto-detect new builds
         // ==================================================================
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registered successfully with scope: ', registration.scope);
-                    })
-                    .catch((err) => {
-                        console.warn('ServiceWorker registration failed: ', err);
-                    });
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('ServiceWorker registered with scope:', registration.scope);
+
+                    // Check for updates on each page load
+                    registration.update();
+                } catch (err) {
+                    console.warn('ServiceWorker registration failed:', err);
+                }
             });
         }
 
