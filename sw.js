@@ -58,6 +58,11 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Bypass service worker for Supabase API calls
+    if (requestUrl.hostname.includes('supabase.co')) {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) {

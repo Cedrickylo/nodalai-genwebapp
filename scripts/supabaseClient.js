@@ -1,4 +1,4 @@
-const SUPABASE_URL = 'https://ccuobbbzitsdivdtnumw.supabase.co';
+const SUPABASE_URL = 'https://ccuobbbzitsdivdtnuwm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjdW9iYmJ6aXRzZGl2ZHRudXdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MTg5NjIsImV4cCI6MjA5OTM5NDk2Mn0.3kOs-lPRYCrFE_xcJ8IO2i6RPX9SX_bySKIwW5bb908';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
