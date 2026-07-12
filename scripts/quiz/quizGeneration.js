@@ -314,27 +314,29 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             }
         } catch { /* not JSON, try markdown */ }
 
-        // Parse Markdown format
+        // Parse Markdown format — flexible splitting
         const questions = [];
-        // Split by numbered items (1. 2. 3. etc.)
-        const blocks = text.split(/\n(?=\d+[\.\)]\s)/).filter(b => b.trim());
+
+        // Split by numbered items: supports "1.", "1)", "1.", with or without space/newline
+        const blocks = text.split(/(?=\n?\s*\d+[\.\)]\s)/).filter(b => b.trim());
 
         for (const block of blocks) {
             try {
                 const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
                 if (lines.length < 2) continue;
 
-                // Extract type from [MC], [ID], [EN]
+                // Extract type from [MC], [ID], [EN] or infer from options
                 let type = 'multiple-choice';
                 const firstLine = lines[0];
                 if (/\[MC\]/i.test(firstLine)) type = 'multiple-choice';
                 else if (/\[ID\]/i.test(firstLine)) type = 'identification';
                 else if (/\[EN\]/i.test(firstLine)) type = 'enumeration';
 
-                // Clean question text (remove number and type tag)
-                const question = firstLine
+                // Clean question text (remove number, type tag, leading/trailing punctuation)
+                let question = firstLine
                     .replace(/^\d+[\.\)]\s*/, '')
                     .replace(/\[(MC|ID|EN)\]\s*/i, '')
+                    .replace(/^[-*]\s*/, '')
                     .trim();
 
                 if (!question) continue;
@@ -343,24 +345,22 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
                 let answer = '';
                 let explanation = '';
                 let options = [];
-                let parsingOptions = false;
 
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i];
 
-                    if (/^Answer:/i.test(line)) {
-                        answer = line.replace(/^Answer:\s*/i, '').trim();
-                        parsingOptions = false;
-                    } else if (/^Explanation:/i.test(line)) {
-                        explanation = line.replace(/^Explanation:\s*/i, '').trim();
+                    if (/^Answer[:\s]/i.test(line)) {
+                        answer = line.replace(/^Answer[:\s]*/i, '').trim();
+                    } else if (/^Explanation[:\s]/i.test(line)) {
+                        explanation = line.replace(/^Explanation[:\s]*/i, '').trim();
                     } else if (/^[A-D][\.\)]\s/i.test(line)) {
-                        // MC options: A) text or A. text
                         options.push(line.replace(/^[A-D][\.\)]\s*/i, '').trim());
-                        parsingOptions = true;
-                    } else if (parsingOptions && !answer) {
-                        // Continuation of options
-                        options.push(line);
                     }
+                }
+
+                // Infer type from options if not tagged
+                if (options.length >= 2 && !firstLine.match(/\[(MC|ID|EN)\]/i)) {
+                    type = 'multiple-choice';
                 }
 
                 if (!question || !answer) continue;
@@ -536,6 +536,10 @@ Output ONLY raw JSON.`;
                     }
 
                     const parsed = extractQuestionsFromMarkdown(rawText);
+                    console.log(`[Batch ${batchCounter}] Parsed ${parsed.length} questions from response`);
+                    if (parsed.length === 0) {
+                        console.warn(`[Batch ${batchCounter}] Raw response (first 500 chars):`, rawText?.substring(0, 500));
+                    }
                     if (!parsed || parsed.length === 0) {
                         console.warn(`Batch ${batchCounter} parse error: no questions found in AI response.`);
                         if (elements.loadingMessage) {

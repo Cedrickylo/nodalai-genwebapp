@@ -16,7 +16,7 @@ const PROVIDER_KEY = 'nodal_preferred_provider';
 const USER_API_KEY_PREFIX = 'nodal_user_api_key_';
 
 export function isUsingPuterAI() {
-    return false; // Puter AI is no longer used
+    return false;
 }
 
 export function getAvailableProviders() {
@@ -49,15 +49,25 @@ export function hasUserApiKey(provider) {
     return !!getUserApiKey(provider);
 }
 
+// Cache providers that failed with "no key" to avoid retrying
+const noKeyCache = new Set();
+
 export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
     const preferred = getCurrentProvider();
     const triedProviders = [];
 
-    // Build ordered list: preferred provider first, then fallbacks
     const providerOrder = [preferred, ...FALLBACK_ORDER.filter(p => p !== preferred)];
 
     for (const provider of providerOrder) {
         if (triedProviders.includes(provider)) continue;
+
+        // Skip providers with no user API key AND previously failed with "no key"
+        const userKey = getUserApiKey(provider);
+        if (!userKey && noKeyCache.has(provider)) {
+            console.log(`[AI] Skipping ${provider}: no API key (cached)`);
+            continue;
+        }
+
         triedProviders.push(provider);
 
         try {
@@ -67,7 +77,10 @@ export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
             return result;
         } catch (error) {
             console.warn(`[AI] Provider ${provider} failed:`, error.message);
-            // Continue to next provider
+            // Cache "no key" errors so we don't retry
+            if (error.message.includes('No API key')) {
+                noKeyCache.add(provider);
+            }
         }
     }
 
@@ -129,7 +142,10 @@ function extractTextFromResponse(response) {
                 .map(item => {
                     if (typeof item === 'string') return item;
                     if (item.content && Array.isArray(item.content)) {
-                        return item.content.map(chunk => chunk.text || '').join('');
+                        return item.content.map(chunk => chunk.text || chunk.content || '').join('');
+                    }
+                    if (item.type === 'message' && item.content && Array.isArray(item.content)) {
+                        return item.content.map(c => c.text || '').join('');
                     }
                     return '';
                 })
@@ -138,6 +154,12 @@ function extractTextFromResponse(response) {
             if (outputText) return outputText;
         }
 
+        // Groq-like response format
+        if (response.choices && Array.isArray(response.choices) && response.choices[0] && typeof response.choices[0].message?.content === 'string') {
+            return response.choices[0].message.content;
+        }
+
+        // Last resort: return JSON string so parser can try to extract from it
         return JSON.stringify(response);
     }
     return '';
