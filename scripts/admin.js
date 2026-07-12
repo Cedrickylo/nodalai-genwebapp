@@ -148,9 +148,20 @@ export async function logQuizAnalytics(quizData) {
 // ==========================================
 
 export async function initAdmin() {
-    if (!(await isAdmin())) return false;
+    const userId = await fetchPuterUserId();
+    console.log('[Admin] Puter user ID:', userId);
+    if (!userId) {
+        console.log('[Admin] No Puter user ID — skipping admin init');
+        return false;
+    }
+
+    const adminStatus = await isAdmin();
+    console.log('[Admin] Is admin:', adminStatus);
+    if (!adminStatus) return false;
+
     setupAdminNavButtons();
     setupAdminTabListeners();
+    console.log('[Admin] Admin panel initialized');
     return true;
 }
 
