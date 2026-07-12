@@ -1,5 +1,5 @@
 // Incremented to v2 to immediately flush stale browser storage copies
-const CACHE_NAME = 'nodal-ai-cache-v2';
+const CACHE_NAME = 'nodal-ai-cache-v3';
 
 // Pre-cache ONLY local files to ensure stable installation without CORS interference
 const LOCAL_ASSETS_TO_CACHE = [
@@ -8,7 +8,9 @@ const LOCAL_ASSETS_TO_CACHE = [
     '/styles.css',
     '/scripts/main.js',
     '/scripts/helpers.js',
-    '/scripts/state.js'
+    '/scripts/state.js',
+    '/scripts/admin.js',
+    '/scripts/supabaseClient.js'
 ];
 
 // List of allowed external CDNs to be automatically cached dynamically at runtime
@@ -17,7 +19,8 @@ const ALLOWED_CDN_ORIGINS = [
     'fonts.googleapis.com',
     'fonts.gstatic.com',
     'cdnjs.cloudflare.com',
-    'js.puter.com'
+    'js.puter.com',
+    'cdn.jsdelivr.net'
 ];
 
 // 1. Install Event: Pre-cache local application framework files only
