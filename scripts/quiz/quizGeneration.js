@@ -299,14 +299,80 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         state.loadingInterval = null;
     }
 
-    // Extract JSON from text
-    function extractJsonArrayString(text) {
-        if (!text || typeof text !== 'string') return '';
-        let normalized = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const start = normalized.indexOf('[');
-        const end = normalized.lastIndexOf(']');
-        if (start === -1 || end === -1 || end <= start) return '';
-        return normalized.substring(start, end + 1).trim();
+    // Extract questions from Markdown format
+    function extractQuestionsFromMarkdown(text) {
+        if (!text || typeof text !== 'string') return [];
+
+        // Try JSON first (backward compatibility)
+        try {
+            let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const start = cleaned.indexOf('[');
+            const end = cleaned.lastIndexOf(']');
+            if (start !== -1 && end > start) {
+                const parsed = JSON.parse(cleaned.substring(start, end + 1));
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch { /* not JSON, try markdown */ }
+
+        // Parse Markdown format
+        const questions = [];
+        // Split by numbered items (1. 2. 3. etc.)
+        const blocks = text.split(/\n(?=\d+[\.\)]\s)/).filter(b => b.trim());
+
+        for (const block of blocks) {
+            try {
+                const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
+                if (lines.length < 2) continue;
+
+                // Extract type from [MC], [ID], [EN]
+                let type = 'multiple-choice';
+                const firstLine = lines[0];
+                if (/\[MC\]/i.test(firstLine)) type = 'multiple-choice';
+                else if (/\[ID\]/i.test(firstLine)) type = 'identification';
+                else if (/\[EN\]/i.test(firstLine)) type = 'enumeration';
+
+                // Clean question text (remove number and type tag)
+                const question = firstLine
+                    .replace(/^\d+[\.\)]\s*/, '')
+                    .replace(/\[(MC|ID|EN)\]\s*/i, '')
+                    .trim();
+
+                if (!question) continue;
+
+                // Find answer and explanation
+                let answer = '';
+                let explanation = '';
+                let options = [];
+                let parsingOptions = false;
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+
+                    if (/^Answer:/i.test(line)) {
+                        answer = line.replace(/^Answer:\s*/i, '').trim();
+                        parsingOptions = false;
+                    } else if (/^Explanation:/i.test(line)) {
+                        explanation = line.replace(/^Explanation:\s*/i, '').trim();
+                    } else if (/^[A-D][\.\)]\s/i.test(line)) {
+                        // MC options: A) text or A. text
+                        options.push(line.replace(/^[A-D][\.\)]\s*/i, '').trim());
+                        parsingOptions = true;
+                    } else if (parsingOptions && !answer) {
+                        // Continuation of options
+                        options.push(line);
+                    }
+                }
+
+                if (!question || !answer) continue;
+
+                const q = { type, question, answer, explanation };
+                if (options.length > 0) q.options = options;
+                questions.push(q);
+            } catch (e) {
+                console.warn('Failed to parse question block:', e);
+            }
+        }
+        return questions;
     }
 
     let allQs = [];
@@ -317,7 +383,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const maxSafetyCalls = 30;
 
     // Smart document chunking: split doc into segments, rotate per batch
-    const CHUNK_SIZE = 15000;
+    const CHUNK_SIZE = 8000;
     const docChunks = [];
     const fullText = state.fileContent || '';
     for (let i = 0; i < fullText.length; i += CHUNK_SIZE) {
@@ -385,37 +451,46 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
             const allowedTypes = ['multiple-choice', 'identification', 'enumeration'];
 
-            const sysP = `You are an expert quiz generator. Output ONLY a valid JSON array. Each object must have: "type", "question", "options", "answer", "explanation".
-CRITICAL RULES:
-1. Every question must cover completely distinct concepts from the text.
-2. DO NOT repeat concepts, rephrase existing questions, or create near-duplicates.
-3. Strictly check the "EXCLUDED_TOPICS" list provided by the user. Do not generate anything covering those topics.
-Do not include any conversational filler or markdown wrappers outside the raw JSON array.`;
+            const sysP = `Quiz generator. Output questions in this EXACT markdown format, one per numbered item:
+
+1. [MC] Question text?
+A) Option A
+B) Option B
+C) Option C
+D) Option D
+Answer: B
+Explanation: Text
+
+2. [ID] Question text?
+Answer: short answer
+Explanation: Text
+
+3. [EN] Question text?
+Answer: item1, item2, item3
+Explanation: Text
+
+Use [MC] for multiple-choice, [ID] for identification, [EN] for enumeration. No text outside the questions.`;
 
             // Smart excluded list: summarize topics instead of listing all questions verbatim
-            const excludedTopics = Array.from(qSet).slice(0, 50).map((qText, i) => {
-                const short = qText.length > 60 ? qText.substring(0, 60) + '...' : qText;
+            const excludedTopics = Array.from(qSet).slice(0, 30).map((qText, i) => {
+                const short = qText.length > 40 ? qText.substring(0, 40) + '...' : qText;
                 return `${i + 1}. ${short}`;
             }).join('\n');
 
             // Rotate document chunks per batch for better coverage
             const chunkIndex = (batchCounter - 1) % totalChunks;
             const currentChunk = docChunks[chunkIndex];
-            const chunkInfo = totalChunks > 1 ? `\n[Document segment ${chunkIndex + 1}/${totalChunks}]` : '';
+            const chunkInfo = totalChunks > 1 ? `\n[Segment ${chunkIndex + 1}/${totalChunks}]` : '';
 
-            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document:${chunkInfo}${currentChunk}.
+            const userQ = `Generate exactly ${neededForBatch} unique questions from this text:${chunkInfo}
+${currentChunk}
 
-Identification questions should have specific and concise answers. Output ONLY raw JSON.
+Mix: MC=${Math.round(neededForBatch * (mc/totalQ))}, ID=${Math.round(neededForBatch * (id/totalQ))}, EN=${Math.round(neededForBatch * (en/totalQ))}
 
-Mix requirement for this batch:
-- Multiple-choice: ${Math.round(neededForBatch * (mc/totalQ))}
-- Identification: ${Math.round(neededForBatch * (id/totalQ))}
-- Enumeration: ${Math.round(neededForBatch * (en/totalQ))}
+EXCLUDED (no duplicates):
+${excludedTopics || "None. First batch."}
 
-CRITICAL - EXCLUDED_TOPICS (Do not generate questions on these topics):
-${excludedTopics || "None. This is the first batch."}
-
-Remember to output ONLY the raw JSON array string.`;
+Output ONLY raw JSON.`;
             
             apiCallCount++;
             let currentBatchSuccess = false;
@@ -460,9 +535,9 @@ Remember to output ONLY the raw JSON array string.`;
                         continue;
                     }
 
-                    const cleanJson = extractJsonArrayString(rawText);
-                    if (!cleanJson) {
-                        console.warn(`Batch ${batchCounter} parse error: no JSON found in AI response.`);
+                    const parsed = extractQuestionsFromMarkdown(rawText);
+                    if (!parsed || parsed.length === 0) {
+                        console.warn(`Batch ${batchCounter} parse error: no questions found in AI response.`);
                         if (elements.loadingMessage) {
                             elements.loadingMessage.innerHTML = `
                                 <div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-red-500/40 shadow-xl mt-4">
@@ -475,45 +550,10 @@ Remember to output ONLY the raw JSON array string.`;
                                         </span>
                                     </div>
                                     <p class="text-xs text-gray-300 mt-2 font-medium leading-relaxed">
-                                        The AI returned content that couldn't be interpreted as JSON. Trying again without counting this as a rate-limit retry.
+                                        The AI returned content that couldn't be parsed. Retrying...
                                     </p>
                                 </div>
                             `;
-                        }
-                        await new Promise(r => setTimeout(r, 1500));
-                        continue;
-                    }
-
-                    let parsed;
-                    try {
-                        parsed = JSON.parse(cleanJson);
-                    } catch (parseErr) {
-                        console.warn(`Batch ${batchCounter} JSON.parse error:`, parseErr.message);
-                        if (elements.loadingMessage) {
-                            elements.loadingMessage.innerHTML = `
-                                <div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-red-500/40 shadow-xl mt-4">
-                                    <div class="flex justify-between items-center mb-1">
-                                        <span class="text-sm font-bold text-red-400 flex items-center">
-                                            ⚠️ Response Parse Error
-                                        </span>
-                                        <span class="text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
-                                            JSON Parsing Failed
-                                        </span>
-                                    </div>
-                                    <p class="text-xs text-gray-300 mt-2 font-medium leading-relaxed">
-                                        The AI produced malformed JSON. This will not be counted as a rate-limit attempt.
-                                    </p>
-                                </div>
-                            `;
-                        }
-                        await new Promise(r => setTimeout(r, 1500));
-                        continue;
-                    }
-
-                    if (!Array.isArray(parsed)) {
-                        console.warn(`Batch ${batchCounter} parse result was not an array.`);
-                        if (elements.loadingMessage) {
-                            elements.loadingMessage.innerHTML = `<div class="w-full max-w-md mx-auto text-left bg-gray-900/60 p-5 rounded-xl border border-red-500/40 shadow-xl mt-4"><p class="text-xs text-gray-300 mt-2">AI returned a non-array payload. Retrying without counting as a rate-limit attempt.</p></div>`;
                         }
                         await new Promise(r => setTimeout(r, 1500));
                         continue;
