@@ -16,9 +16,15 @@ function getPuterUserId() {
 // Fetch and cache Puter user ID
 async function fetchPuterUserId() {
     if (window.__puterUserId) return window.__puterUserId;
+    console.log('[Admin] Checking Puter auth...', {
+        puterDefined: typeof puter !== 'undefined',
+        authExists: typeof puter !== 'undefined' && !!puter.auth,
+        isSignedIn: typeof puter !== 'undefined' && puter.auth && puter.auth.isSignedIn()
+    });
     if (typeof puter === 'undefined' || !puter.auth || !puter.auth.isSignedIn()) return null;
     try {
         const user = await puter.auth.getUser();
+        console.log('[Admin] Puter user object:', user);
         window.__puterUserId = user.uuid || user.id || user.accountId;
         return window.__puterUserId;
     } catch (e) {
