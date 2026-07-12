@@ -430,7 +430,7 @@ export async function refreshCooldownPanel() {
     // Check if user has unlimited quizzes (pro/enterprise)
     let hasUnlimited = false;
     try {
-        const { getCurrentProfile, hasFeatureAccess, getActiveShareCount } = await import('../admin.js');
+        const { getCurrentProfile, hasFeatureAccess, getActiveShareCount } = await import('./admin.js');
         hasUnlimited = await hasFeatureAccess('unlimited_quizzes');
 
         // Update share links info if the element exists
