@@ -294,13 +294,20 @@ async function openAdminView() {
 // ==========================================
 
 async function loadUsers() {
-    const tbody = document.querySelector('#admin-users-table tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-4">Loading users...</td></tr>';
+    const tbody = document.getElementById('admin-users-table-body');
+    if (!tbody) {
+        console.warn('[Admin] Could not find #admin-users-table-body');
+        return;
+    }
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">Loading users...</td></tr>';
 
     try {
         const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
+        if (error) {
+            console.error('[Admin] Profiles query error:', error);
+            throw error;
+        }
+        console.log('[Admin] Loaded profiles:', data?.length, data);
 
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-4">No users found.</td></tr>';
