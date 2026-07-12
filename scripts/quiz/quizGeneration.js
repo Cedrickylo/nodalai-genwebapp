@@ -311,13 +311,22 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
     let allQs = [];
     let qSet = new Set();
-    const baseBatchSize = 15; 
+    const baseBatchSize = 20;
     let batchCounter = 1;
     let apiCallCount = 0;
-    const maxSafetyCalls = 30; 
+    const maxSafetyCalls = 30;
 
-    const avgEstApiTimePerBatch = 3.5; 
-    const coolDownTimePerBatch = 15.5; 
+    // Smart document chunking: split doc into segments, rotate per batch
+    const CHUNK_SIZE = 15000;
+    const docChunks = [];
+    const fullText = state.fileContent || '';
+    for (let i = 0; i < fullText.length; i += CHUNK_SIZE) {
+        docChunks.push(fullText.substring(i, i + CHUNK_SIZE));
+    }
+    const totalChunks = docChunks.length;
+
+    const avgEstApiTimePerBatch = 2.5;
+    const coolDownTimePerBatch = 3.5;
 
     try {
         while (allQs.length < totalQ && apiCallCount < maxSafetyCalls) {
@@ -380,24 +389,31 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 CRITICAL RULES:
 1. Every question must cover completely distinct concepts from the text.
 2. DO NOT repeat concepts, rephrase existing questions, or create near-duplicates.
-3. Strictly check the "EXCLUDED_QUESTIONS" list provided by the user. Do not generate anything covering those identical topics or answers.
+3. Strictly check the "EXCLUDED_TOPICS" list provided by the user. Do not generate anything covering those topics.
 Do not include any conversational filler or markdown wrappers outside the raw JSON array.`;
 
-            const excludedQuestionsList = Array.from(qSet)
-                .map((qText, index) => `${index + 1}. ${qText}`)
-                .join('\n');
+            // Smart excluded list: summarize topics instead of listing all questions verbatim
+            const excludedTopics = Array.from(qSet).slice(0, 50).map((qText, i) => {
+                const short = qText.length > 60 ? qText.substring(0, 60) + '...' : qText;
+                return `${i + 1}. ${short}`;
+            }).join('\n');
 
-            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document: ${state.fileContent.substring(0, 20000)}. 
-            
-Identification questions should have specific and concise answers. Output ONLY raw JSON. 
+            // Rotate document chunks per batch for better coverage
+            const chunkIndex = (batchCounter - 1) % totalChunks;
+            const currentChunk = docChunks[chunkIndex];
+            const chunkInfo = totalChunks > 1 ? `\n[Document segment ${chunkIndex + 1}/${totalChunks}]` : '';
 
-Mix requirement for this batch: 
+            const userQ = `Generate exactly ${neededForBatch} unique questions based on this document:${chunkInfo}${currentChunk}.
+
+Identification questions should have specific and concise answers. Output ONLY raw JSON.
+
+Mix requirement for this batch:
 - Multiple-choice: ${Math.round(neededForBatch * (mc/totalQ))}
 - Identification: ${Math.round(neededForBatch * (id/totalQ))}
 - Enumeration: ${Math.round(neededForBatch * (en/totalQ))}
 
-CRITICAL - EXCLUDED_QUESTIONS (Do not generate questions on these topics/phrases):
-${excludedQuestionsList || "None. This is the first batch."}
+CRITICAL - EXCLUDED_TOPICS (Do not generate questions on these topics):
+${excludedTopics || "None. This is the first batch."}
 
 Remember to output ONLY the raw JSON array string.`;
             
@@ -533,7 +549,7 @@ Remember to output ONLY the raw JSON array string.`;
 
             if (allQs.length < totalQ) {
                 console.log("Cooling down token pool...");
-                await new Promise(r => setTimeout(r, 20500)); 
+                await new Promise(r => setTimeout(r, 3000));
             }
         }
 
