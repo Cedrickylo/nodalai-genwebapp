@@ -22,7 +22,8 @@ export const elements = {
         help: document.getElementById('help-view'),
         about: document.getElementById('about-view'),
         account: document.getElementById('account-view'),
-        admin: document.getElementById('admin-view')
+        admin: document.getElementById('admin-view'),
+        progress: document.getElementById('progress-view')
     },
     account: document.getElementById('account-view'),
     globalSyncDone: document.getElementById('sync-icon-done'),

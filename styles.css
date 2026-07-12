@@ -1,4 +1,75 @@
-        /* Mobile Responsiveness & Layout Fixes */
+/* ==========================================
+   CSS VARIABLES FOR THEMING
+   ========================================== */
+:root {
+    --bg-body: #111827;
+    --bg-card: #1f2937;
+    --bg-input: #374151;
+    --bg-hover: #4b5563;
+    --border-color: #374151;
+    --border-light: #4b5563;
+    --text-primary: #ffffff;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --text-dim: #6b7280;
+    --accent: #3b82f6;
+}
+
+.light-mode {
+    --bg-body: #f3f4f6;
+    --bg-card: #ffffff;
+    --bg-input: #e5e7eb;
+    --bg-hover: #d1d5db;
+    --border-color: #e5e7eb;
+    --border-light: #d1d5db;
+    --text-primary: #111827;
+    --text-secondary: #374151;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --accent: #2563eb;
+}
+
+.light-mode body { background-color: var(--bg-body); color: var(--text-primary); }
+.light-mode .bg-gray-900 { background-color: var(--bg-body) !important; }
+.light-mode .bg-gray-800 { background-color: var(--bg-card) !important; }
+.light-mode .bg-gray-700 { background-color: var(--bg-input) !important; }
+.light-mode .bg-gray-700\/50 { background-color: rgba(229, 231, 235, 0.5) !important; }
+.light-mode .bg-gray-700\/30 { background-color: rgba(229, 231, 235, 0.3) !important; }
+.light-mode .bg-gray-800\/90 { background-color: rgba(255, 255, 255, 0.9) !important; }
+.light-mode .bg-gray-900\/50 { background-color: rgba(243, 244, 246, 0.5) !important; }
+.light-mode .bg-gray-900\/80 { background-color: rgba(243, 244, 246, 0.8) !important; }
+.light-mode .bg-gray-900\/30 { background-color: rgba(243, 244, 246, 0.3) !important; }
+.light-mode .bg-gray-900\/20 { background-color: rgba(243, 244, 246, 0.2) !important; }
+.light-mode .bg-gray-900\/60 { background-color: rgba(243, 244, 246, 0.6) !important; }
+.light-mode .text-white { color: var(--text-primary) !important; }
+.light-mode .text-gray-300 { color: var(--text-secondary) !important; }
+.light-mode .text-gray-400 { color: var(--text-muted) !important; }
+.light-mode .text-gray-500 { color: var(--text-dim) !important; }
+.light-mode .border-gray-700 { border-color: var(--border-color) !important; }
+.light-mode .border-gray-600 { border-color: var(--border-light) !important; }
+.light-mode .border-gray-700\/50 { border-color: rgba(229, 231, 235, 0.5) !important; }
+.light-mode .border-gray-700\/80 { border-color: rgba(229, 231, 235, 0.8) !important; }
+.light-mode .divide-gray-700\/30 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(229, 231, 235, 0.3) !important; }
+.light-mode aside { background-color: var(--bg-card) !important; border-color: var(--border-color) !important; }
+.light-mode .hover\:bg-gray-700:hover { background-color: var(--bg-hover) !important; }
+.light-mode .hover\:bg-gray-600:hover { background-color: #bcc3ce !important; }
+.light-mode .hover\:text-white:hover { color: var(--text-primary) !important; }
+.light-mode .peer-checked\:bg-blue-600:checked + label { background-color: #2563eb !important; }
+.light-mode .info-card { background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 244, 246, 0.95)) !important; border-color: var(--border-color) !important; }
+.light-mode .info-card h3 { color: #1d4ed8 !important; }
+.light-mode .info-card p, .light-mode .info-card li { color: var(--text-secondary) !important; }
+.light-mode .page-shell { box-shadow: 0 24px 70px rgba(0, 0, 0, 0.12) !important; }
+.light-mode .page-sticky-header { background: rgba(255, 255, 255, 0.88) !important; border-color: rgba(229, 231, 235, 0.82) !important; }
+.light-mode .scroll-reactive-header.is-stuck { background: rgba(255, 255, 255, 0.88) !important; border-color: rgba(229, 231, 235, 0.82) !important; }
+.light-mode #toast-notification { background-color: #1f2937 !important; color: white !important; }
+.light-mode #mobile-bottom-nav { background-color: rgba(255, 255, 255, 0.8) !important; border-color: var(--border-color) !important; }
+.light-mode #mobile-menu-modal .bg-gray-800 { background-color: var(--bg-card) !important; }
+.light-mode .bg-gray-600\/30 { background-color: rgba(209, 213, 219, 0.3) !important; }
+.light-mode .bg-gray-600\/40 { background-color: rgba(209, 213, 219, 0.4) !important; }
+
+/* ==========================================
+   MOBILE RESPONSIVENESS & LAYOUT
+   ========================================== */
         html, body { 
             font-family: 'Inter', sans-serif; 
             overflow-x: clip; 
@@ -345,3 +416,18 @@
     background-color: #3b82f6;
     border-color: #2563eb;
 }
+
+/* ==========================================
+   LIGHT MODE OVERRIDES FOR INLINE STYLES
+   ========================================== */
+.light-mode #account-card { border-color: var(--border-color) !important; }
+.light-mode .bg-red-600\/10 { background-color: rgba(220, 38, 38, 0.08) !important; }
+.light-mode .bg-blue-600\/10 { background-color: rgba(37, 99, 235, 0.08) !important; }
+.light-mode .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.15) !important; }
+.light-mode .bg-purple-500\/20 { background-color: rgba(168, 85, 247, 0.15) !important; }
+.light-mode .bg-green-500\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.light-mode .bg-blue-500\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+.light-mode .bg-yellow-500\/10 { background-color: rgba(234, 179, 8, 0.1) !important; }
+.light-mode .bg-red-500\/10 { background-color: rgba(239, 68, 68, 0.1) !important; }
+.light-mode .bg-emerald-500\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.light-mode .bg-teal-600\/20 { background-color: rgba(20, 184, 166, 0.15) !important; }

@@ -2,6 +2,8 @@ import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, 
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
 import { initAdmin, syncProfileToSupabase, refreshAdminVisibility } from './admin.js';
+import { getCurrentProvider, setCurrentProvider, getUserApiKey, setUserApiKey } from './aiService.js';
+import { initShortcuts } from './shortcuts.js';
 
 // ==================================================================
 // GLOBAL UNHANDLED REJECTION SAFETY NET
@@ -19,6 +21,72 @@ window.addEventListener('unhandledrejection', (event) => {
         event.preventDefault(); // Silences the red error crash trigger
     }
 });
+
+const THEME_KEY = 'nodal_theme';
+
+function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (prefersDark ? 'dark' : 'light');
+    applyTheme(theme);
+
+    const toggleBtn = document.getElementById('theme-toggle-btn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            const current = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            localStorage.setItem(THEME_KEY, next);
+        });
+    }
+}
+
+function applyTheme(theme) {
+    const isLight = theme === 'light';
+    document.documentElement.classList.toggle('light-mode', isLight);
+    const darkIcon = document.getElementById('theme-icon-dark');
+    const lightIcon = document.getElementById('theme-icon-light');
+    const label = document.getElementById('theme-label');
+    if (darkIcon) darkIcon.classList.toggle('hidden', isLight);
+    if (lightIcon) lightIcon.classList.toggle('hidden', !isLight);
+    if (label) label.textContent = isLight ? 'Light' : 'Dark';
+}
+
+function initProviderSelector() {
+    const select = document.getElementById('ai-provider-select');
+    const settingsBtn = document.getElementById('ai-provider-settings-btn');
+
+    if (select) {
+        // Set saved provider
+        select.value = getCurrentProvider();
+        select.addEventListener('change', () => {
+            setCurrentProvider(select.value);
+        });
+    }
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            const modal = document.getElementById('api-key-modal');
+            if (!modal) return;
+            // Load saved keys
+            ['groq', 'openai', 'anthropic', 'gemini'].forEach(p => {
+                const input = document.getElementById(`api-key-${p}`);
+                if (input) input.value = getUserApiKey(p);
+            });
+            modal.classList.remove('hidden');
+        });
+    }
+
+    // Save API keys handler
+    window.__saveApiKeys = () => {
+        ['groq', 'openai', 'anthropic', 'gemini'].forEach(p => {
+            const input = document.getElementById(`api-key-${p}`);
+            if (input) setUserApiKey(p, input.value.trim());
+        });
+        document.getElementById('api-key-modal')?.classList.add('hidden');
+        if (typeof showToast === 'function') showToast('API keys saved!', 2000, 'success');
+    };
+}
 
 async function initApp() {
     if (window.puter) puter.quiet = true;
@@ -64,6 +132,9 @@ async function initApp() {
 
         prepareSavedProgress();
         initWelcomeModal();
+        initTheme();
+        initProviderSelector();
+        initShortcuts();
 
         // Initialize admin panel (adds Admin nav button if user is admin)
         try {

@@ -21,6 +21,16 @@
     <aside class="hidden md:flex md:w-56 md:flex-col md:bg-gray-800 md:rounded-xl md:shadow-2xl md:p-6 md:mr-4 md:h-fit md:sticky md:top-4 md:border md:border-gray-700">
         <div class="md:space-y-4">
             <h2 class="text-xl font-bold text-blue-400 mb-6">Nodal AI</h2>
+
+            <!-- Theme Toggle -->
+            <div class="flex items-center gap-2 mb-4 px-2">
+                <button id="theme-toggle-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 text-gray-300 hover:text-white text-xs transition-colors" title="Toggle theme">
+                    <svg id="theme-icon-dark" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <svg id="theme-icon-light" class="w-4 h-4 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <span id="theme-label">Dark</span>
+                </button>
+            </div>
+
             <nav class="space-y-2">
                 
                 <!-- Home Button -->
@@ -310,6 +320,21 @@
                 </div>
                 
                 <button id="resume-quiz-btn" class="hidden w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg mb-4">Resume Previous Quiz</button>
+
+                <!-- AI Provider Selector -->
+                <div id="ai-provider-section" class="flex items-center gap-2 mb-3">
+                    <label for="ai-provider-select" class="text-xs text-gray-400 whitespace-nowrap">AI Provider:</label>
+                    <select id="ai-provider-select" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="groq">Groq (Free)</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Claude</option>
+                        <option value="gemini">Gemini</option>
+                    </select>
+                    <button id="ai-provider-settings-btn" class="w-7 h-7 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-400 hover:text-white transition-colors" title="API Key Settings">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+
                 <button id="generate-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Generate Quiz</button>
                 <button id="cancel-customize-btn" class="hidden w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Cancel</button>
                 <p id="status-message" class="text-center text-gray-400 mt-4 text-sm h-5"></p>
@@ -589,9 +614,11 @@
                 <h3 class="text-lg font-semibold text-gray-300 mb-4">Review Answers:</h3>
                 <div id="summary-container" class="space-y-4 max-h-96 overflow-y-auto pr-2 rounded-lg"></div>
                 
-                <div id="results-actions" class="flex gap-4 mt-8">
-                    <button id="restart-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">Go to Home</button>
-                    <button id="export-quiz-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition">Export Quiz</button>
+                <div id="results-actions" class="grid grid-cols-2 gap-3 mt-8">
+                    <button id="restart-quiz-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition col-span-2 sm:col-span-1">Go to Home</button>
+                    <button id="export-quiz-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition">Export JSON</button>
+                    <button id="export-md-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Export Markdown</button>
+                    <button id="export-csv-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition col-span-2 sm:col-span-1">Export Results CSV</button>
                 </div>
                 <div id="remedial-container" class="mt-4">
                     <button id="create-remedial-btn" class="hidden w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg transition">Create Remedial Quiz from Incorrect Answers</button>
@@ -800,6 +827,59 @@
             </div>
         </div>
 
+        <!-- Progress / My Stats View -->
+        <div id="progress-view" class="view w-full max-w-5xl self-start">
+            <div class="page-shell bg-gray-800/90 border border-gray-700/80 w-full p-5 sm:p-8 rounded-2xl shadow-2xl relative min-h-[60vh]">
+                <div class="page-shell-glow page-shell-glow-left"></div>
+                <div class="page-shell-glow page-shell-glow-right"></div>
+                <div class="relative z-10 pt-0 sm:pt-0">
+                    <div id="progress-header-sentinel" class="h-px" aria-hidden="true"></div>
+                    <div class="page-sticky-header scroll-reactive-header mb-4 sm:mb-5">
+                        <button onclick="import('./helpers.js').then(m => m.showView('account'))" class="inline-flex items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            <span>Back</span>
+                        </button>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">My Progress</h2>
+                        <span class="header-spacer" aria-hidden="true"></span>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total Quizzes</p>
+                            <p id="progress-total-quizzes" class="text-2xl font-bold text-blue-400">-</p>
+                        </div>
+                        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Avg Score</p>
+                            <p id="progress-avg-score" class="text-2xl font-bold text-emerald-400">-</p>
+                        </div>
+                        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Best Score</p>
+                            <p id="progress-best-score" class="text-2xl font-bold text-yellow-400">-</p>
+                        </div>
+                        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total Time</p>
+                            <p id="progress-total-time" class="text-2xl font-bold text-purple-400">-</p>
+                        </div>
+                    </div>
+
+                    <!-- Score Distribution -->
+                    <div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700/50 mb-6">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-3">Score Distribution</h3>
+                        <div id="progress-score-bars" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Recent Quizzes -->
+                    <div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700/50">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-3">Recent Quizzes</h3>
+                        <div id="progress-recent-list" class="space-y-2">
+                            <p class="text-gray-400 text-sm">No quiz data yet. Complete a quiz to see your progress here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     <div id="mobile-menu-modal" class="hidden fixed inset-0 z-[100] flex flex-col md:hidden">
         <div class="flex-1 bg-black/60 backdrop-blur-sm" id="mobile-menu-backdrop"></div>
         <div class="w-full bg-gray-800 p-4 rounded-t-xl shadow-xl border-t border-gray-700">
@@ -927,7 +1007,11 @@
             </div>
         </div>
 
-        <div class="lg:col-span-2 w-full pt-2">
+        <div class="lg:col-span-2 w-full pt-2 space-y-2">
+            <button id="open-progress-btn" class="w-full bg-blue-600/10 hover:bg-blue-600/30 text-blue-400 hover:text-white border border-blue-500/20 hover:border-transparent font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                <span>My Progress</span>
+            </button>
             <button id="logout-btn" class="w-full bg-red-600/10 hover:bg-red-600/30 text-red-400 hover:text-white border border-red-500/20 hover:border-transparent font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">                <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
@@ -1052,6 +1136,40 @@
     <div class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden max-h-[90vh] flex flex-col">
         <div class="p-5 overflow-y-auto flex-1" id="admin-user-detail-content">
             <p class="text-gray-400 text-sm">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<!-- API Key Settings Modal -->
+<div id="api-key-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
+        <div class="p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-blue-400">API Key Settings</h3>
+                <button onclick="document.getElementById('api-key-modal').classList.add('hidden')" class="text-gray-400 hover:text-white">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mb-4">Enter your own API key for a provider. Leave blank to use the server default. Keys are stored in your browser only.</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-medium text-gray-300">Groq API Key</label>
+                    <input type="password" id="api-key-groq" placeholder="gsk_..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-300">OpenAI API Key</label>
+                    <input type="password" id="api-key-openai" placeholder="sk-..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-300">Anthropic API Key</label>
+                    <input type="password" id="api-key-anthropic" placeholder="sk-ant-..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-300">Gemini API Key</label>
+                    <input type="password" id="api-key-gemini" placeholder="AIza..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <button onclick="window.__saveApiKeys()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg text-sm">Save Keys</button>
         </div>
     </div>
 </div>

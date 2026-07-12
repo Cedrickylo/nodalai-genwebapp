@@ -192,12 +192,108 @@ export async function logQuizAnalytics(quizData) {
             quiz_id: quizData.id,
             questions_count: quizData.questionsCount,
             score: quizData.score,
-            time_spent_seconds: quizData.timeSpent,
-            completed: quizData.completed
+            percentage: quizData.percentage || null,
+            difficulty: quizData.difficulty || null,
+            time_spent_seconds: quizData.timeSpent || 0,
+            completed: quizData.completed || false
         });
     } catch (e) {
         console.warn('Analytics log failed:', e);
     }
+}
+
+// ==========================================
+// USER PROGRESS VIEW
+// ==========================================
+
+export async function loadUserProgress() {
+    const userId = await fetchPuterUserId();
+    if (!userId) return;
+
+    try {
+        const { data, error } = await supabase
+            .from('quiz_analytics')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const quizzes = data || [];
+        const totalQuizzes = quizzes.length;
+        const completedQuizzes = quizzes.filter(q => q.completed);
+        const scores = completedQuizzes.map(q => q.percentage || 0);
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+        const totalTime = quizzes.reduce((sum, q) => sum + (q.time_spent_seconds || 0), 0);
+
+        // Update stat cards
+        const elTotal = document.getElementById('progress-total-quizzes');
+        const elAvg = document.getElementById('progress-avg-score');
+        const elBest = document.getElementById('progress-best-score');
+        const elTime = document.getElementById('progress-total-time');
+
+        if (elTotal) elTotal.textContent = totalQuizzes;
+        if (elAvg) elAvg.textContent = totalQuizzes > 0 ? `${avgScore}%` : '-';
+        if (elBest) elBest.textContent = totalQuizzes > 0 ? `${bestScore}%` : '-';
+        if (elTime) elTime.textContent = totalTime > 0 ? formatTimeShort(totalTime) : '-';
+
+        // Score distribution bars
+        const bars = { '90-100%': 0, '75-89%': 0, '50-74%': 0, '0-49%': 0 };
+        scores.forEach(s => {
+            if (s >= 90) bars['90-100%']++;
+            else if (s >= 75) bars['75-89%']++;
+            else if (s >= 50) bars['50-74%']++;
+            else bars['0-49%']++;
+        });
+
+        const maxCount = Math.max(1, ...Object.values(bars));
+        const barsContainer = document.getElementById('progress-score-bars');
+        if (barsContainer) {
+            const colors = { '90-100%': 'bg-emerald-500', '75-89%': 'bg-blue-500', '50-74%': 'bg-yellow-500', '0-49%': 'bg-red-500' };
+            barsContainer.innerHTML = Object.entries(bars).map(([range, count]) => `
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-400 w-16 text-right">${range}</span>
+                    <div class="flex-1 bg-gray-800 rounded-full h-3 overflow-hidden">
+                        <div class="${colors[range]} h-3 rounded-full transition-all duration-500" style="width: ${(count / maxCount) * 100}%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 w-6">${count}</span>
+                </div>
+            `).join('');
+        }
+
+        // Recent quizzes list
+        const recentContainer = document.getElementById('progress-recent-list');
+        if (recentContainer) {
+            if (quizzes.length === 0) {
+                recentContainer.innerHTML = '<p class="text-gray-400 text-sm">No quiz data yet. Complete a quiz to see your progress here.</p>';
+            } else {
+                recentContainer.innerHTML = quizzes.slice(0, 10).map(q => {
+                    const pct = q.percentage || 0;
+                    const color = pct >= 90 ? 'text-emerald-400' : pct >= 75 ? 'text-blue-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400';
+                    const date = new Date(q.created_at).toLocaleDateString();
+                    return `
+                        <div class="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg border border-gray-700/50">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm text-white font-medium truncate">${q.quiz_name || q.quiz_id || 'Quiz'}</p>
+                                <p class="text-xs text-gray-400">${date} · ${q.questions_count || 0} Qs · ${q.difficulty || 'mixed'}</p>
+                            </div>
+                            <span class="text-sm font-bold ${color} ml-3">${pct}%</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to load progress:', e);
+    }
+}
+
+function formatTimeShort(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
 }
 
 // ==========================================

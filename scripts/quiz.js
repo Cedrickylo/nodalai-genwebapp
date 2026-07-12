@@ -145,6 +145,17 @@ export function attachQuizEventListeners() {
     skipQuestionBtn.addEventListener('click', skipQuestion);
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn.addEventListener('click', exportQuiz);
+
+    // Additional export buttons
+    document.getElementById('export-md-btn')?.addEventListener('click', async () => {
+        const { exportQuizAsMarkdown } = await import('../helpers.js');
+        exportQuizAsMarkdown(state.currentQuizKey);
+    });
+    document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
+        const { exportResultsAsCSV } = await import('../helpers.js');
+        exportResultsAsCSV(state.currentQuizKey);
+    });
+
     elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
     // Help and About back buttons
     elements.helpBackBtn?.addEventListener('click', () => showView('start'));

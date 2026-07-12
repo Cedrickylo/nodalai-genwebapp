@@ -1384,7 +1384,18 @@ export function attachAuthHandlers() {
 
     // 3. Existing action buttons inside the card
     if (saveDisplayNameBtn) saveDisplayNameBtn.onclick = saveDisplayName;
-    
+
+    // Open Progress button
+    const openProgressBtn = document.getElementById('open-progress-btn');
+    if (openProgressBtn) {
+        openProgressBtn.onclick = async () => {
+            elements.accountModalOverlay?.classList.add('hidden');
+            showView('progress');
+            const { loadUserProgress } = await import('./admin.js');
+            await loadUserProgress();
+        };
+    }
+
     if (buyCreditsBtn) {
         buyCreditsBtn.onclick = () => {
             window.open('https://puter.com/billing', '_blank');
@@ -1541,14 +1552,14 @@ export function navigateToShareStep(step) {
 export function exportQuizAsJSON(quizKey) {
     const quiz = state.quizHistory[quizKey];
     if (!quiz) return;
-    
+
     try {
         const exportData = {
             fileName: quiz.fileName,
             config: quiz.config,
             questions: quiz.questions
         };
-        
+
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -1556,12 +1567,87 @@ export function exportQuizAsJSON(quizKey) {
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
-        
-        showToast('Quiz exported to your device!', 3000, 'success');
+
+        showToast('Quiz exported as JSON!', 3000, 'success');
     } catch (err) {
         console.error('Export Error:', err);
         showToast('Failed to export quiz.', 3000, 'error');
     }
+}
+
+export function exportQuizAsMarkdown(quizKey) {
+    const quiz = state.quizHistory[quizKey];
+    if (!quiz) return;
+
+    try {
+        let md = `# ${quiz.fileName || 'Quiz'}\n\n`;
+        md += `**Difficulty:** ${quiz.config?.difficulty || 'mixed'} | **Questions:** ${quiz.questions.length}\n\n---\n\n`;
+
+        quiz.questions.forEach((q, i) => {
+            md += `### Q${i + 1}. ${q.question}\n\n`;
+            if (q.type === 'multiple-choice' && q.options) {
+                q.options.forEach((opt, j) => {
+                    const letter = String.fromCharCode(65 + j);
+                    md += `- **${letter})** ${opt}\n`;
+                });
+                md += `\n**Answer:** ${Array.isArray(q.answer) ? q.answer.join(', ') : q.answer}\n`;
+            } else {
+                md += `**Answer:** ${Array.isArray(q.answer) ? q.answer.join(', ') : q.answer}\n`;
+            }
+            if (q.explanation) {
+                md += `\n*Explanation:* ${q.explanation}\n`;
+            }
+            md += '\n---\n\n';
+        });
+
+        const blob = new Blob([md], { type: 'text/markdown' });
+        downloadBlob(blob, `${quiz.fileName || 'quiz'}.md`);
+        showToast('Quiz exported as Markdown!', 3000, 'success');
+    } catch (err) {
+        console.error('Export Error:', err);
+        showToast('Failed to export quiz.', 3000, 'error');
+    }
+}
+
+export function exportResultsAsCSV(quizKey) {
+    const quiz = state.quizHistory[quizKey];
+    if (!quiz || !state.userAnswers || state.userAnswers.length === 0) {
+        showToast('No quiz results to export.', 3000, 'warning');
+        return;
+    }
+
+    try {
+        let csv = 'Question,Your Answer,Correct Answer,Correct?,Type\n';
+        state.userAnswers.forEach(a => {
+            const q = quiz.questions[a.originalIndex];
+            const row = [
+                `"${(q?.question || '').replace(/"/g, '""')}"`,
+                `"${String(a.userAnswer || 'No answer').replace(/"/g, '""')}"`,
+                `"${String(a.correctAnswer || '').replace(/"/g, '""')}"`,
+                a.isCorrect ? 'Yes' : 'No',
+                q?.type || 'unknown'
+            ];
+            csv += row.join(',') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        downloadBlob(blob, `${quiz.fileName || 'quiz'}-results.csv`);
+        showToast('Results exported as CSV!', 3000, 'success');
+    } catch (err) {
+        console.error('Export Error:', err);
+        showToast('Failed to export results.', 3000, 'error');
+    }
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
 }
 
 // ==========================================

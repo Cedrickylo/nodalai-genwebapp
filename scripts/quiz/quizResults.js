@@ -4,6 +4,7 @@ import {
     clearInProgressQuiz,
     saveInProgressQuiz
 } from '../helpers.js';
+import { logQuizAnalytics } from '../admin.js';
 
 const {
     explanationAreaEl,
@@ -92,6 +93,18 @@ export async function showResults() {
     document.getElementById('final-percentage').textContent = `Score: ${state.score}/${totalQ} (${perc}%)`;
     const msg = perc >= 90 ? 'Excellent!' : perc >= 75 ? 'Great!' : perc >= 50 ? 'Good.' : 'Practice!';
     document.getElementById('final-message').textContent = msg;
+
+    // Log quiz analytics to Supabase
+    const timeSpent = state.totalQuizTime > 0 ? state.totalQuizTime - (state.timeRemaining || 0) : 0;
+    logQuizAnalytics({
+        id: state.currentQuizKey || 'unknown',
+        questionsCount: totalQ,
+        score: state.score,
+        percentage: perc,
+        difficulty: state.currentQuizConfig?.difficulty || 'unknown',
+        timeSpent: Math.round(timeSpent),
+        completed: true
+    }).catch(() => {}); // Fire and forget
 
     const summaryCont = document.getElementById('summary-container');
     summaryCont.innerHTML = '';
