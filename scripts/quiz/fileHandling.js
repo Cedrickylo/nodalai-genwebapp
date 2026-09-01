@@ -338,10 +338,17 @@ export function handleQuizImport(event) {
             state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
             state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
 
-            const { saveQuizToDB, refreshHistory, closeAiPromptModal } = await import('../helpers.js');
+            const { saveQuizToDB, refreshHistory, closeAiPromptModal, syncHistoryWithCloud } = await import('../helpers.js');
             if (typeof closeAiPromptModal === 'function') closeAiPromptModal();
 
             saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
+            if (typeof puter !== 'undefined' && window.puter && puter.auth && puter.auth.isSignedIn() && navigator.onLine) {
+                try {
+                    await syncHistoryWithCloud(false);
+                } catch (syncErr) {
+                    console.warn("Import sync warning:", syncErr);
+                }
+            }
             refreshHistory();
             statusMessage.textContent = `Imported "${state.currentFileName}". Opening customize screen...`;
             statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';

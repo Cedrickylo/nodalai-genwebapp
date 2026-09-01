@@ -238,6 +238,56 @@ export function setSyncing(status) {
     if (quizOffline) quizOffline.classList.toggle('hidden', finalStatus !== 'offline');
 }
 
+const PUTER_FS_SYNC_FILE = 'nodal_quiz_sync_v4.json';
+const PUTER_FS_BACKUP_FILE = 'nodal_quiz_sync_backup.json';
+
+async function parsePuterFSFile(fileItem) {
+    if (!fileItem) return null;
+    try {
+        let text = '';
+        if (typeof fileItem === 'string') {
+            text = fileItem;
+        } else if (fileItem instanceof Blob || (fileItem && typeof fileItem.text === 'function')) {
+            text = await fileItem.text();
+        } else if (fileItem && fileItem.content) {
+            text = typeof fileItem.content === 'string' ? fileItem.content : JSON.stringify(fileItem.content);
+        }
+        if (text && text.trim().length > 0) {
+            return JSON.parse(text);
+        }
+    } catch (e) {
+        console.warn('parsePuterFSFile parse error:', e);
+    }
+    return null;
+}
+
+async function writePuterCloudBackup(fileName, contentString) {
+    if (typeof puter === 'undefined' || !window.puter || !puter.fs) return false;
+    try {
+        // Attempt write with overwrite: true and dedupe_name: false
+        const res = await puter.fs.write(fileName, contentString, { overwrite: true, dedupe_name: false });
+        if (res && res.error) {
+            console.warn(`Puter FS write to ${fileName} returned error:`, res.error);
+            return false;
+        }
+        return true;
+    } catch (writeErr) {
+        console.warn(`Puter FS write exception on ${fileName}, trying unlink fallback:`, writeErr);
+        try {
+            if (typeof puter.fs.delete === 'function') {
+                await puter.fs.delete(fileName).catch(() => {});
+            } else if (typeof puter.fs.unlink === 'function') {
+                await puter.fs.unlink(fileName).catch(() => {});
+            }
+            await puter.fs.write(fileName, contentString);
+            return true;
+        } catch (unlinkErr) {
+            console.error(`Puter FS fallback write failed on ${fileName}:`, unlinkErr);
+            return false;
+        }
+    }
+}
+
 export async function syncHistoryWithCloud(manual = false) {
     // 1. Authentication check
     if (typeof puter === 'undefined' || !window.puter || !puter.auth.isSignedIn()) {
@@ -257,48 +307,61 @@ export async function syncHistoryWithCloud(manual = false) {
     setSyncing('syncing'); 
 
     try {
-        let cloudData = { items: {}, updatedAt: 0 };
-        let cloudLoaded = false;
+        let combinedCloudItems = {};
 
-        // 2. Fetch current cloud data: Try Puter KV first, then Puter FS backup
+        // 2. Read from Puter KV
         try {
             const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
             if (cloudRaw) {
-                cloudData = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
-                if (cloudData && typeof cloudData === 'object') cloudLoaded = true;
+                const parsedKv = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
+                if (parsedKv && parsedKv.items && typeof parsedKv.items === 'object') {
+                    Object.assign(combinedCloudItems, parsedKv.items);
+                }
             }
         } catch (kvReadErr) {
             console.warn("Puter KV read warning:", kvReadErr);
         }
 
-        // Fallback: If KV empty or failed, try reading from Puter Filesystem backup
-        if (!cloudLoaded || !cloudData.items || Object.keys(cloudData.items).length === 0) {
+        // 3. Read from Puter FS primary & backup files
+        if (puter.fs && typeof puter.fs.read === 'function') {
             try {
-                if (puter.fs && typeof puter.fs.read === 'function') {
-                    const fsBlob = await puter.fs.read('nodal_quiz_sync_backup.json');
-                    if (fsBlob) {
-                        const fsText = typeof fsBlob === 'string' ? fsBlob : (fsBlob.text ? await fsBlob.text() : JSON.stringify(fsBlob));
-                        const parsedFs = JSON.parse(fsText);
-                        if (parsedFs && parsedFs.items) {
-                            cloudData = parsedFs;
-                            cloudLoaded = true;
+                const fsItemPrimary = await puter.fs.read(PUTER_FS_SYNC_FILE);
+                const parsedPrimary = await parsePuterFSFile(fsItemPrimary);
+                if (parsedPrimary && parsedPrimary.items) {
+                    for (const [k, v] of Object.entries(parsedPrimary.items)) {
+                        if (!combinedCloudItems[k] || (v.timestamp || 0) > (combinedCloudItems[k].timestamp || 0)) {
+                            combinedCloudItems[k] = v;
                         }
                     }
                 }
-            } catch (fsReadErr) {
-                // Initial run or no backup file yet - expected
+            } catch (ePrimary) {
+                // Primary file not created yet or read issue
+            }
+
+            try {
+                const fsItemBackup = await puter.fs.read(PUTER_FS_BACKUP_FILE);
+                const parsedBackup = await parsePuterFSFile(fsItemBackup);
+                if (parsedBackup && parsedBackup.items) {
+                    for (const [k, v] of Object.entries(parsedBackup.items)) {
+                        if (!combinedCloudItems[k] || (v.timestamp || 0) > (combinedCloudItems[k].timestamp || 0)) {
+                            combinedCloudItems[k] = v;
+                        }
+                    }
+                }
+            } catch (eBackup) {
+                // Backup file not created yet
             }
         }
 
-        // 3. Fetch current local system matrix
+        // 4. Fetch current local system matrix
         const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
         const mergedItems = {};
 
-        // 4. Create a comprehensive lookup grid combining all unique workspace identifiers
-        const allKeys = new Set([...Object.keys(cloudData.items || {}), ...Object.keys(localItems)]);
+        // 5. Merge all keys across all cloud items and local items
+        const allKeys = new Set([...Object.keys(combinedCloudItems), ...Object.keys(localItems)]);
 
         for (const key of allKeys) {
-            const cloudQuiz = cloudData.items?.[key];
+            const cloudQuiz = combinedCloudItems[key];
             const localQuiz = localItems[key];
             
             if (cloudQuiz && localQuiz) {
@@ -316,10 +379,8 @@ export async function syncHistoryWithCloud(manual = false) {
 
         const now = Date.now();
 
-        // 5. Push structural modifications back to core state pointers
+        // 6. Push structural modifications back to core state pointers & localStorage
         state.quizHistory = mergedItems; 
-        
-        // Commit changes locally
         localStorage.setItem(DB_NAME, JSON.stringify(mergedItems));
         localStorage.setItem(DB_NAME + '_ts', now.toString());
 
@@ -328,26 +389,26 @@ export async function syncHistoryWithCloud(manual = false) {
             updatedAt: now 
         });
 
-        // 6. Write to cloud: Try Puter KV, and also write to Puter FS backup
+        // 7. Write to cloud: Puter FS primary & backup + Puter KV
         let writeSuccess = false;
-        try {
-            await puter.kv.set(CLOUD_SYNC_KEY, payloadString);
-            writeSuccess = true;
-        } catch (kvWriteErr) {
-            console.warn("Puter KV set failed, falling back to Puter FS:", kvWriteErr);
-        }
+
+        const fsPrimarySuccess = await writePuterCloudBackup(PUTER_FS_SYNC_FILE, payloadString);
+        if (fsPrimarySuccess) writeSuccess = true;
+
+        const fsBackupSuccess = await writePuterCloudBackup(PUTER_FS_BACKUP_FILE, payloadString);
+        if (fsBackupSuccess) writeSuccess = true;
 
         try {
-            if (puter.fs && typeof puter.fs.write === 'function') {
-                await puter.fs.write('nodal_quiz_sync_backup.json', payloadString);
+            const kvRes = await puter.kv.set(CLOUD_SYNC_KEY, payloadString);
+            if (kvRes !== false && !(kvRes && kvRes.error)) {
                 writeSuccess = true;
             }
-        } catch (fsWriteErr) {
-            console.warn("Puter FS write warning:", fsWriteErr);
+        } catch (kvWriteErr) {
+            console.warn("Puter KV set failed (likely size limit, preserved in Puter FS):", kvWriteErr);
         }
 
         if (!writeSuccess) {
-            throw new Error("Unable to save sync payload to Puter KV or FS.");
+            throw new Error("Unable to save sync payload to Puter cloud.");
         }
 
         // Redraw lists and resolve indicators
