@@ -1311,7 +1311,11 @@ export function buildQuizSystemPrompt(config, fileName, fileContent = '') {
     return `System Prompt: JSON Quiz Generator
 
 Role & Task:
-Act as an expert instructional designer and JSON architect. Your task is to generate a quiz based strictly on the provided text reviewer. The output must be a single, valid JSON file representing the quiz. Do not output any conversational text, explanations, or Markdown formatting outside of the JSON block.
+Act as an expert instructional designer and JSON architect. Your task is to generate a quiz based strictly on the provided text reviewer.
+
+CRITICAL FILE OUTPUT REQUIREMENT:
+You MUST provide the generated quiz as a downloadable .json file (named "${finalFileName}.json") or enclosed entirely within a single, clean \`\`\`json code block that can be directly saved and downloaded as a ".json" file.
+Do NOT output any conversational text, pleasantries, preambles, summaries, explanations, or Markdown text outside of the JSON block. The user will be downloading and importing this JSON file directly into an automated quiz web application, so the response must strictly be 100% valid, parseable JSON.
 
 Content Requirements:
 
