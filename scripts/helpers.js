@@ -169,11 +169,19 @@ export async function handleLogout() {
     const isConfirmed = await customConfirm('Are you sure you want to log out?', 'Sign Out', 'Sign Out', 'Cancel', true);
     if (isConfirmed) {
         if (elements.accountModalOverlay) elements.accountModalOverlay.classList.add('hidden');
+        
+        // Ensure local quizzes are safely saved to Puter cloud before signing out
+        if (typeof puter !== 'undefined' && window.puter && puter.auth && puter.auth.isSignedIn() && navigator.onLine) {
+            try {
+                await syncHistoryWithCloud(false);
+            } catch (syncErr) {
+                console.warn("Pre-logout sync warning:", syncErr);
+            }
+        }
+
         // 1. Sign out of Puter
         await puter.auth.signOut();
-        // accountModal.classList.add('hidden');
         
-        // --- NEW CLEANUP LOGIC ---
         // 2. Wipe the saved data from the browser's Local Storage
         localStorage.removeItem(constants.DB_NAME); 
         localStorage.removeItem(constants.IN_PROGRESS_QUIZ_KEY);
@@ -185,11 +193,10 @@ export async function handleLogout() {
         refreshHistory();
         clearInProgressQuiz(); // Hides any "Resume Quiz" buttons
         showView('start');     // Kicks the user back to the main screen
-        // -------------------------
 
         // 5. Update Auth buttons and notify user
         updateAuthUI();
-        showToast('Logged out successfully and cleared local history');
+        showToast('Logged out successfully');
     }
 }
 
@@ -239,7 +246,7 @@ export async function syncHistoryWithCloud(manual = false) {
         return;
     }
 
-    // CRITICAL FIX: Block cloud access immediately if offline to stop uncatchable SDK XMLHttp rejections
+    // Block cloud access immediately if offline
     if (!navigator.onLine) {
         setSyncing('offline');
         if (manual) showToast('Cannot sync history while offline.', 4000, 'warning');
@@ -250,15 +257,36 @@ export async function syncHistoryWithCloud(manual = false) {
     setSyncing('syncing'); 
 
     try {
-        // 2. Fetch the current cloud payload matrix
-        const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
         let cloudData = { items: {}, updatedAt: 0 };
-        
-        if (cloudRaw) {
-            try {
+        let cloudLoaded = false;
+
+        // 2. Fetch current cloud data: Try Puter KV first, then Puter FS backup
+        try {
+            const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
+            if (cloudRaw) {
                 cloudData = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
-            } catch (parseError) {
-                console.warn("Cloud data format corrupted. Reinitializing schema layout.");
+                if (cloudData && typeof cloudData === 'object') cloudLoaded = true;
+            }
+        } catch (kvReadErr) {
+            console.warn("Puter KV read warning:", kvReadErr);
+        }
+
+        // Fallback: If KV empty or failed, try reading from Puter Filesystem backup
+        if (!cloudLoaded || !cloudData.items || Object.keys(cloudData.items).length === 0) {
+            try {
+                if (puter.fs && typeof puter.fs.read === 'function') {
+                    const fsBlob = await puter.fs.read('nodal_quiz_sync_backup.json');
+                    if (fsBlob) {
+                        const fsText = typeof fsBlob === 'string' ? fsBlob : (fsBlob.text ? await fsBlob.text() : JSON.stringify(fsBlob));
+                        const parsedFs = JSON.parse(fsText);
+                        if (parsedFs && parsedFs.items) {
+                            cloudData = parsedFs;
+                            cloudLoaded = true;
+                        }
+                    }
+                }
+            } catch (fsReadErr) {
+                // Initial run or no backup file yet - expected
             }
         }
 
@@ -288,18 +316,39 @@ export async function syncHistoryWithCloud(manual = false) {
 
         const now = Date.now();
 
-        // 5. CRITICAL CRASH REPAIR: Push structural modifications back to core state pointers
+        // 5. Push structural modifications back to core state pointers
         state.quizHistory = mergedItems; 
         
         // Commit changes locally
         localStorage.setItem(DB_NAME, JSON.stringify(mergedItems));
         localStorage.setItem(DB_NAME + '_ts', now.toString());
 
-        // 6. Ship the reconciled datasets back up to your Puter KV cloud instance
-        await puter.kv.set(CLOUD_SYNC_KEY, JSON.stringify({ 
+        const payloadString = JSON.stringify({ 
             items: mergedItems, 
             updatedAt: now 
-        }));
+        });
+
+        // 6. Write to cloud: Try Puter KV, and also write to Puter FS backup
+        let writeSuccess = false;
+        try {
+            await puter.kv.set(CLOUD_SYNC_KEY, payloadString);
+            writeSuccess = true;
+        } catch (kvWriteErr) {
+            console.warn("Puter KV set failed, falling back to Puter FS:", kvWriteErr);
+        }
+
+        try {
+            if (puter.fs && typeof puter.fs.write === 'function') {
+                await puter.fs.write('nodal_quiz_sync_backup.json', payloadString);
+                writeSuccess = true;
+            }
+        } catch (fsWriteErr) {
+            console.warn("Puter FS write warning:", fsWriteErr);
+        }
+
+        if (!writeSuccess) {
+            throw new Error("Unable to save sync payload to Puter KV or FS.");
+        }
 
         // Redraw lists and resolve indicators
         refreshHistory();
