@@ -177,7 +177,7 @@ export function displayNextQuestion() {
         state.selectedAnswerTemp = null; // Flush active temp focus channel
         
         let isCorrect = false;
-        if (qData.type === 'multiple-choice') {
+        if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
             const selAns = (userAnswer || '').toString().trim().toLowerCase();
             isCorrect = selAns === (qData.answer || '').toString().trim().toLowerCase();
 
@@ -315,15 +315,21 @@ export function displayNextQuestion() {
         skipQuestionBtn.classList.remove('hidden');
     }
 
-    if (qData.type === 'multiple-choice') {
-        const shuffleChoices = state.currentQuizConfig.randomizeChoices !== false;
-        const opts = qData.options ? (shuffleChoices ? [...qData.options].sort(() => Math.random() - 0.5) : [...qData.options]) : [];
+    if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
+        const isTrueFalse = qData.type === 'true-or-false' || (Array.isArray(qData.options) && qData.options.length === 2 && qData.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())));
+        let opts = [];
+        if (isTrueFalse) {
+            opts = ["True", "False"];
+        } else {
+            const shuffleChoices = state.currentQuizConfig.randomizeChoices !== false;
+            opts = qData.options ? (shuffleChoices ? [...qData.options].sort(() => Math.random() - 0.5) : [...qData.options]) : [];
+        }
         const optsCont = document.createElement('div');
-        optsCont.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+        optsCont.className = isTrueFalse ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1 md:grid-cols-2 gap-4';
         opts.forEach(opt => {
             const btn = document.createElement('button');
             btn.textContent = opt;
-            btn.className = 'option-btn w-full text-left p-4 bg-gray-700 rounded-lg border-2 border-gray-600 text-gray-300 hover:bg-gray-600 transition-colors';
+            btn.className = `option-btn w-full ${isTrueFalse ? 'text-center text-lg font-bold py-5' : 'text-left p-4'} bg-gray-700 rounded-lg border-2 border-gray-600 text-gray-300 hover:bg-gray-600 transition-colors`;
             
             btn.onclick = () => {
                 if (answerAreaEl.classList.contains('disabled-options')) return;
@@ -426,7 +432,7 @@ export function checkAnswer(userAnswer) {
     const qData = state.questions[currOrigIdx];
     let isCorrect = false;
 
-    if (qData.type === 'multiple-choice') {
+    if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
         const selAns = (userAnswer || '').toString().trim().toLowerCase();
         isCorrect = selAns === (qData.answer || '').toString().trim().toLowerCase();
     } else if (qData.type === 'identification') {
@@ -449,7 +455,7 @@ export function checkAnswer(userAnswer) {
         }
         showToast(`Incorrect response! Attempts remaining: ${state.currentQuestionChancesLeft + 1}`, 3000, 'warning');
 
-        if (qData.type === 'multiple-choice') {
+        if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 if (btn.textContent.trim().toLowerCase() === (userAnswer || '').toString().trim().toLowerCase()) {
                     btn.classList.add('incorrect');
@@ -475,7 +481,7 @@ export function checkAnswer(userAnswer) {
     skipQuestionBtn.classList.add('hidden');
 
     if (isManualReveal) {
-        if (qData.type === 'multiple-choice') {
+        if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 if (btn.textContent.trim().toLowerCase() === (userAnswer || '').toString().trim().toLowerCase()) {
                     // Update final commit highlights to solid high-contrast blue profiles
@@ -491,7 +497,7 @@ export function checkAnswer(userAnswer) {
             }
         }
     } else {
-        if (qData.type === 'multiple-choice') {
+        if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
             const selAns = (userAnswer || '').toString().trim().toLowerCase();
             document.querySelectorAll('.option-btn').forEach(btn => {
                 const btnTxt = btn.textContent.trim().toLowerCase();

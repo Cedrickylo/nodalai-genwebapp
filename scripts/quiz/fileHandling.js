@@ -262,11 +262,45 @@ export function handleQuizImport(event) {
     reader.onload = async (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            if (!data?.questions?.length || !data.config || !data.questions.every(q => q?.question && q.answer && q.explanation)) {
-                throw new Error('Invalid format.');
+            if (!data?.questions?.length || !data.config || !data.questions.every(q => q?.question && (q.answer !== undefined && q.answer !== null && q.answer !== ''))) {
+                throw new Error('Invalid quiz JSON structure.');
             }
 
-            const importedId = data.quizId || CryptoJS.SHA256(JSON.stringify(data.questions) + JSON.stringify(data.config) + (data.fileName || file.name)).toString();
+            // Normalize questions and boolean answers
+            const normalizedQuestions = data.questions.map(q => {
+                let answer = q.answer;
+                if (typeof answer === 'boolean') {
+                    answer = answer ? 'True' : 'False';
+                } else if (typeof answer === 'string') {
+                    answer = answer.trim();
+                }
+
+                let type = q.type || 'multiple-choice';
+                let options = Array.isArray(q.options) ? [...q.options] : [];
+
+                if (type === 'true-or-false' || (options.length === 2 && options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))) {
+                    type = 'multiple-choice';
+                    options = ['True', 'False'];
+                }
+
+                return {
+                    ...q,
+                    type,
+                    options,
+                    answer,
+                    explanation: q.explanation || ''
+                };
+            });
+
+            // Normalize config time (if prompt gives minutes, e.g. <= 120, convert to seconds)
+            const config = { ...data.config };
+            if (config.isTimed && config.totalTime) {
+                if (config.totalTime <= 120) {
+                    config.totalTime = config.totalTime * 60;
+                }
+            }
+
+            const importedId = data.quizId || CryptoJS.SHA256(JSON.stringify(normalizedQuestions) + JSON.stringify(config) + (data.fileName || file.name)).toString();
             
             if (state.quizHistory[importedId]) {
                 const importAnyway = await customConfirm(
@@ -284,8 +318,8 @@ export function handleQuizImport(event) {
                 }
             }
 
-            state.questions = data.questions;
-            state.currentQuizConfig = data.config;
+            state.questions = normalizedQuestions;
+            state.currentQuizConfig = config;
             state.currentFileName = data.fileName || file.name;
             state.currentQuizKey = importedId;
             state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
@@ -293,7 +327,9 @@ export function handleQuizImport(event) {
             state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
             state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
 
-            const { saveQuizToDB, refreshHistory } = await import('../helpers.js');
+            const { saveQuizToDB, refreshHistory, closeAiPromptModal } = await import('../helpers.js');
+            if (typeof closeAiPromptModal === 'function') closeAiPromptModal();
+
             saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
             refreshHistory();
             statusMessage.textContent = `Imported "${state.currentFileName}". Opening customize screen...`;

@@ -19,7 +19,9 @@ import {
     refreshHistory,
     openAccountAsView,
     saveDisplayName,
-    handleLogout
+    handleLogout,
+    openAiPromptModal,
+    closeAiPromptModal
 } from './helpers.js';
 
 // Import modules
@@ -159,6 +161,41 @@ export function attachQuizEventListeners() {
         document.execCommand('copy');
         showToast('Link copied to clipboard!', 2000, 'success');
     };
+
+    // AI Prompt Modal Event Listeners
+    elements.closeAiPromptModalBtn?.addEventListener('click', closeAiPromptModal);
+    elements.closeAiPromptFooterBtn?.addEventListener('click', closeAiPromptModal);
+    
+    elements.copyAiPromptBtn?.addEventListener('click', async () => {
+        if (elements.aiPromptTextarea) {
+            elements.aiPromptTextarea.select();
+            try {
+                await navigator.clipboard.writeText(elements.aiPromptTextarea.value);
+                showToast('System prompt copied to clipboard!', 2500, 'success');
+                if (elements.copyAiPromptBtnText) {
+                    elements.copyAiPromptBtnText.textContent = 'Copied!';
+                    setTimeout(() => {
+                        if (elements.copyAiPromptBtnText) elements.copyAiPromptBtnText.textContent = 'Copy Prompt';
+                    }, 2000);
+                }
+            } catch (err) {
+                document.execCommand('copy');
+                showToast('System prompt copied to clipboard!', 2500, 'success');
+                if (elements.copyAiPromptBtnText) {
+                    elements.copyAiPromptBtnText.textContent = 'Copied!';
+                    setTimeout(() => {
+                        if (elements.copyAiPromptBtnText) elements.copyAiPromptBtnText.textContent = 'Copy Prompt';
+                    }, 2000);
+                }
+            }
+        }
+    });
+
+    elements.aiPromptImportBtn?.addEventListener('click', () => {
+        if (elements.importQuizInput) {
+            elements.importQuizInput.click();
+        }
+    });
 
     // Fix: Navbar Account Button
     if (elements.navAccountBtn) {

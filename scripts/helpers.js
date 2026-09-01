@@ -1056,6 +1056,7 @@ export function setupCustomizeView(config, name) {
     if (rawDiff === 'custom') {
         const customType = config.customType || 'mixed';
         if (customType === 'multiple-choice') typeText = 'Multiple Choice Only';
+        else if (customType === 'true-or-false') typeText = 'True / False Only';
         else if (customType === 'identification') typeText = 'Identification Only';
         else if (customType === 'enumeration') typeText = 'Enumeration Only';
     }
@@ -1098,10 +1099,12 @@ export function setupCustomizeView(config, name) {
         // ADDED: Explicitly populate the hidden custom inputs from the loaded config
         if (config.customType === 'mixed') {
             const mcInput = document.getElementById('mc-count');
+            const tfInput = document.getElementById('tf-count');
             const idInput = document.getElementById('id-count');
             const enInput = document.getElementById('en-count');
             
-            if (mcInput) mcInput.value = config.mc || 0;
+            if (mcInput) mcInput.value = config.mcCount !== undefined ? config.mcCount : (config.mc || 0);
+            if (tfInput) tfInput.value = config.tfCount !== undefined ? config.tfCount : (config.tf || 0);
             if (idInput) idInput.value = config.id || 0;
             if (enInput) enInput.value = config.en || 0;
         }
@@ -1155,25 +1158,45 @@ export function handleCustomTypeChange() {
 }
 
 export function validateAllInputs() {
-    const isOnline = navigator.onLine;
     const hasSource = typeof state.fileContent === 'string' && state.fileContent.trim().length > 0;
     const hasCustomize = !!state.customizingQuizData || state.isCustomizingHistory;
     const totalCount = parseInt(questionCountInput.value, 10) || 0;
 
     // Check configuration parameters
-    let enabled = state.isCustomizingHistory ? hasCustomize : ((hasSource || hasCustomize) && totalCount > 0);
+    let enabled = state.isCustomizingHistory ? hasCustomize : (totalCount >= constants.MIN_QUIZ_QUESTIONS && totalCount <= constants.MAX_QUIZ_QUESTIONS);
+
+    const customFeedback = document.getElementById('custom-total-feedback');
 
     if (!state.isCustomizingHistory) {
         const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value;
         if (difficulty === 'custom') {
             const type = customQuestionTypeSelect.value;
             if (type === 'mixed') {
-                const mc = parseInt(document.getElementById('mc-count').value, 10) || 0;
-                const id = parseInt(document.getElementById('id-count').value, 10) || 0;
-                const en = parseInt(document.getElementById('en-count').value, 10) || 0;
-                enabled = enabled && mc + id + en === totalCount && totalCount > 0;
+                const mc = parseInt(document.getElementById('mc-count')?.value, 10) || 0;
+                const tf = parseInt(document.getElementById('tf-count')?.value, 10) || 0;
+                const id = parseInt(document.getElementById('id-count')?.value, 10) || 0;
+                const en = parseInt(document.getElementById('en-count')?.value, 10) || 0;
+                const sum = mc + tf + id + en;
+                if (sum !== totalCount || totalCount <= 0) {
+                    if (customFeedback) {
+                        customFeedback.textContent = sum !== totalCount ? `Counts (${sum}) != total (${totalCount}).` : 'Total must be > 0.';
+                        customFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
+                    }
+                    enabled = false;
+                } else {
+                    if (customFeedback) {
+                        customFeedback.textContent = 'Counts match total.';
+                        customFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
+                    }
+                }
+            } else if (customFeedback) {
+                customFeedback.textContent = '';
             }
+        } else if (customFeedback) {
+            customFeedback.textContent = '';
         }
+    } else if (customFeedback) {
+        customFeedback.textContent = '';
     }
 
     if (timeLimitToggle.checked) {
@@ -1252,29 +1275,175 @@ export function validateAllInputs() {
         }
     }
 
-    // ==================================================================
-    // NEW: OFFLINE LOCKOUT RULES FOR AI GENERATION UTILITIES
-    // ==================================================================
-    if (!isOnline) {
-        // If we are customization editing an EXISTING quiz from history, let them load it!
-        // But if it's a completely NEW quiz generation attempt, lock it down.
-        if (!state.isCustomizingHistory) {
-            enabled = false;
-            statusMessage.textContent = 'Quiz generation requires an internet connection.';
-        }
-        
-        // Always block remedial generation when offline since it synthesizes new items via prompts
-        if (elements.generateRemedialQuizBtn) {
-            elements.generateRemedialQuizBtn.disabled = true;
-        }
+    generateQuizBtn.disabled = !enabled;
+}
+
+// ==========================================
+// AI PROMPT GENERATOR BACKUP SYSTEM
+// ==========================================
+
+export function buildQuizSystemPrompt(config, fileName, fileContent = '') {
+    const totalCount = config.count || 10;
+    const diff = config.difficulty || 'custom';
+    const mcCount = config.mcCount !== undefined ? config.mcCount : (config.mc !== undefined ? config.mc : Math.round(totalCount * 0.4));
+    const tfCount = config.tfCount !== undefined ? config.tfCount : (config.tf !== undefined ? config.tf : Math.round(totalCount * 0.2));
+    const idCount = config.id !== undefined ? config.id : Math.round(totalCount * 0.2);
+    const enCount = config.en !== undefined ? config.en : Math.max(0, totalCount - mcCount - tfCount - idCount);
+    const mcCombined = mcCount + tfCount;
+    const finalFileName = fileName || 'Quiz';
+    const totalTimeInMinutes = config.isTimed ? Math.max(1, Math.round((config.totalTime || 600) / 60)) : 10;
+
+    let distributionText = '';
+    if (diff === 'custom' && config.customType && config.customType !== 'mixed') {
+        if (config.customType === 'multiple-choice') distributionText = `${totalCount} Multiple Choice questions.`;
+        else if (config.customType === 'true-or-false') distributionText = `${totalCount} True or False questions.`;
+        else if (config.customType === 'identification') distributionText = `${totalCount} Identification questions.`;
+        else if (config.customType === 'enumeration') distributionText = `${totalCount} Enumeration questions.`;
+        else distributionText = `${totalCount} questions.`;
     } else {
-        // Clear offline structural text warning if status recovers to online status
-        if (statusMessage.textContent === 'Quiz generation requires an internet connection.') {
-            statusMessage.textContent = '';
-        }
+        distributionText = `${mcCount} Multiple Choice, ${tfCount} True or False, ${idCount} Identification, and ${enCount} Enumeration questions.`;
     }
 
-    generateQuizBtn.disabled = !enabled;
+    const sourceSection = fileContent && fileContent.trim().length > 0 
+        ? `\n\n----------------------------------------\nSource Text / Reviewer:\n${fileContent.trim()}`
+        : `\n\n----------------------------------------\nSource Text / Reviewer:\n[PASTE YOUR SOURCE TEXT / REVIEWER MATERIAL HERE]`;
+
+    return `System Prompt: JSON Quiz Generator
+
+Role & Task:
+Act as an expert instructional designer and JSON architect. Your task is to generate a quiz based strictly on the provided text reviewer. The output must be a single, valid JSON file representing the quiz. Do not output any conversational text, explanations, or Markdown formatting outside of the JSON block.
+
+Content Requirements:
+
+Total Items: ${totalCount} questions.
+
+Distribution: ${distributionText}
+
+Coverage: Distribute the questions evenly across all topics provided in the source text.
+
+JSON Schema & Formatting Rules:
+The JSON root must contain three main keys: fileName, config, and questions.
+
+fileName: Set the value to exactly "${finalFileName}".
+
+config: Include the following exact key-value pairs, replacing the bracketed placeholders with your desired numbers. (Note: Since True/False questions use the multiple-choice type, combine their count with standard MC for the "mc" value).
+
+"count": ${totalCount}
+
+"difficulty": "${diff}"
+
+"mc": ${mcCombined}
+
+"id": ${idCount}
+
+"en": ${enCount}
+
+"customType": "${config.customType || 'mixed'}"
+
+"customTypeShort": "${config.customTypeShort || 'MIX'}"
+
+"isTimed": ${config.isTimed ? 'true' : 'false'}
+
+"totalTime": ${totalTimeInMinutes}
+
+"isAttemptLimited": ${config.isAttemptLimited ? 'true' : 'false'}
+
+"maxAttempts": ${config.maxAttempts || 0}
+
+"showAnswersInSummaryOnly": ${config.showAnswersInSummaryOnly ? 'true' : 'false'}
+
+"isRemedial": ${config.isRemedial ? 'true' : 'false'}
+
+questions (Multiple Choice - Standard): Format each object as follows:
+
+"type": "multiple-choice"
+
+"question": The question text.
+
+"options": An array of exactly 4 strings (1 correct answer, 3 plausible distractors).
+
+"answer": The exact string of the correct option.
+
+"explanation": A specific, factual explanation drawn directly from the text detailing why the answer is correct.
+
+questions (Multiple Choice - True/False): Format each object as follows:
+
+"type": "multiple-choice"
+
+"question": The true or false statement.
+
+"options": An array containing exactly two strings: ["True", "False"].
+
+"answer": Either "True" or "False".
+
+"explanation": A specific, factual explanation drawn directly from the text detailing why the statement is true or false.
+
+questions (Identification): Format each object as follows:
+
+"type": "identification"
+
+"question": The statement or question text.
+
+"options": An empty array [].
+
+"answer": The exact string of the correct identification term.
+
+"explanation": A specific, factual explanation drawn directly from the text.
+
+questions (Enumeration): Format each object as follows:
+
+"type": "enumeration"
+
+"question": The prompt asking for a specific list of items.
+
+"options": An empty array [].
+
+"answer": An array of strings containing the correct list items.
+
+"explanation": A specific, factual explanation drawn directly from the text outlining why these items are grouped.${sourceSection}`;
+}
+
+export function openAiPromptModal(config, fileName) {
+    const promptText = buildQuizSystemPrompt(config, fileName, state.fileContent);
+    
+    if (elements.aiPromptTextarea) {
+        elements.aiPromptTextarea.value = promptText;
+    }
+    
+    if (elements.aiPromptSummaryBadges) {
+        const mcCount = config.mcCount !== undefined ? config.mcCount : (config.mc !== undefined ? config.mc : 0);
+        const tfCount = config.tfCount !== undefined ? config.tfCount : (config.tf !== undefined ? config.tf : 0);
+        const idCount = config.id || 0;
+        const enCount = config.en || 0;
+        const timeBadge = config.isTimed ? formatTime(config.totalTime) : 'Untimed';
+        const attemptsBadge = config.isAttemptLimited ? `${config.maxAttempts} Attempts` : 'Unlimited Attempts';
+        const typeBadge = config.difficulty === 'custom' 
+            ? `Custom (${config.customTypeShort || 'MIX'})`
+            : `${(config.difficulty || 'Easy').charAt(0).toUpperCase() + (config.difficulty || 'Easy').slice(1)}`;
+        
+        elements.aiPromptSummaryBadges.innerHTML = `
+            <span class="px-2.5 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg font-semibold">${config.count || 10} Questions</span>
+            <span class="px-2.5 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg font-medium">${typeBadge}</span>
+            <span class="px-2.5 py-1 bg-gray-700 text-gray-300 border border-gray-600 rounded-lg">${mcCount} MC • ${tfCount} T/F • ${idCount} ID • ${enCount} EN</span>
+            <span class="px-2.5 py-1 bg-gray-700 text-gray-300 border border-gray-600 rounded-lg">${timeBadge}</span>
+            <span class="px-2.5 py-1 bg-gray-700 text-gray-300 border border-gray-600 rounded-lg">${attemptsBadge}</span>
+            <span class="px-2.5 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg truncate max-w-[200px]" title="${fileName || 'Quiz'}">${fileName || 'Quiz'}</span>
+        `;
+    }
+
+    if (elements.copyAiPromptBtnText) {
+        elements.copyAiPromptBtnText.textContent = 'Copy Prompt';
+    }
+
+    if (elements.aiPromptModal) {
+        elements.aiPromptModal.classList.remove('hidden');
+    }
+}
+
+export function closeAiPromptModal() {
+    if (elements.aiPromptModal) {
+        elements.aiPromptModal.classList.add('hidden');
+    }
 }
 
 export function initializeAudio() {

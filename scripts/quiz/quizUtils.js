@@ -148,11 +148,13 @@ export function resetStartViewUI() {
     if (customQuestionTypeSelect) customQuestionTypeSelect.value = 'multiple-choice';
     
     const mcInput = document.getElementById('mc-count');
+    const tfInput = document.getElementById('tf-count');
     const idInput = document.getElementById('id-count');
     const enInput = document.getElementById('en-count');
-    if (mcInput) mcInput.value = '';
-    if (idInput) idInput.value = '';
-    if (enInput) enInput.value = '';
+    if (mcInput) mcInput.value = '4';
+    if (tfInput) tfInput.value = '2';
+    if (idInput) idInput.value = '2';
+    if (enInput) enInput.value = '2';
     
     if (timeLimitToggle) timeLimitToggle.checked = false;
     if (attemptLimitToggle) attemptLimitToggle.checked = false;

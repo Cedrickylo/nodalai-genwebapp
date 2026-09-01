@@ -184,7 +184,17 @@ export const elements = {
     shuffleQuestionsToggle: document.getElementById('shuffle-questions-toggle'),
     shuffleChoicesToggle: document.getElementById('shuffle-choices-toggle'),
     revealAnswerBtn: document.getElementById('reveal-answer-btn'),
-    allowchangetoggle: document.getElementById('allow-change-toggle')
+    allowchangetoggle: document.getElementById('allow-change-toggle'),
+    tfCountInput: document.getElementById('tf-count'),
+    remedialTfCountInput: document.getElementById('remedial-tf-count'),
+    aiPromptModal: document.getElementById('ai-prompt-modal'),
+    closeAiPromptModalBtn: document.getElementById('close-ai-prompt-modal-btn'),
+    closeAiPromptFooterBtn: document.getElementById('close-ai-prompt-footer-btn'),
+    copyAiPromptBtn: document.getElementById('copy-ai-prompt-btn'),
+    copyAiPromptBtnText: document.getElementById('copy-ai-prompt-btn-text'),
+    aiPromptTextarea: document.getElementById('ai-prompt-textarea'),
+    aiPromptImportBtn: document.getElementById('ai-prompt-import-btn'),
+    aiPromptSummaryBadges: document.getElementById('ai-prompt-summary-badges')
 };
 
 export const state = {

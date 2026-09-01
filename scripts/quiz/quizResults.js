@@ -144,14 +144,20 @@ export function setupRemedialView() {
     remedialQuestionCountInput.max = state.incorrectQuestionsForRemedial.length * 3;
 
     const defaultMC = Math.round(defaultTotal * 0.4);
-    const defaultID = Math.round(defaultTotal * 0.3);
-    const defaultEN = Math.max(0, defaultTotal - defaultMC - defaultID);
+    const defaultTF = Math.round(defaultTotal * 0.2);
+    const defaultID = Math.round(defaultTotal * 0.2);
+    const defaultEN = Math.max(0, defaultTotal - defaultMC - defaultTF - defaultID);
 
     document.getElementById('remedial-difficulty-easy').checked = true;
     remedialCustomQuestionTypeSelect.value = 'mixed';
-    document.getElementById('remedial-mc-count').value = defaultMC;
-    document.getElementById('remedial-id-count').value = defaultID;
-    document.getElementById('remedial-en-count').value = defaultEN;
+    const rMc = document.getElementById('remedial-mc-count');
+    const rTf = document.getElementById('remedial-tf-count');
+    const rId = document.getElementById('remedial-id-count');
+    const rEn = document.getElementById('remedial-en-count');
+    if (rMc) rMc.value = defaultMC;
+    if (rTf) rTf.value = defaultTF;
+    if (rId) rId.value = defaultID;
+    if (rEn) rEn.value = defaultEN;
 
     remedialTimeLimitToggle.checked = false;
     remedialAttemptLimitToggle.checked = false;
@@ -213,17 +219,18 @@ export function validateRemedialInputs() {
         const selCustType = remedialCustomQuestionTypeSelect.value;
         if (selCustType === 'mixed') {
             const totalQ = parseInt(remedialQuestionCountInput.value, 10);
-            const mc = parseInt(document.getElementById('remedial-mc-count').value, 10) || 0;
-            const id = parseInt(document.getElementById('remedial-id-count').value, 10) || 0;
-            const en = parseInt(document.getElementById('remedial-en-count').value, 10) || 0;
-            const sum = mc + id + en;
+            const mc = parseInt(document.getElementById('remedial-mc-count')?.value, 10) || 0;
+            const tf = parseInt(document.getElementById('remedial-tf-count')?.value, 10) || 0;
+            const id = parseInt(document.getElementById('remedial-id-count')?.value, 10) || 0;
+            const en = parseInt(document.getElementById('remedial-en-count')?.value, 10) || 0;
+            const sum = mc + tf + id + en;
             if (sum !== totalQ || totalQ <= 0) {
                 remedialCustomTotalFeedback.textContent = sum !== totalQ ? `Counts(${sum}) != total(${totalQ}).` : 'Total > 0.';
-                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400';
+                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
                 custOk = false;
             } else {
                 remedialCustomTotalFeedback.textContent = 'Counts match.';
-                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400';
+                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
             }
         } else {
             remedialCustomTotalFeedback.textContent = '';
