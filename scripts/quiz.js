@@ -141,18 +141,12 @@ export function attachQuizEventListeners() {
     importQuizInput.addEventListener('change', handleQuizImport);
     generateQuizBtn.addEventListener('click', () => handleQuizGeneration(false, false));
     difficultyRadios.forEach(r => r.addEventListener('change', handleDifficultyChange));
-    questionCountInput.addEventListener('input', () => {
-        const diff = document.querySelector('input[name="difficulty"]:checked')?.value;
-        if (diff === 'custom' && customQuestionTypeSelect.value === 'mixed') {
-            const totalCount = parseInt(questionCountInput.value, 10) || 0;
-            if (totalCount >= constants.MIN_QUIZ_QUESTIONS && totalCount <= constants.MAX_QUIZ_QUESTIONS) {
-                autoBalanceMixedCounts(totalCount);
-            }
-        }
-        validateAllInputs();
-    });
+    questionCountInput.addEventListener('input', validateAllInputs);
     customQuestionTypeSelect.addEventListener('change', handleCustomTypeChange);
-    customCountInputs.forEach(i => i.addEventListener('input', validateAllInputs));
+    document.querySelectorAll('.custom-count').forEach(i => {
+        i.addEventListener('input', validateAllInputs);
+        i.addEventListener('change', validateAllInputs);
+    });
     nextQuestionBtn.addEventListener('click', displayNextQuestion);
     skipQuestionBtn.addEventListener('click', skipQuestion);
     restartQuizBtn.addEventListener('click', () => resetApp(true));

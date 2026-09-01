@@ -167,7 +167,7 @@ export function handleTimeUp() {
 
 export function displayNextQuestion() {
     // DOUBLE ACTION STEP INTERCEPTION: If answer-swapping is active, commit selection right now
-    if (state.currentQuizConfig && state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection && state.selectedAnswerTemp !== null) {
+    if (state.currentQuizConfig && state.currentQuizConfig.allowChangeSelection && state.selectedAnswerTemp !== null) {
         let currOrigIdx = state.inSkippedRound 
             ? state.currentSkippedArray[state.currentSkippedItemIndex] 
             : state.shuffledIndices[state.currentShuffledIndexPos];
@@ -335,7 +335,7 @@ export function displayNextQuestion() {
                 if (answerAreaEl.classList.contains('disabled-options')) return;
                 
                 // HIGH CONTRAST SOLID BLUE SELECTION SWAPPING
-                if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection) {
+                if (state.currentQuizConfig && state.currentQuizConfig.allowChangeSelection) {
                     state.selectedAnswerTemp = opt;
                     
                     // Reset all sibling option layout styles to default unselected gray metrics
@@ -362,7 +362,7 @@ export function displayNextQuestion() {
         const idIn = document.getElementById('id-ans');
         const sBtn = document.getElementById('submit-btn');
 
-        if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection) {
+        if (state.currentQuizConfig && state.currentQuizConfig.allowChangeSelection) {
             sBtn.classList.add('hidden');
             nextQuestionBtn.classList.remove('hidden');
             idIn.addEventListener('input', () => { state.selectedAnswerTemp = idIn.value; });
@@ -376,7 +376,7 @@ export function displayNextQuestion() {
         const enIn = document.getElementById('en-ans');
         const sBtn = document.getElementById('submit-btn');
 
-        if (state.currentQuizConfig.manualReveal && state.currentQuizConfig.allowChangeSelection) {
+        if (state.currentQuizConfig && state.currentQuizConfig.allowChangeSelection) {
             sBtn.classList.add('hidden');
             nextQuestionBtn.classList.remove('hidden');
             enIn.addEventListener('input', () => { state.selectedAnswerTemp = enIn.value.split('\n').map(s => s.trim()).filter(Boolean); });

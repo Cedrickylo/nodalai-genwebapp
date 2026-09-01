@@ -225,11 +225,11 @@ export function validateRemedialInputs() {
             const en = parseInt(document.getElementById('remedial-en-count')?.value, 10) || 0;
             const sum = mc + tf + id + en;
             if (sum !== totalQ || totalQ <= 0) {
-                remedialCustomTotalFeedback.textContent = sum !== totalQ ? `Counts(${sum}) != total(${totalQ}).` : 'Total > 0.';
+                remedialCustomTotalFeedback.textContent = `Total: ${sum} / ${totalQ} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
                 remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
                 custOk = false;
             } else {
-                remedialCustomTotalFeedback.textContent = 'Counts match.';
+                remedialCustomTotalFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalQ}`;
                 remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
             }
         } else {

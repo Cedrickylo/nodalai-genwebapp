@@ -1174,12 +1174,12 @@ export function handleCustomTypeChange() {
     const showMixed = selected === 'mixed';
     customMixedCountsDiv.classList.toggle('hidden', !showMixed);
     if (showMixed) {
-        const totalCount = parseInt(questionCountInput.value, 10) || 10;
-        const mc = parseInt(document.getElementById('mc-count')?.value, 10) || 0;
-        const tf = parseInt(document.getElementById('tf-count')?.value, 10) || 0;
-        const id = parseInt(document.getElementById('id-count')?.value, 10) || 0;
-        const en = parseInt(document.getElementById('en-count')?.value, 10) || 0;
-        if (mc + tf + id + en !== totalCount) {
+        const mcVal = document.getElementById('mc-count')?.value;
+        const tfVal = document.getElementById('tf-count')?.value;
+        const idVal = document.getElementById('id-count')?.value;
+        const enVal = document.getElementById('en-count')?.value;
+        if (!mcVal && !tfVal && !idVal && !enVal) {
+            const totalCount = parseInt(questionCountInput.value, 10) || 10;
             autoBalanceMixedCounts(totalCount);
         }
     }
@@ -1208,13 +1208,13 @@ export function validateAllInputs() {
                 const sum = mc + tf + id + en;
                 if (sum !== totalCount || totalCount <= 0) {
                     if (customFeedback) {
-                        customFeedback.textContent = sum !== totalCount ? `Counts (${sum}) != total (${totalCount}).` : 'Total must be > 0.';
+                        customFeedback.textContent = `Total: ${sum} / ${totalCount} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
                         customFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
                     }
                     enabled = false;
                 } else {
                     if (customFeedback) {
-                        customFeedback.textContent = 'Counts match total.';
+                        customFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalCount}`;
                         customFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
                     }
                 }
@@ -1250,45 +1250,17 @@ export function validateAllInputs() {
         if (elements.manualRevealToggle) elements.manualRevealToggle.disabled = false;
     } else {
         if (manualRevealContainer) manualRevealContainer.classList.add('hidden');
-        // AUTOMATED PURGE: Uncheck and lock sub-toggle parameter if parent is disabled
         if (elements.manualRevealToggle) {
             elements.manualRevealToggle.checked = false;
             elements.manualRevealToggle.disabled = true;
         }
     }
 
-    // 2. Manage Mutual Exclusions and Advanced Sub-Option Cleanups
-    const isManualRevealActive = elements.manualRevealToggle && elements.manualRevealToggle.checked;
-    const secondChanceWrapper = attemptLimitToggle.closest('.grid')?.querySelector('div:has(#second-chance-toggle)') || document.getElementById('second-chance-toggle')?.closest('div');
-    
-    // Direct DOM Lookups to bypass any stale state.js script caching issues
+    // 2. Choice-Swapping settings panel (Always unlocked and enabled)
     const allowChangeToggleEl = document.getElementById('allow-change-toggle');
     const allowChangeContainer = document.getElementById('allow-change-container');
-
-    if (isManualRevealActive) {
-        // Lock out Second Chance settings to prevent pipeline collision
-        if (elements.secondChanceToggle) {
-            elements.secondChanceToggle.checked = false;
-            elements.secondChanceToggle.disabled = true;
-        }
-        if (secondChanceWrapper) secondChanceWrapper.classList.add('opacity-40', 'pointer-events-none', 'transition-opacity');
-        const sOptions = document.getElementById('second-chance-options');
-        if (sOptions) sOptions.classList.add('hidden');
-
-        // UNLOCK Choice-Swapping settings panel
-        if (allowChangeToggleEl) allowChangeToggleEl.disabled = false;
-        if (allowChangeContainer) allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
-    } else {
-        if (elements.secondChanceToggle) elements.secondChanceToggle.disabled = false;
-        if (secondChanceWrapper) secondChanceWrapper.classList.remove('opacity-40', 'pointer-events-none');
-
-        // AUTOMATED PURGE: Uncheck, lock out, and apply greyed-out visual layout styles
-        if (allowChangeToggleEl) {
-            allowChangeToggleEl.checked = false;
-            allowChangeToggleEl.disabled = true;
-        }
-        if (allowChangeContainer) allowChangeContainer.classList.add('opacity-50', 'pointer-events-none');
-    }
+    if (allowChangeToggleEl) allowChangeToggleEl.disabled = false;
+    if (allowChangeContainer) allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
 
     // 3. Evaluate Verification Bounds on Timed Quiz Variations
     if (timeLimitToggle.checked && elements.timerModeSelect) {

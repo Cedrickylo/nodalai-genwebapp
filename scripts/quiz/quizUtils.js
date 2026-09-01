@@ -137,7 +137,7 @@ export function resetStartViewUI() {
     if (generateQuizBtn) generateQuizBtn.textContent = 'Generate Quiz';
     
     // Reset fields and inputs on cancellation/reset
-    const questionCountInput = document.getElementById('question-count-input');
+    const questionCountInput = document.getElementById('question-count') || document.getElementById('question-count-input');
     if (questionCountInput) questionCountInput.value = '10';
     
     if (difficultyRadios && difficultyRadios.length > 0) {
