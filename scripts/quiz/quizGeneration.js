@@ -77,9 +77,14 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: newName, config: state.currentQuizConfig });
 
         const { resetStartViewUI } = await import('./quizUtils.js');
+        const { startQuiz } = await import('./quizExecution.js');
         resetStartViewUI();
-        refreshHistory();
-        openAiPromptModal(state.currentQuizConfig, newName);
+        if (!skipStart) {
+            startQuiz();
+        } else {
+            showToast('Changes saved successfully!');
+            refreshHistory();
+        }
         return;
     }
 
