@@ -166,63 +166,19 @@ export function handleTimeUp() {
 }
 
 export function displayNextQuestion() {
-    // DOUBLE ACTION STEP INTERCEPTION: If answer-swapping is active, commit selection right now
+    // If choice changing is enabled and an uncommitted answer exists:
     if (state.currentQuizConfig && state.currentQuizConfig.allowChangeSelection && state.selectedAnswerTemp !== null) {
-        let currOrigIdx = state.inSkippedRound 
-            ? state.currentSkippedArray[state.currentSkippedItemIndex] 
-            : state.shuffledIndices[state.currentShuffledIndexPos];
-            
-        const qData = state.questions[currOrigIdx];
-        const userAnswer = state.selectedAnswerTemp;
-        state.selectedAnswerTemp = null; // Flush active temp focus channel
-        
-        let isCorrect = false;
-        if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
-            const selAns = (userAnswer || '').toString().trim().toLowerCase();
-            isCorrect = selAns === (qData.answer || '').toString().trim().toLowerCase();
+        const chosenAnswer = state.selectedAnswerTemp;
+        state.selectedAnswerTemp = null;
 
-        } else if (qData.type === 'identification') {
-            isCorrect = (userAnswer || '').toString().trim().toLowerCase() === (qData.answer || '').toString().trim().toLowerCase();
-        } else if (qData.type === 'enumeration') {
-            let rawAnswer = qData.answer || [];
-            if (typeof rawAnswer === 'string') rawAnswer = rawAnswer.split(/[,|\n]/);
-            else if (!Array.isArray(rawAnswer)) rawAnswer = [rawAnswer];
-            const correctItems = rawAnswer.map(s => (s || '').toString().trim().toLowerCase()).sort();
-            const userItems = (userAnswer || []).map(s => (s || '').toString().trim().toLowerCase()).sort();
-            isCorrect = correctItems.length === userItems.length && correctItems.every((it, i) => it === userItems[i]);
-        }
-
-        if (isCorrect) {
-            state.score++;
-        }
-
-        state.userAnswers.push({ question: qData.question, userAnswer, correctAnswer: qData.answer, isCorrect, originalIndex: currOrigIdx });
-        state.answeredOriginalIndices.add(currOrigIdx);
-        
-        if (state.inSkippedRound) {
-            state.skippedOriginalIndices.delete(currOrigIdx);
-            state.currentSkippedItemIndex++;
+        if (state.currentQuizConfig.showAnswersInSummaryOnly) {
+            checkAnswer(chosenAnswer);
+            // Summary only: Proceed directly to advance and display next question below
         } else {
-            state.skippedOriginalIndices.delete(currOrigIdx);
-            state.currentShuffledIndexPos++;
+            // Reveal answer & explanation card for user review
+            checkAnswer(chosenAnswer);
+            return; // Wait for the user to click Next Question again after reviewing
         }
-
-        saveInProgressQuiz({
-            key: state.currentQuizKey,
-            questions: state.questions,
-            config: state.currentQuizConfig,
-            fileName: state.currentFileName,
-            shuffledIndexPos: state.currentShuffledIndexPos,
-            answeredIndices: Array.from(state.answeredOriginalIndices),
-            skippedIndices: Array.from(state.skippedOriginalIndices),
-            skippedIndexPos: state.currentSkippedItemIndex,
-            inSkippedRound: state.inSkippedRound,
-            score: state.score,
-            answers: state.userAnswers,
-            shuffledIndices: state.shuffledIndices,
-            timeRemaining: state.timeRemaining,
-            currentAttempts: state.currentAttempts
-        });
     }
 
     nextQuestionBtn.classList.add('hidden');
