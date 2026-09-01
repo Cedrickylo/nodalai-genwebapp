@@ -21,7 +21,8 @@ import {
     saveDisplayName,
     handleLogout,
     openAiPromptModal,
-    closeAiPromptModal
+    closeAiPromptModal,
+    autoBalanceMixedCounts
 } from './helpers.js';
 
 // Import modules
@@ -140,7 +141,16 @@ export function attachQuizEventListeners() {
     importQuizInput.addEventListener('change', handleQuizImport);
     generateQuizBtn.addEventListener('click', () => handleQuizGeneration(false, false));
     difficultyRadios.forEach(r => r.addEventListener('change', handleDifficultyChange));
-    questionCountInput.addEventListener('input', validateAllInputs);
+    questionCountInput.addEventListener('input', () => {
+        const diff = document.querySelector('input[name="difficulty"]:checked')?.value;
+        if (diff === 'custom' && customQuestionTypeSelect.value === 'mixed') {
+            const totalCount = parseInt(questionCountInput.value, 10) || 0;
+            if (totalCount >= constants.MIN_QUIZ_QUESTIONS && totalCount <= constants.MAX_QUIZ_QUESTIONS) {
+                autoBalanceMixedCounts(totalCount);
+            }
+        }
+        validateAllInputs();
+    });
     customQuestionTypeSelect.addEventListener('change', handleCustomTypeChange);
     customCountInputs.forEach(i => i.addEventListener('input', validateAllInputs));
     nextQuestionBtn.addEventListener('click', displayNextQuestion);

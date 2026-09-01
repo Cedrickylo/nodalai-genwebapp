@@ -292,11 +292,22 @@ export function handleQuizImport(event) {
                 };
             });
 
-            // Normalize config time (if prompt gives minutes, e.g. <= 120, convert to seconds)
+            // Normalize config time and counts
             const config = { ...data.config };
             if (config.isTimed && config.totalTime) {
                 if (config.totalTime <= 120) {
                     config.totalTime = config.totalTime * 60;
+                }
+            }
+
+            if (config.tf === undefined) {
+                const tfQuestionsCount = normalizedQuestions.filter(q => 
+                    q.type === 'true-or-false' || 
+                    (Array.isArray(q.options) && q.options.length === 2 && q.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))
+                ).length;
+                config.tf = tfQuestionsCount;
+                if (config.mc !== undefined && config.mc >= config.tf && config.tf > 0) {
+                    config.mc = config.mc - config.tf;
                 }
             }
 

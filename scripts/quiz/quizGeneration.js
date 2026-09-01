@@ -181,11 +181,10 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     state.currentQuizConfig = {
         count: totalQ,
         difficulty: selDiff,
-        mc: mc + tf, // Combined for schema compatibility
-        mcCount: mc,
-        tfCount: tf,
-        id, 
-        en, 
+        mc: mc,
+        tf: tf,
+        id: id, 
+        en: en, 
         customType: custType || (selDiff === 'custom' ? 'mixed' : selDiff), 
         customTypeShort: custTypeShort || (selDiff.toUpperCase()),
         isTimed: state.isTimedQuiz,

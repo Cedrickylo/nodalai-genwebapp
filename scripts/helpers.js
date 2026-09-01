@@ -1150,10 +1150,39 @@ export function handleTimePresetChange() {
 
 
 
+export function autoBalanceMixedCounts(totalCount) {
+    if (!totalCount || totalCount <= 0) return;
+    const mcInput = document.getElementById('mc-count');
+    const tfInput = document.getElementById('tf-count');
+    const idInput = document.getElementById('id-count');
+    const enInput = document.getElementById('en-count');
+    
+    if (mcInput && tfInput && idInput && enInput) {
+        const mc = Math.round(totalCount * 0.4);
+        const tf = Math.round(totalCount * 0.2);
+        const id = Math.round(totalCount * 0.2);
+        const en = Math.max(0, totalCount - mc - tf - id);
+        mcInput.value = mc;
+        tfInput.value = tf;
+        idInput.value = id;
+        enInput.value = en;
+    }
+}
+
 export function handleCustomTypeChange() {
     const selected = customQuestionTypeSelect.value;
     const showMixed = selected === 'mixed';
     customMixedCountsDiv.classList.toggle('hidden', !showMixed);
+    if (showMixed) {
+        const totalCount = parseInt(questionCountInput.value, 10) || 10;
+        const mc = parseInt(document.getElementById('mc-count')?.value, 10) || 0;
+        const tf = parseInt(document.getElementById('tf-count')?.value, 10) || 0;
+        const id = parseInt(document.getElementById('id-count')?.value, 10) || 0;
+        const en = parseInt(document.getElementById('en-count')?.value, 10) || 0;
+        if (mc + tf + id + en !== totalCount) {
+            autoBalanceMixedCounts(totalCount);
+        }
+    }
     validateAllInputs();
 }
 
@@ -1285,11 +1314,10 @@ export function validateAllInputs() {
 export function buildQuizSystemPrompt(config, fileName, fileContent = '') {
     const totalCount = config.count || 10;
     const diff = config.difficulty || 'custom';
-    const mcCount = config.mcCount !== undefined ? config.mcCount : (config.mc !== undefined ? config.mc : Math.round(totalCount * 0.4));
-    const tfCount = config.tfCount !== undefined ? config.tfCount : (config.tf !== undefined ? config.tf : Math.round(totalCount * 0.2));
+    const mcCount = config.mc !== undefined ? config.mc : (config.mcCount !== undefined ? config.mcCount : Math.round(totalCount * 0.4));
+    const tfCount = config.tf !== undefined ? config.tf : (config.tfCount !== undefined ? config.tfCount : Math.round(totalCount * 0.2));
     const idCount = config.id !== undefined ? config.id : Math.round(totalCount * 0.2);
     const enCount = config.en !== undefined ? config.en : Math.max(0, totalCount - mcCount - tfCount - idCount);
-    const mcCombined = mcCount + tfCount;
     const finalFileName = fileName || 'Quiz';
     const totalTimeInMinutes = config.isTimed ? Math.max(1, Math.round((config.totalTime || 600) / 60)) : 10;
 
@@ -1326,13 +1354,15 @@ The JSON root must contain three main keys: fileName, config, and questions.
 
 fileName: Set the value to exactly "${finalFileName}".
 
-config: Include the following exact key-value pairs, replacing the bracketed placeholders with your desired numbers. (Note: Since True/False questions use the multiple-choice type, combine their count with standard MC for the "mc" value).
+config: Include the following exact key-value pairs, replacing the bracketed placeholders with your desired numbers.
 
 "count": ${totalCount}
 
 "difficulty": "${diff}"
 
-"mc": ${mcCombined}
+"mc": ${mcCount}
+
+"tf": ${tfCount}
 
 "id": ${idCount}
 
@@ -1340,7 +1370,7 @@ config: Include the following exact key-value pairs, replacing the bracketed pla
 
 "customType": "${config.customType || 'mixed'}"
 
-"customTypeShort": "${config.customTypeShort || 'MIX'}"
+"customTypeShort": "${config.customTypeShort || (diff === 'custom' ? 'MIX' : diff.toUpperCase())}"
 
 "isTimed": ${config.isTimed ? 'true' : 'false'}
 
@@ -1411,8 +1441,8 @@ export function openAiPromptModal(config, fileName) {
     }
     
     if (elements.aiPromptSummaryBadges) {
-        const mcCount = config.mcCount !== undefined ? config.mcCount : (config.mc !== undefined ? config.mc : 0);
-        const tfCount = config.tfCount !== undefined ? config.tfCount : (config.tf !== undefined ? config.tf : 0);
+        const mcCount = config.mc !== undefined ? config.mc : (config.mcCount !== undefined ? config.mcCount : 0);
+        const tfCount = config.tf !== undefined ? config.tf : (config.tfCount !== undefined ? config.tfCount : 0);
         const idCount = config.id || 0;
         const enCount = config.en || 0;
         const timeBadge = config.isTimed ? formatTime(config.totalTime) : 'Untimed';
