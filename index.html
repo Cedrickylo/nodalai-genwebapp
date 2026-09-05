@@ -5,6 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nodal AI</title>
     <link rel="icon" href="data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;64&quot; height=&quot;64&quot; viewBox=&quot;0 0 64 64&quot;&gt;&lt;defs&gt;&lt;filter id=&quot;g&quot;&gt;&lt;feGaussianBlur stdDeviation=&quot;2.2&quot; result=&quot;b&quot;/&gt;&lt;feMerge&gt;&lt;feMergeNode in=&quot;b&quot;/&gt;&lt;feMergeNode in=&quot;SourceGraphic&quot;/&gt;&lt;/feMerge&gt;&lt;/filter&gt;&lt;/defs&gt;&lt;rect width=&quot;64&quot; height=&quot;64&quot; rx=&quot;8&quot; fill=&quot;none&quot;/&gt;&lt;g filter=&quot;url(%23g)&quot;&gt;&lt;text x=&quot;50%&quot; y=&quot;50%&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;central&quot; font-family=&quot;Inter, Arial&quot; font-size=&quot;34&quot; font-weight=&quot;700&quot; fill=&quot;none&quot; stroke=&quot;%23ffffff&quot; stroke-width=&quot;2.5&quot;&gt;N&lt;/text&gt;&lt;/g&gt;&lt;text x=&quot;50%&quot; y=&quot;50%&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;central&quot; font-family=&quot;Inter, Arial&quot; font-size=&quot;34&quot; font-weight=&quot;700&quot; fill=&quot;none&quot; stroke=&quot;%230ea5e9&quot; stroke-width=&quot;1.2&quot; opacity=&quot;0.9&quot;/&gt;&lt;/svg&gt;">
+    <script>
+        // Immediate Service Worker Check & Legacy Cache Invalidation
+        (async function() {
+            if (!('serviceWorker' in navigator)) return;
+            const SW_VERSION_TAG = 'nodal_sw_migration_v3';
+            try {
+                if (localStorage.getItem(SW_VERSION_TAG) === 'complete') return;
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                if (registrations.length > 0) {
+                    console.log('[SW Migration] Existing service worker detected. Removing and replacing...');
+                    for (const reg of registrations) {
+                        await reg.unregister();
+                    }
+                    if ('caches' in window) {
+                        const cacheKeys = await caches.keys();
+                        await Promise.all(cacheKeys.map(k => caches.delete(k)));
+                    }
+                    localStorage.setItem(SW_VERSION_TAG, 'complete');
+                    await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+                    window.location.reload();
+                } else {
+                    console.log('[SW Migration] No existing service worker saved. Skipping removal.');
+                    localStorage.setItem(SW_VERSION_TAG, 'complete');
+                }
+            } catch (e) {
+                console.warn('[SW Migration] Early migration check note:', e);
+            }
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>

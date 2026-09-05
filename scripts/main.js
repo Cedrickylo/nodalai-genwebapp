@@ -59,17 +59,68 @@ async function initApp() {
         initWelcomeModal();
 
         // ==================================================================
-        // NEW: REGISTER PWA BACKGROUND SERVICE WORKER FOR OFFLINE MODE
+        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (V3)
         // ==================================================================
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registered successfully with scope: ', registration.scope);
-                    })
-                    .catch((err) => {
-                        console.warn('ServiceWorker registration failed: ', err);
-                    });
+            window.addEventListener('load', async () => {
+                const SW_VERSION_TAG = 'nodal_sw_migration_v3';
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    const isMigrated = localStorage.getItem(SW_VERSION_TAG) === 'complete';
+
+                    if (registrations.length > 0 && !isMigrated) {
+                        // User has an already saved legacy service worker: Remove and replace
+                        console.log('[SW Migration] Found existing saved service worker. Removing and replacing...');
+                        for (const registration of registrations) {
+                            await registration.unregister();
+                            console.log('[SW Migration] Unregistered old worker:', registration.scope);
+                        }
+
+                        // Clear old caches to remove stale saved state
+                        if ('caches' in window) {
+                            const cacheKeys = await caches.keys();
+                            await Promise.all(cacheKeys.map(key => caches.delete(key)));
+                            console.log('[SW Migration] Deprecated caches cleared.');
+                        }
+
+                        localStorage.setItem(SW_VERSION_TAG, 'complete');
+
+                        // Register the new service worker
+                        const newReg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+                        console.log('[SW Migration] New service worker registered:', newReg.scope);
+
+                        // Reload page once to load fresh assets directly from the server
+                        window.location.reload();
+                        return;
+                    } else if (registrations.length === 0 && !isMigrated) {
+                        // If user doesn't have a service worker saved: ignore removal, mark migrated
+                        console.log('[SW Migration] No existing service worker saved. Skipping removal.');
+                        localStorage.setItem(SW_VERSION_TAG, 'complete');
+                        const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+                        console.log('[SW] ServiceWorker registered with scope:', reg.scope);
+                    } else {
+                        // Already migrated, ensure current registration is active
+                        const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+                        console.log('[SW] ServiceWorker active with scope:', reg.scope);
+                    }
+                } catch (swErr) {
+                    console.warn('[SW Migration] ServiceWorker registration/migration failed:', swErr);
+                }
+            });
+
+            // Listen for service worker activation or updates to reload smoothly if needed
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing && localStorage.getItem('nodal_sw_migration_v3') !== 'complete') {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SW_ACTIVATED') {
+                    console.log('[SW] New version activated:', event.data.version);
+                }
             });
         }
 
