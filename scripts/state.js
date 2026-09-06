@@ -194,7 +194,23 @@ export const elements = {
     copyAiPromptBtnText: document.getElementById('copy-ai-prompt-btn-text'),
     aiPromptTextarea: document.getElementById('ai-prompt-textarea'),
     aiPromptImportBtn: document.getElementById('ai-prompt-import-btn'),
-    aiPromptSummaryBadges: document.getElementById('ai-prompt-summary-badges')
+    aiPromptSummaryBadges: document.getElementById('ai-prompt-summary-badges'),
+    prevQuestionBtn: document.getElementById('prev-question-btn'),
+    nextUnansweredBtn: document.getElementById('next-unanswered-btn'),
+    unansweredModal: document.getElementById('unanswered-modal'),
+    unansweredCountText: document.getElementById('unanswered-count-text'),
+    unansweredNumbersList: document.getElementById('unanswered-numbers-list'),
+    unansweredProceedSubmitBtn: document.getElementById('unanswered-proceed-submit-btn'),
+    unansweredReviewBtn: document.getElementById('unanswered-review-btn'),
+    uiModeRadios: document.querySelectorAll('input[name="ui_mode"]'),
+    historySection: document.getElementById('history-section'),
+    classicProgressContainer: document.getElementById('classic-progress-container'),
+    modernMetaContainer: document.getElementById('modern-meta-container'),
+    modernQuestionNumber: document.getElementById('modern-question-number'),
+    modernQuestionTypeBadge: document.getElementById('modern-question-type-badge'),
+    modernScoreStats: document.getElementById('modern-score-stats'),
+    modernStatCorrectCount: document.getElementById('modern-stat-correct-count'),
+    modernStatWrongCount: document.getElementById('modern-stat-wrong-count')
 };
 
 export const state = {
@@ -219,6 +235,8 @@ export const state = {
     isTimedQuiz: false,
     totalQuizTime: 0,
     currentShuffledIndexPos: 0,
+    currentQuestionIndex: 0,
+    isReviewingUnanswered: false,
     answeredOriginalIndices: new Set(),
     skippedOriginalIndices: new Set(),
     currentSkippedItemIndex: 0,

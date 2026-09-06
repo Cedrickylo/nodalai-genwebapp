@@ -45,7 +45,11 @@ import {
     stopQuizTimer,
     updateAttemptDisplay,
     handleTimeUp,
+    displayCurrentQuestion,
     displayNextQuestion,
+    displayPreviousQuestion,
+    handleNextUnansweredOrSubmit,
+    checkAndHandleSubmit,
     skipQuestion,
     checkAnswer,
     revealAnswer
@@ -132,7 +136,9 @@ export function attachQuizEventListeners() {
         remedialAttemptLimitOptions,
         remedialOptionsView,
         resultsActions,
-        allowChangeToggle
+        allowChangeToggle,
+        prevQuestionBtn,
+        nextUnansweredBtn
     } = elements;
 
     resumeQuizBtn.addEventListener('click', () => { if (state.savedProgress) resumeQuiz(state.savedProgress); });
@@ -147,7 +153,9 @@ export function attachQuizEventListeners() {
         i.addEventListener('input', validateAllInputs);
         i.addEventListener('change', validateAllInputs);
     });
+    prevQuestionBtn?.addEventListener('click', displayPreviousQuestion);
     nextQuestionBtn.addEventListener('click', displayNextQuestion);
+    nextUnansweredBtn?.addEventListener('click', handleNextUnansweredOrSubmit);
     skipQuestionBtn.addEventListener('click', skipQuestion);
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn.addEventListener('click', exportQuiz);
@@ -417,6 +425,7 @@ export function attachQuizEventListeners() {
             }
         }
         resetApp(true);
+        showToast('Quiz generation cancelled.', 2000, 'info');
     });
     
     deleteCustomizeBtn.addEventListener('click', async () => {
@@ -445,8 +454,10 @@ export function attachQuizEventListeners() {
 
         if (!content.classList.contains('hidden')) {
             resumeQuizBtn.classList.add('hidden');
+            elements.historySection?.classList.add('hidden');
         } else {
             prepareResumeButton();
+            elements.historySection?.classList.remove('hidden');
         }
     });
 
@@ -566,7 +577,11 @@ export {
     stopQuizTimer,
     updateAttemptDisplay,
     handleTimeUp,
+    displayCurrentQuestion,
     displayNextQuestion,
+    displayPreviousQuestion,
+    handleNextUnansweredOrSubmit,
+    checkAndHandleSubmit,
     skipQuestion,
     checkAnswer,
     revealAnswer,

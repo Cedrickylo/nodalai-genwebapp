@@ -207,6 +207,8 @@ export async function handleFileSelect(event) {
         const customizeContent = document.getElementById('customize-content');
         if (customizeSection) customizeSection.classList.remove('hidden');
         if (customizeContent) customizeContent.classList.remove('hidden');
+        elements.cancelCustomizeBtn?.classList.remove('hidden');
+        elements.historySection?.classList.add('hidden');
 
         renderSelectedFilesList();
 
@@ -248,6 +250,10 @@ function resetAppFiles() {
     selectedFilesContainerLocal.classList.add('hidden');
     selectedFilesListLocal.innerHTML = '';
     fileActionsDiv.classList.remove('hidden');
+    elements.cancelCustomizeBtn?.classList.add('hidden');
+    elements.historySection?.classList.remove('hidden');
+    document.getElementById('customize-section')?.classList.add('hidden');
+    document.getElementById('customize-content')?.classList.add('hidden');
     validateAllInputs();
 }
 
@@ -395,10 +401,17 @@ export async function resumeQuiz(savedData) {
     state.inSkippedRound = savedData.inSkippedRound || false;
     state.currentSkippedArray = state.inSkippedRound ? Array.from(state.skippedOriginalIndices) : [];
     
+    state.currentQuestionIndex = savedData.currentQuestionIndex !== undefined ? savedData.currentQuestionIndex : (savedData.shuffledIndexPos || 0);
+    state.isReviewingUnanswered = savedData.isReviewingUnanswered || false;
+    
     showView('quiz');
-    const { updateAttemptDisplay, displayNextQuestion, startQuizTimer, stopQuizTimer } = await import('./quizExecution.js');
+    const { updateAttemptDisplay, displayNextQuestion, displayCurrentQuestion, startQuizTimer, stopQuizTimer } = await import('./quizExecution.js');
     updateAttemptDisplay();
-    displayNextQuestion();
+    if (state.currentQuizConfig?.uiMode !== 'classic') {
+        displayCurrentQuestion();
+    } else {
+        displayNextQuestion();
+    }
     if (state.isTimedQuiz) {
         const resumeTime = savedData.timeRemaining !== undefined ? savedData.timeRemaining : state.totalQuizTime;
         startQuizTimer(resumeTime);

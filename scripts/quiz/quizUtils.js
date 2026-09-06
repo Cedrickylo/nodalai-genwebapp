@@ -70,11 +70,17 @@ export function resetApp(clearProg = true) {
     state.currentQuizKey = '';
     state.currentFileName = '';
     state.currentShuffledIndexPos = 0;
+    state.currentQuestionIndex = 0;
+    state.isReviewingUnanswered = false;
     state.answeredOriginalIndices.clear();
     state.skippedOriginalIndices.clear();
     state.currentSkippedItemIndex = 0;
     state.inSkippedRound = false;
     state.currentSkippedArray = [];
+
+    elements.unansweredModal?.classList.add('hidden');
+    elements.nextUnansweredBtn?.classList.add('hidden');
+    elements.historySection?.classList.remove('hidden');
     
     if (fileUploadInput) fileUploadInput.value = '';
     if (addMoreFilesInput) addMoreFilesInput.value = '';
@@ -134,6 +140,11 @@ export function resetStartViewUI() {
     deleteCustomizeBtn?.classList.add('hidden');
     fileActionsDiv?.classList.remove('hidden');
     cancelCustomizeBtn?.classList.add('hidden');
+    elements.historySection?.classList.remove('hidden');
+    elements.unansweredModal?.classList.add('hidden');
+    elements.nextUnansweredBtn?.classList.add('hidden');
+    state.isReviewingUnanswered = false;
+    state.currentQuestionIndex = 0;
     if (generateQuizBtn) generateQuizBtn.textContent = 'Generate Quiz';
     
     // Reset fields and inputs on cancellation/reset

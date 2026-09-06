@@ -97,7 +97,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const mainCustTypeSelect = isRemedial ? elements.remedialCustomQuestionTypeSelect : elements.customQuestionTypeSelect;
 
     const selDiff = document.querySelector(diffSelector)?.value || 'easy';
-    let mc = 0, tf = 0, id = 0, en = 0, custType = null, custTypeShort = null;
+    let mc = 0, tf = 0, id = 0, en = 0, custType = mainCustTypeSelect?.value || 'mixed', custTypeShort = 'Mix';
     const totalQ = parseInt(qCountInput?.value, 10) || 10;
 
     if (!Number.isInteger(totalQ) || totalQ < constants.MIN_QUIZ_QUESTIONS || totalQ > constants.MAX_QUIZ_QUESTIONS) {
@@ -106,45 +106,24 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         return;
     }
 
-    if (selDiff === 'custom') {
-        custType = mainCustTypeSelect?.value || 'mixed';
-        if (custType === 'mixed') {
-            mc = parseInt(document.getElementById(isRemedial ? 'remedial-mc-count' : 'mc-count')?.value, 10) || 0;
-            tf = parseInt(document.getElementById(isRemedial ? 'remedial-tf-count' : 'tf-count')?.value, 10) || 0;
-            id = parseInt(document.getElementById(isRemedial ? 'remedial-id-count' : 'id-count')?.value, 10) || 0;
-            en = parseInt(document.getElementById(isRemedial ? 'remedial-en-count' : 'en-count')?.value, 10) || 0;
-            custTypeShort = 'Mix';
-            if (mc + tf + id + en !== totalQ) {
-                showToast(`Custom counts (${mc + tf + id + en}) do not match total (${totalQ}).`, 3000, 'error');
-                return;
-            }
-        } else if (custType === 'multiple-choice') {
-            mc = totalQ; tf = 0; id = 0; en = 0; custTypeShort = 'MC';
-        } else if (custType === 'true-or-false') {
-            mc = 0; tf = totalQ; id = 0; en = 0; custTypeShort = 'TF';
-        } else if (custType === 'identification') {
-            mc = 0; tf = 0; id = totalQ; en = 0; custTypeShort = 'ID';
-        } else if (custType === 'enumeration') {
-            mc = 0; tf = 0; id = 0; en = totalQ; custTypeShort = 'EN';
+    if (custType === 'mixed') {
+        mc = parseInt(document.getElementById(isRemedial ? 'remedial-mc-count' : 'mc-count')?.value, 10) || 0;
+        tf = parseInt(document.getElementById(isRemedial ? 'remedial-tf-count' : 'tf-count')?.value, 10) || 0;
+        id = parseInt(document.getElementById(isRemedial ? 'remedial-id-count' : 'id-count')?.value, 10) || 0;
+        en = parseInt(document.getElementById(isRemedial ? 'remedial-en-count' : 'en-count')?.value, 10) || 0;
+        custTypeShort = 'Mix';
+        if (mc + tf + id + en !== totalQ) {
+            showToast(`Counts (${mc + tf + id + en}) do not match total (${totalQ}).`, 3000, 'error');
+            return;
         }
-    } else if (selDiff === 'easy') {
-        mc = Math.round(totalQ * 0.5);
-        tf = Math.round(totalQ * 0.35);
-        id = totalQ - mc - tf;
-        en = 0;
-        custTypeShort = 'EASY';
-    } else if (selDiff === 'medium') {
-        mc = Math.round(totalQ * 0.35);
-        tf = Math.round(totalQ * 0.25);
-        id = Math.round(totalQ * 0.2);
-        en = totalQ - mc - tf - id;
-        custTypeShort = 'MED';
-    } else if (selDiff === 'hard') {
-        mc = Math.round(totalQ * 0.2);
-        tf = Math.round(totalQ * 0.1);
-        id = Math.round(totalQ * 0.35);
-        en = totalQ - mc - tf - id;
-        custTypeShort = 'HARD';
+    } else if (custType === 'multiple-choice') {
+        mc = totalQ; tf = 0; id = 0; en = 0; custTypeShort = 'MC';
+    } else if (custType === 'true-or-false') {
+        mc = 0; tf = totalQ; id = 0; en = 0; custTypeShort = 'TF';
+    } else if (custType === 'identification') {
+        mc = 0; tf = 0; id = totalQ; en = 0; custTypeShort = 'ID';
+    } else if (custType === 'enumeration') {
+        mc = 0; tf = 0; id = 0; en = totalQ; custTypeShort = 'EN';
     }
 
     let calcTime = 0;
@@ -175,6 +154,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const randomizeQuestions = elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true;
     const randomizeChoices = elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true;
     const allowChangeSelection = document.getElementById('allow-change-toggle')?.checked || false;
+    const uiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
 
     if (timerMode === 'question') state.isTimedQuiz = true;
 
@@ -185,8 +165,9 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         tf: tf,
         id: id, 
         en: en, 
-        customType: custType || (selDiff === 'custom' ? 'mixed' : selDiff), 
-        customTypeShort: custTypeShort || (selDiff.toUpperCase()),
+        customType: custType, 
+        customTypeShort: custTypeShort,
+        uiMode: uiMode,
         isTimed: state.isTimedQuiz,
         totalTime: state.totalQuizTime,
         isAttemptLimited: state.isAttemptLimited,

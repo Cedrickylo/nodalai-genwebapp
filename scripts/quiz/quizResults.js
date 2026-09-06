@@ -174,30 +174,17 @@ export function setupRemedialView() {
 }
 
 export function handleRemedialDifficultyChange() {
-    const sel = document.querySelector('input[name="remedial_difficulty"]:checked').value;
-    const isCust = sel === 'custom';
-    remedialCustomOptionsDiv.classList.toggle('hidden', !isCust);
-    if (isCust) {
-        handleRemedialCustomTypeChange();
-    } else {
-        remedialCustomMixedCountsDiv.classList.add('hidden');
-    }
     validateRemedialInputs();
 }
 
 export function handleRemedialCustomTypeChange() {
-    const sel = remedialCustomQuestionTypeSelect.value;
+    const sel = remedialCustomQuestionTypeSelect?.value || 'mixed';
     remedialCustomMixedCountsDiv.classList.toggle('hidden', sel !== 'mixed');
     validateRemedialInputs();
 }
 
 export function handleRemedialTimeToggle() {
     remedialTimeLimitOptions.classList.toggle('hidden', !remedialTimeLimitToggle.checked);
-    if (remedialTimeLimitToggle.checked) {
-        handleRemedialTimePresetChange();
-    } else {
-        remedialCustomTimeInputContainer.classList.add('hidden');
-    }
     validateRemedialInputs();
 }
 
@@ -213,27 +200,22 @@ export function handleRemedialTimePresetChange() {
 }
 
 export function validateRemedialInputs() {
-    const selDiff = document.querySelector('input[name="remedial_difficulty"]:checked').value;
+    const selCustType = remedialCustomQuestionTypeSelect?.value || 'mixed';
     let custOk = true;
-    if (selDiff === 'custom') {
-        const selCustType = remedialCustomQuestionTypeSelect.value;
-        if (selCustType === 'mixed') {
-            const totalQ = parseInt(remedialQuestionCountInput.value, 10);
-            const mc = parseInt(document.getElementById('remedial-mc-count')?.value, 10) || 0;
-            const tf = parseInt(document.getElementById('remedial-tf-count')?.value, 10) || 0;
-            const id = parseInt(document.getElementById('remedial-id-count')?.value, 10) || 0;
-            const en = parseInt(document.getElementById('remedial-en-count')?.value, 10) || 0;
-            const sum = mc + tf + id + en;
-            if (sum !== totalQ || totalQ <= 0) {
-                remedialCustomTotalFeedback.textContent = `Total: ${sum} / ${totalQ} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
-                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
-                custOk = false;
-            } else {
-                remedialCustomTotalFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalQ}`;
-                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
-            }
+    if (selCustType === 'mixed') {
+        const totalQ = parseInt(remedialQuestionCountInput.value, 10);
+        const mc = parseInt(document.getElementById('remedial-mc-count')?.value, 10) || 0;
+        const tf = parseInt(document.getElementById('remedial-tf-count')?.value, 10) || 0;
+        const id = parseInt(document.getElementById('remedial-id-count')?.value, 10) || 0;
+        const en = parseInt(document.getElementById('remedial-en-count')?.value, 10) || 0;
+        const sum = mc + tf + id + en;
+        if (sum !== totalQ || totalQ <= 0) {
+            remedialCustomTotalFeedback.textContent = `Total: ${sum} / ${totalQ} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
+            remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
+            custOk = false;
         } else {
-            remedialCustomTotalFeedback.textContent = '';
+            remedialCustomTotalFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalQ}`;
+            remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
         }
     } else {
         remedialCustomTotalFeedback.textContent = '';

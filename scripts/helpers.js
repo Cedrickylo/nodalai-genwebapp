@@ -154,15 +154,8 @@ export function handleAttemptToggle() {
 }
 
 export function handleDifficultyChange() {
-    const selected = document.querySelector('input[name="difficulty"]:checked')?.value;
-    const isCustom = selected === 'custom';
-    
-    // Hide/show the Custom Options box entirely
-    customOptionsDiv.classList.toggle('hidden', !isCustom);
-    
-    if (isCustom) {
-        handleCustomTypeChange();
-    }
+    // Difficulty is decoupled from Quiz Type; validate all inputs on change
+    validateAllInputs();
 }
 
 export async function handleLogout() {
@@ -1091,6 +1084,7 @@ export function getCustomizeState() {
     let preset = '10';
     const selectedRadio = document.querySelector('input[name="time_preset"]:checked');
     if (selectedRadio) preset = selectedRadio.value;
+    const selectedUiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
     return {
         name: editQuizNameInput.value.trim(),
         timeLimit: timeLimitToggle.checked,
@@ -1099,6 +1093,7 @@ export function getCustomizeState() {
         attemptLimit: attemptLimitToggle.checked,
         attempts: parseInt(attemptLimitInput.value, 10) || 3,
         summaryOnly: summaryOnlyToggle.checked,
+        uiMode: selectedUiMode,
         // --- Packed Advanced Configurations ---
         timerMode: elements.timerModeSelect ? elements.timerModeSelect.value : 'quiz',
         questionTime: elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30,
@@ -1120,7 +1115,8 @@ export function hasUnsavedChanges() {
         current.customTime !== state.initialCustomizeState.customTime ||
         current.attemptLimit !== state.initialCustomizeState.attemptLimit ||
         current.attempts !== state.initialCustomizeState.attempts ||
-        current.summaryOnly !== state.initialCustomizeState.summaryOnly;
+        current.summaryOnly !== state.initialCustomizeState.summaryOnly ||
+        current.uiMode !== state.initialCustomizeState.uiMode;
 }
 
 export function setupCustomizeView(config, name) {
@@ -1140,21 +1136,24 @@ export function setupCustomizeView(config, name) {
     customizeContent.classList.remove('hidden');
     customizeToggleIcon.classList.add('rotate-180');
 
+    // Hide history section while customization is open
+    document.getElementById('history-section')?.classList.add('hidden');
+
     // =====================================================================
     // CLEAN CUSTOMIZATION UI OVERHAUL (HIDES INACTIVE CONTROLS)
     // =====================================================================
     
-    // 1. Locate the top-most wrapper layout rows for both inputs
+    // 1. Locate the top-most wrapper layout rows
     const countGroup = document.getElementById('question-count-group') || questionCountInput.closest('.mb-4, .space-y-4, div');
-    
-    // Target the main wrapper form block container enclosing the difficulty option items
     const diffGroup = document.getElementById('difficulty-group') || 
                       document.querySelector('.difficulty-section') || 
                       difficultyRadios[0]?.closest('.mb-6, .mb-4, .space-y-4, div');
+    const quizTypeGroup = document.getElementById('quiz-type-group');
     
     // Hide all interactive configuration selectors from the form layout grid
     if (countGroup) countGroup.classList.add('hidden');
     if (diffGroup) diffGroup.classList.add('hidden');
+    if (quizTypeGroup) quizTypeGroup.classList.add('hidden');
     if (customOptionsDiv) customOptionsDiv.classList.add('hidden');
 
     // 2. Parse configuration attributes to build clean text summary labels
@@ -1162,14 +1161,12 @@ export function setupCustomizeView(config, name) {
     const rawDiff = config.difficulty || 'easy';
     const capitalizedDiff = rawDiff.charAt(0).toUpperCase() + rawDiff.slice(1);
     
+    const customType = config.customType || (config.type || 'mixed');
     let typeText = 'Mixed Types';
-    if (rawDiff === 'custom') {
-        const customType = config.customType || 'mixed';
-        if (customType === 'multiple-choice') typeText = 'Multiple Choice Only';
-        else if (customType === 'true-or-false') typeText = 'True / False Only';
-        else if (customType === 'identification') typeText = 'Identification Only';
-        else if (customType === 'enumeration') typeText = 'Enumeration Only';
-    }
+    if (customType === 'multiple-choice') typeText = 'Multiple Choice Only';
+    else if (customType === 'true-or-false') typeText = 'True / False Only';
+    else if (customType === 'identification') typeText = 'Identification Only';
+    else if (customType === 'enumeration') typeText = 'Enumeration Only';
 
     // 3. Prevent duplication by purging an existing summary banner instance
     document.getElementById('quiz-custom-summary-banner')?.remove();
@@ -1203,22 +1200,25 @@ export function setupCustomizeView(config, name) {
     difficultyRadios.forEach(radio => {
         radio.checked = radio.value === rawDiff;
     });
-    if (rawDiff === 'custom') {
-        customQuestionTypeSelect.value = config.customType || 'mixed';
-
-        // ADDED: Explicitly populate the hidden custom inputs from the loaded config
-        if (config.customType === 'mixed') {
-            const mcInput = document.getElementById('mc-count');
-            const tfInput = document.getElementById('tf-count');
-            const idInput = document.getElementById('id-count');
-            const enInput = document.getElementById('en-count');
-            
-            if (mcInput) mcInput.value = config.mcCount !== undefined ? config.mcCount : (config.mc || 0);
-            if (tfInput) tfInput.value = config.tfCount !== undefined ? config.tfCount : (config.tf || 0);
-            if (idInput) idInput.value = config.id || 0;
-            if (enInput) enInput.value = config.en || 0;
-        }
+    if (customQuestionTypeSelect) {
+        customQuestionTypeSelect.value = customType;
     }
+    if (customType === 'mixed') {
+        const mcInput = document.getElementById('mc-count');
+        const tfInput = document.getElementById('tf-count');
+        const idInput = document.getElementById('id-count');
+        const enInput = document.getElementById('en-count');
+        
+        if (mcInput) mcInput.value = config.mcCount !== undefined ? config.mcCount : (config.mc || 0);
+        if (tfInput) tfInput.value = config.tfCount !== undefined ? config.tfCount : (config.tf || 0);
+        if (idInput) idInput.value = config.id || 0;
+        if (enInput) enInput.value = config.en || 0;
+    }
+
+    // Set UI Mode
+    const savedUiMode = config.uiMode || 'modern';
+    const targetUiRadio = document.querySelector(`input[name="ui_mode"][value="${savedUiMode}"]`);
+    if (targetUiRadio) targetUiRadio.checked = true;
 
     // --- Unpacking Form Field Variables and Syncing Sub-Containers ---
     if (elements.timerModeSelect) {
@@ -1280,9 +1280,10 @@ export function autoBalanceMixedCounts(totalCount) {
 }
 
 export function handleCustomTypeChange() {
-    const selected = customQuestionTypeSelect.value;
+    const selected = customQuestionTypeSelect?.value || 'mixed';
     const showMixed = selected === 'mixed';
-    customMixedCountsDiv.classList.toggle('hidden', !showMixed);
+    if (customOptionsDiv) customOptionsDiv.classList.toggle('hidden', !showMixed);
+    if (customMixedCountsDiv) customMixedCountsDiv.classList.toggle('hidden', !showMixed);
     if (showMixed) {
         const mcVal = document.getElementById('mc-count')?.value;
         const tfVal = document.getElementById('tf-count')?.value;
@@ -1307,29 +1308,24 @@ export function validateAllInputs() {
     const customFeedback = document.getElementById('custom-total-feedback');
 
     if (!state.isCustomizingHistory) {
-        const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value;
-        if (difficulty === 'custom') {
-            const type = customQuestionTypeSelect.value;
-            if (type === 'mixed') {
-                const mc = parseInt(document.getElementById('mc-count')?.value, 10) || 0;
-                const tf = parseInt(document.getElementById('tf-count')?.value, 10) || 0;
-                const id = parseInt(document.getElementById('id-count')?.value, 10) || 0;
-                const en = parseInt(document.getElementById('en-count')?.value, 10) || 0;
-                const sum = mc + tf + id + en;
-                if (sum !== totalCount || totalCount <= 0) {
-                    if (customFeedback) {
-                        customFeedback.textContent = `Total: ${sum} / ${totalCount} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
-                        customFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
-                    }
-                    enabled = false;
-                } else {
-                    if (customFeedback) {
-                        customFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalCount}`;
-                        customFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
-                    }
+        const type = customQuestionTypeSelect?.value || 'mixed';
+        if (type === 'mixed') {
+            const mc = parseInt(document.getElementById('mc-count')?.value, 10) || 0;
+            const tf = parseInt(document.getElementById('tf-count')?.value, 10) || 0;
+            const id = parseInt(document.getElementById('id-count')?.value, 10) || 0;
+            const en = parseInt(document.getElementById('en-count')?.value, 10) || 0;
+            const sum = mc + tf + id + en;
+            if (sum !== totalCount || totalCount <= 0) {
+                if (customFeedback) {
+                    customFeedback.textContent = `Total: ${sum} / ${totalCount} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
+                    customFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
                 }
-            } else if (customFeedback) {
-                customFeedback.textContent = '';
+                enabled = false;
+            } else {
+                if (customFeedback) {
+                    customFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalCount}`;
+                    customFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
+                }
             }
         } else if (customFeedback) {
             customFeedback.textContent = '';
@@ -1395,7 +1391,7 @@ export function validateAllInputs() {
 
 export function buildQuizSystemPrompt(config, fileName, fileContent = '') {
     const totalCount = config.count || 10;
-    const diff = config.difficulty || 'custom';
+    const diff = config.difficulty || 'easy';
     const mcCount = config.mc !== undefined ? config.mc : (config.mcCount !== undefined ? config.mcCount : Math.round(totalCount * 0.4));
     const tfCount = config.tf !== undefined ? config.tf : (config.tfCount !== undefined ? config.tfCount : Math.round(totalCount * 0.2));
     const idCount = config.id !== undefined ? config.id : Math.round(totalCount * 0.2);
@@ -1403,13 +1399,25 @@ export function buildQuizSystemPrompt(config, fileName, fileContent = '') {
     const finalFileName = fileName || 'Quiz';
     const totalTimeInMinutes = config.isTimed ? Math.max(1, Math.round((config.totalTime || 600) / 60)) : 10;
 
+    let diffGuidance = '';
+    if (diff === 'easy') {
+        diffGuidance = 'Difficulty Level: Easy. Questions must focus on fundamental definitions, core concepts, and direct recall using clear, accessible language.';
+    } else if (diff === 'hard') {
+        diffGuidance = 'Difficulty Level: Hard. Questions must challenge deep analytical understanding, nuanced concepts, tricky edge cases, and complex reasoning.';
+    } else {
+        diffGuidance = 'Difficulty Level: Medium. Questions must test conceptual comprehension, application of principles, and standard problem-solving.';
+    }
+
+    const qType = config.customType || 'mixed';
     let distributionText = '';
-    if (diff === 'custom' && config.customType && config.customType !== 'mixed') {
-        if (config.customType === 'multiple-choice') distributionText = `${totalCount} Multiple Choice questions.`;
-        else if (config.customType === 'true-or-false') distributionText = `${totalCount} True or False questions.`;
-        else if (config.customType === 'identification') distributionText = `${totalCount} Identification questions.`;
-        else if (config.customType === 'enumeration') distributionText = `${totalCount} Enumeration questions.`;
-        else distributionText = `${totalCount} questions.`;
+    if (qType === 'multiple-choice') {
+        distributionText = `${totalCount} Multiple Choice questions.`;
+    } else if (qType === 'true-or-false') {
+        distributionText = `${totalCount} True or False questions.`;
+    } else if (qType === 'identification') {
+        distributionText = `${totalCount} Identification questions.`;
+    } else if (qType === 'enumeration') {
+        distributionText = `${totalCount} Enumeration questions.`;
     } else {
         distributionText = `${mcCount} Multiple Choice, ${tfCount} True or False, ${idCount} Identification, and ${enCount} Enumeration questions.`;
     }
@@ -1430,6 +1438,8 @@ Do NOT output any conversational text, pleasantries, preambles, summaries, expla
 Content Requirements:
 
 Total Items: ${totalCount} questions.
+
+${diffGuidance}
 
 Distribution: ${distributionText}
 
@@ -1454,9 +1464,11 @@ config: Include the following exact key-value pairs, replacing the bracketed pla
 
 "en": ${enCount}
 
-"customType": "${config.customType || 'mixed'}"
+"customType": "${qType}"
 
-"customTypeShort": "${config.customTypeShort || (diff === 'custom' ? 'MIX' : diff.toUpperCase())}"
+"customTypeShort": "${config.customTypeShort || (qType === 'mixed' ? 'MIX' : qType.toUpperCase())}"
+
+"uiMode": "${config.uiMode || 'modern'}"
 
 "isTimed": ${config.isTimed ? 'true' : 'false'}
 
