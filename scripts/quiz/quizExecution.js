@@ -286,10 +286,17 @@ export function startQuiz() {
     showView('quiz');
     updateAttemptDisplay();
     
-    const isModern = state.currentQuizConfig?.uiMode !== 'classic';
+    const isModern = (state.currentQuizConfig?.uiMode || 'modern') !== 'classic';
     if (isModern) {
         displayCurrentQuestion();
     } else {
+        prevQuestionBtn?.classList.add('hidden');
+        nextUnansweredBtn?.classList.add('hidden');
+        modernMetaContainer?.classList.add('hidden');
+        modernScoreStats?.classList.add('hidden');
+        classicProgressContainer?.classList.remove('hidden');
+        scoreEl?.classList.remove('hidden');
+        skipQuestionBtn?.classList.remove('hidden');
         displayNextQuestion();
     }
     
@@ -1116,6 +1123,14 @@ export function checkAnswer(userAnswer) {
         if (isModern) {
             if (state.isReviewingUnanswered) {
                 updateUnansweredReviewBtn();
+            }
+        } else {
+            if (!state.currentQuizConfig?.allowChangeSelection) {
+                setTimeout(() => {
+                    displayNextQuestion();
+                }, 300);
+            } else {
+                displayNextQuestion();
             }
         }
     }

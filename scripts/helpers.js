@@ -120,6 +120,16 @@ export function toggleContainerVisibility(containerId, isVisible) {
     }
 }
 
+export function setHistoryVisibility(show) {
+    const section = elements.historySection || document.getElementById('history-section');
+    if (!section) return;
+    if (show) {
+        section.classList.remove('customize-hidden');
+    } else {
+        section.classList.add('customize-hidden');
+    }
+}
+
 // --- Consolidated Toggle Functions ---
 
 export function handleTimeToggle() {
@@ -901,7 +911,44 @@ export function setupScrollReactiveHeader(viewId) {
     scrollReactiveHeaderObservers.set(viewId, observer);
 }
 
-export function showView(id) {
+export function viewToHash(viewId) {
+    switch (viewId) {
+        case 'start': return '#home';
+        case 'history-fullscreen': return '#history';
+        case 'help': return '#help';
+        case 'about': return '#about';
+        case 'account': return '#account';
+        case 'quiz': return '#quiz';
+        case 'results': return '#results';
+        case 'loading': return '#loading';
+        default: return '#home';
+    }
+}
+
+export function hashToView(hash) {
+    const cleanHash = (hash || '').replace(/^#/, '').toLowerCase();
+    switch (cleanHash) {
+        case 'home':
+        case '': return 'start';
+        case 'history': return 'history-fullscreen';
+        case 'help': return 'help';
+        case 'about': return 'about';
+        case 'account': return 'account';
+        case 'quiz': return 'quiz';
+        case 'results': return 'results';
+        case 'loading': return 'loading';
+        default: return 'start';
+    }
+}
+
+export function getActiveViewId() {
+    for (const [id, el] of Object.entries(elements.views)) {
+        if (el && el.classList.contains('active')) return id;
+    }
+    return 'start';
+}
+
+export function showView(id, pushHash = true) {
     // 1. Switch the visible page
     Object.values(elements.views).forEach(v => { if (v) v.classList.remove('active'); });
     if (elements.views[id]) elements.views[id].classList.add('active');
@@ -920,6 +967,167 @@ export function showView(id) {
     updateNavHighlights(navKey);
 
     setupScrollReactiveHeader(id);
+
+    // 4. Update URL hash if requested and differs
+    if (pushHash) {
+        const targetHash = viewToHash(id);
+        if (window.location.hash !== targetHash) {
+            window.history.pushState({ view: id }, '', targetHash);
+        }
+    }
+}
+
+let isPopStateHandling = false;
+
+export async function handlePopState(event) {
+    if (isPopStateHandling) return;
+    isPopStateHandling = true;
+
+    try {
+        const currentViewId = getActiveViewId();
+        const currentHash = viewToHash(currentViewId);
+
+        // 1. Check open Modals - close modal first without navigating page
+        if (elements.confirmModal && !elements.confirmModal.classList.contains('hidden')) {
+            window.history.pushState({ view: currentViewId }, '', currentHash);
+            elements.cancelConfirmBtn?.click();
+            return;
+        }
+
+        if (elements.unansweredModal && !elements.unansweredModal.classList.contains('hidden')) {
+            window.history.pushState({ view: currentViewId }, '', currentHash);
+            elements.unansweredModal.classList.add('hidden');
+            return;
+        }
+
+        if (elements.aiPromptModal && !elements.aiPromptModal.classList.contains('hidden')) {
+            window.history.pushState({ view: currentViewId }, '', currentHash);
+            closeAiPromptModal();
+            return;
+        }
+
+        const shareModal = document.getElementById('share-modal');
+        if (shareModal && !shareModal.classList.contains('hidden')) {
+            window.history.pushState({ view: currentViewId }, '', currentHash);
+            const shareConfigStep = document.getElementById('share-config-step');
+            if (shareConfigStep && !shareConfigStep.classList.contains('hidden')) {
+                navigateToShareStep('menu');
+            } else {
+                closeShareModal();
+            }
+            return;
+        }
+
+        if (elements.mobileMenuModal && !elements.mobileMenuModal.classList.contains('hidden')) {
+            window.history.pushState({ view: currentViewId }, '', currentHash);
+            elements.mobileMenuModal.classList.add('hidden');
+            return;
+        }
+
+        if (elements.accountModalOverlay && !elements.accountModalOverlay.classList.contains('hidden')) {
+            window.history.pushState({ view: currentViewId }, '', currentHash);
+            elements.accountModalOverlay.classList.add('hidden');
+            return;
+        }
+
+        const welcomeModal = document.getElementById('welcome-modal');
+        if (welcomeModal && !welcomeModal.classList.contains('hidden')) {
+            window.history.pushState({ view: currentViewId }, '', currentHash);
+            welcomeModal.classList.add('hidden');
+            return;
+        }
+
+        // 2. Active Quiz (#quiz) - prompt before leaving
+        if (currentViewId === 'quiz') {
+            window.history.pushState({ view: 'quiz' }, '', '#quiz');
+            const shouldExit = await customConfirm('Save progress and return to the home screen?', 'Return Home', 'Save & Exit', 'Cancel');
+            if (shouldExit) {
+                const { saveAndGoHome } = await import('./quiz/quizUtils.js');
+                saveAndGoHome();
+            }
+            return;
+        }
+
+        // 3. Unsaved or Customize states on Home Screen (#home)
+        if (currentViewId === 'start') {
+            if (state.isCustomizingHistory) {
+                window.history.pushState({ view: 'start' }, '', '#home');
+                if (hasUnsavedChanges()) {
+                    const wantsToSave = await customConfirm(
+                        'You have unsaved changes! Do you want to save them before exiting?\n\n• OK = Save changes\n• Cancel = Discard changes',
+                        'Unsaved Changes',
+                        'Save Changes',
+                        'Discard',
+                        false
+                    );
+                    if (wantsToSave) {
+                        const { handleQuizGeneration } = await import('./quiz/quizGeneration.js');
+                        handleQuizGeneration(false, true);
+                        return;
+                    }
+                }
+                const { resetApp } = await import('./quiz/quizUtils.js');
+                resetApp(true);
+                showToast('Customization closed.', 2000, 'info');
+                return;
+            }
+
+            if (state.currentFiles && state.currentFiles.length > 0) {
+                window.history.pushState({ view: 'start' }, '', '#home');
+                const { resetApp } = await import('./quiz/quizUtils.js');
+                resetApp(true);
+                showToast('Quiz generation cancelled.', 2000, 'info');
+                return;
+            }
+
+            const customizeContent = document.getElementById('customize-content');
+            if (customizeContent && !customizeContent.classList.contains('hidden')) {
+                window.history.pushState({ view: 'start' }, '', '#home');
+                customizeContent.classList.add('hidden');
+                document.getElementById('customize-toggle-icon')?.classList.remove('rotate-180');
+                setHistoryVisibility(true);
+                return;
+            }
+        }
+
+        // 4. Normal view navigation
+        const targetViewId = hashToView(window.location.hash);
+        showView(targetViewId, false);
+
+        if (targetViewId === 'start') {
+            refreshHistory();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (targetViewId === 'history-fullscreen') {
+            const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
+            showAllHistoryFullScreen();
+        } else if (targetViewId === 'account') {
+            openAccountAsView();
+        }
+
+    } finally {
+        isPopStateHandling = false;
+    }
+}
+
+export function initRouter() {
+    if (!window.location.hash) {
+        window.history.replaceState({ view: 'start' }, '', '#home');
+    } else {
+        const initialView = hashToView(window.location.hash);
+        if (initialView === 'quiz' || initialView === 'loading' || initialView === 'results') {
+            window.history.replaceState({ view: 'start' }, '', '#home');
+            showView('start', false);
+        } else {
+            showView(initialView, false);
+            if (initialView === 'history-fullscreen') {
+                import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
+            } else if (initialView === 'account') {
+                openAccountAsView();
+            }
+        }
+    }
+
+    window.addEventListener('popstate', handlePopState);
 }
 
 export function getQuizDB() {
@@ -980,6 +1188,11 @@ export function formatTime(secs) {
 }
 
 export function refreshHistory() {
+    const isCustomizing = state.isCustomizingHistory || (state.currentFiles && state.currentFiles.length > 0) || !document.getElementById('customize-content')?.classList.contains('hidden');
+    if (isCustomizing) {
+        setHistoryVisibility(false);
+    }
+
     const db = state.quizHistory;
     const sorted = Object.entries(db).sort(([, a], [, b]) => b.timestamp - a.timestamp);
     
@@ -1137,7 +1350,7 @@ export function setupCustomizeView(config, name) {
     customizeToggleIcon.classList.add('rotate-180');
 
     // Hide history section while customization is open
-    document.getElementById('history-section')?.classList.add('hidden');
+    setHistoryVisibility(false);
 
     // =====================================================================
     // CLEAN CUSTOMIZATION UI OVERHAUL (HIDES INACTIVE CONTROLS)

@@ -7,6 +7,7 @@ import {
     validateAllInputs,
     loadGenerationCooldownState,
     getGenerationCooldownWarning,
+    setHistoryVisibility
 } from '../helpers.js';
 
 const {
@@ -209,6 +210,14 @@ export async function handleFileSelect(event) {
         if (customizeContent) customizeContent.classList.remove('hidden');
         elements.cancelCustomizeBtn?.classList.remove('hidden');
         elements.historySection?.classList.add('hidden');
+        setHistoryVisibility(false);
+
+        // Ensure quiz configuration selectors are visible and clean for new generation
+        document.getElementById('quiz-custom-summary-banner')?.remove();
+        document.getElementById('quiz-type-group')?.classList.remove('hidden');
+        document.getElementById('ui-mode-group')?.classList.remove('hidden');
+        document.getElementById('question-count-group')?.classList.remove('hidden');
+        document.getElementById('difficulty-group')?.classList.remove('hidden');
 
         renderSelectedFilesList();
 
@@ -252,6 +261,7 @@ function resetAppFiles() {
     fileActionsDiv.classList.remove('hidden');
     elements.cancelCustomizeBtn?.classList.add('hidden');
     elements.historySection?.classList.remove('hidden');
+    setHistoryVisibility(true);
     document.getElementById('customize-section')?.classList.add('hidden');
     document.getElementById('customize-content')?.classList.add('hidden');
     validateAllInputs();
@@ -336,6 +346,9 @@ export function handleQuizImport(event) {
             }
 
             state.questions = normalizedQuestions;
+            if (!config.uiMode) {
+                config.uiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
+            }
             state.currentQuizConfig = config;
             state.currentFileName = data.fileName || file.name;
             state.currentQuizKey = importedId;

@@ -1,4 +1,4 @@
-import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal } from './helpers.js';
+import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
 
@@ -57,13 +57,14 @@ async function initApp() {
 
         prepareSavedProgress();
         initWelcomeModal();
+        initRouter();
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (V3)
+        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (V4)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const SW_VERSION_TAG = 'nodal_sw_migration_v3';
+                const SW_VERSION_TAG = 'nodal_sw_migration_v4';
                 try {
                     const registrations = await navigator.serviceWorker.getRegistrations();
                     const isMigrated = localStorage.getItem(SW_VERSION_TAG) === 'complete';
@@ -83,6 +84,9 @@ async function initApp() {
                             console.log('[SW Migration] Deprecated caches cleared.');
                         }
 
+                        localStorage.removeItem('nodal_sw_migration_v1');
+                        localStorage.removeItem('nodal_sw_migration_v2');
+                        localStorage.removeItem('nodal_sw_migration_v3');
                         localStorage.setItem(SW_VERSION_TAG, 'complete');
 
                         // Register the new service worker
@@ -93,8 +97,11 @@ async function initApp() {
                         window.location.reload();
                         return;
                     } else if (registrations.length === 0 && !isMigrated) {
-                        // If user doesn't have a service worker saved: ignore removal, mark migrated
+                        // If user doesn't have a service worker saved: clean keys, mark migrated
                         console.log('[SW Migration] No existing service worker saved. Skipping removal.');
+                        localStorage.removeItem('nodal_sw_migration_v1');
+                        localStorage.removeItem('nodal_sw_migration_v2');
+                        localStorage.removeItem('nodal_sw_migration_v3');
                         localStorage.setItem(SW_VERSION_TAG, 'complete');
                         const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
                         console.log('[SW] ServiceWorker registered with scope:', reg.scope);
@@ -111,7 +118,7 @@ async function initApp() {
             // Listen for service worker activation or updates to reload smoothly if needed
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing && localStorage.getItem('nodal_sw_migration_v3') !== 'complete') {
+                if (!refreshing && localStorage.getItem('nodal_sw_migration_v4') !== 'complete') {
                     refreshing = true;
                     window.location.reload();
                 }

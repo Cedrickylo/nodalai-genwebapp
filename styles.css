@@ -1,4 +1,4 @@
-﻿        /* Mobile Responsiveness & Layout Fixes */
+        /* Mobile Responsiveness & Layout Fixes */
         html, body { 
             font-family: 'Inter', sans-serif; 
             overflow-x: clip; 
@@ -57,6 +57,7 @@
         input[type="radio"]:checked + label { background-color: #2563EB; border-color: #1D4ED8; color: white; }
         .locked-input { background-color: #4B5563 !important; cursor: not-allowed; opacity: 0.7; }
         .locked-label { cursor: not-allowed; opacity: 0.7; }
+        #history-section.customize-hidden { display: none !important; }
         
         /* Sidebar Layout Styles */
         aside { max-height: calc(100vh - 2rem); overflow-y: auto; }

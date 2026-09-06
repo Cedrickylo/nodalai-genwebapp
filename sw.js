@@ -1,5 +1,5 @@
-// Incremented to v3 to immediately replace legacy service workers and clear stale caches
-const CACHE_NAME = 'nodal-ai-cache-v3';
+// Incremented to v4 to immediately replace legacy service workers and clear stale caches
+const CACHE_NAME = 'nodal-ai-cache-v4';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
 const LOCAL_ASSETS_TO_CACHE = [
@@ -10,7 +10,13 @@ const LOCAL_ASSETS_TO_CACHE = [
     '/scripts/helpers.js',
     '/scripts/state.js',
     '/scripts/aiService.js',
-    '/scripts/quiz.js'
+    '/scripts/quiz.js',
+    '/scripts/quiz/fileHandling.js',
+    '/scripts/quiz/quizExecution.js',
+    '/scripts/quiz/quizGeneration.js',
+    '/scripts/quiz/quizHistory.js',
+    '/scripts/quiz/quizResults.js',
+    '/scripts/quiz/quizUtils.js'
 ];
 
 // List of allowed external CDNs to be automatically cached dynamically at runtime
@@ -24,7 +30,7 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v3] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v4] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(LOCAL_ASSETS_TO_CACHE);
@@ -34,13 +40,13 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v3] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v4] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
-                        console.log('[Service Worker v3] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v4] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -53,7 +59,7 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v3] Notification warning during activate:', err);
+                console.warn('[Service Worker v4] Notification warning during activate:', err);
             }
         })
     );

@@ -69,6 +69,9 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         const allowChangeToggleEl = document.getElementById('allow-change-toggle');
         state.currentQuizConfig.allowChangeSelection = allowChangeToggleEl ? allowChangeToggleEl.checked : false;
 
+        const selectedUiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
+        state.currentQuizConfig.uiMode = selectedUiMode;
+
         const newQuizId = CryptoJS.SHA256(JSON.stringify(state.questions) + JSON.stringify(state.currentQuizConfig) + newName).toString();
         if (newQuizId !== state.customizingQuizData.key && state.quizHistory[state.customizingQuizData.key]) {
             delete state.quizHistory[state.customizingQuizData.key];

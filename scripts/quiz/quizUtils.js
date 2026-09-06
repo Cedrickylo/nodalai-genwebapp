@@ -7,6 +7,7 @@ import {
     customConfirm,
     clearInProgressQuiz,
     refreshHistory,
+    setHistoryVisibility,
     handleDifficultyChange,
     handleTimeToggle,
     handleAttemptToggle,
@@ -81,6 +82,7 @@ export function resetApp(clearProg = true) {
     elements.unansweredModal?.classList.add('hidden');
     elements.nextUnansweredBtn?.classList.add('hidden');
     elements.historySection?.classList.remove('hidden');
+    setHistoryVisibility(true);
     
     if (fileUploadInput) fileUploadInput.value = '';
     if (addMoreFilesInput) addMoreFilesInput.value = '';
@@ -141,6 +143,7 @@ export function resetStartViewUI() {
     fileActionsDiv?.classList.remove('hidden');
     cancelCustomizeBtn?.classList.add('hidden');
     elements.historySection?.classList.remove('hidden');
+    setHistoryVisibility(true);
     elements.unansweredModal?.classList.add('hidden');
     elements.nextUnansweredBtn?.classList.add('hidden');
     state.isReviewingUnanswered = false;
@@ -187,6 +190,8 @@ export function resetStartViewUI() {
 
     if (countGroup) countGroup.classList.remove('hidden');
     if (diffGroup) diffGroup.classList.remove('hidden');
+    document.getElementById('quiz-type-group')?.classList.remove('hidden');
+    document.getElementById('ui-mode-group')?.classList.remove('hidden');
     
     if (questionCountInput) {
         questionCountInput.readOnly = false;

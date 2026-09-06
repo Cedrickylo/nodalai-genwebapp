@@ -22,7 +22,8 @@ import {
     handleLogout,
     openAiPromptModal,
     closeAiPromptModal,
-    autoBalanceMixedCounts
+    autoBalanceMixedCounts,
+    setHistoryVisibility
 } from './helpers.js';
 
 // Import modules
@@ -160,12 +161,10 @@ export function attachQuizEventListeners() {
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn.addEventListener('click', exportQuiz);
     elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
-    // Help and About back buttons
-    elements.helpBackBtn?.addEventListener('click', () => showView('start'));
-    elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
-    
-    // ADD THIS NEW LINE:
-    document.getElementById('account-mobile-back-btn')?.addEventListener('click', () => showView('start'));
+    // Help, About, and Account back buttons (use browser history navigation)
+    elements.helpBackBtn?.addEventListener('click', () => window.history.back());
+    elements.aboutBackBtn?.addEventListener('click', () => window.history.back());
+    document.getElementById('account-mobile-back-btn')?.addEventListener('click', () => window.history.back());
     
     // Copy Link Button
     elements.copyShareLinkBtn.onclick = () => {
@@ -287,10 +286,7 @@ export function attachQuizEventListeners() {
     historyList.addEventListener('click', handleHistoryClick);
     showAllHistoryBtn?.addEventListener('click', () => showAllHistoryFullScreen());
     // Full-screen history back button
-    elements.historyFullscreenBackBtn?.addEventListener('click', () => showView('start'));
-    // Help and About back buttons
-    elements.helpBackBtn?.addEventListener('click', () => showView('start'));
-    elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
+    elements.historyFullscreenBackBtn?.addEventListener('click', () => window.history.back());
     // Mobile bottom nav
     elements.mobileNavHomeBtn?.addEventListener('click', () => {
         showView('start');
@@ -455,9 +451,20 @@ export function attachQuizEventListeners() {
         if (!content.classList.contains('hidden')) {
             resumeQuizBtn.classList.add('hidden');
             elements.historySection?.classList.add('hidden');
+            setHistoryVisibility(false);
+            if (!state.isCustomizingHistory) {
+                document.getElementById('quiz-custom-summary-banner')?.remove();
+                document.getElementById('quiz-type-group')?.classList.remove('hidden');
+                document.getElementById('ui-mode-group')?.classList.remove('hidden');
+                document.getElementById('question-count-group')?.classList.remove('hidden');
+                document.getElementById('difficulty-group')?.classList.remove('hidden');
+            }
         } else {
             prepareResumeButton();
             elements.historySection?.classList.remove('hidden');
+            if (!state.isCustomizingHistory && (!state.currentFiles || state.currentFiles.length === 0)) {
+                setHistoryVisibility(true);
+            }
         }
     });
 
