@@ -647,19 +647,32 @@ export function attachQuizEventListeners() {
         elements.sharedQuizStartBtn.addEventListener('click', () => {
             if (!state.pendingSharedQuiz) return;
             const pending = state.pendingSharedQuiz;
-            const quizKey = 'shared-' + Date.now();
-            saveQuizToDB(quizKey, {
-                questions: pending.questions,
-                fileName: pending.fileName,
-                config: pending.config
-            });
-            refreshHistory();
+            let quizKey;
+
+            if (pending.isAlreadySaved && pending.existingKey) {
+                // Reuse existing key without making a duplicate copy!
+                quizKey = pending.existingKey;
+                const existing = state.quizHistory[quizKey] || pending.existingQuiz;
+                state.questions = existing.questions || pending.questions;
+                state.currentQuizConfig = existing.config || pending.config || {};
+                state.currentFileName = existing.fileName || pending.fileName || 'Shared Quiz';
+            } else {
+                quizKey = 'shared-' + Date.now();
+                saveQuizToDB(quizKey, {
+                    questions: pending.questions,
+                    fileName: pending.fileName,
+                    config: pending.config,
+                    sourceShareId: pending.shareId,
+                    sourceShareUrl: pending.shareUrl
+                });
+                refreshHistory();
+                state.questions = pending.questions;
+                state.currentQuizConfig = pending.config || {};
+                state.currentFileName = pending.fileName || 'Shared Quiz';
+            }
             
             clearInProgressQuiz();
-            state.questions = pending.questions;
-            state.currentQuizConfig = pending.config || {};
             state.currentQuizKey = quizKey;
-            state.currentFileName = pending.fileName || 'Shared Quiz';
             state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
             state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
             state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
@@ -674,18 +687,37 @@ export function attachQuizEventListeners() {
         elements.sharedQuizCustomizeBtn.addEventListener('click', () => {
             if (!state.pendingSharedQuiz) return;
             const pending = state.pendingSharedQuiz;
-            const quizKey = 'shared-' + Date.now();
-            saveQuizToDB(quizKey, {
-                questions: pending.questions,
-                fileName: pending.fileName,
-                config: pending.config
-            });
-            refreshHistory();
+            let quizKey;
+            let questionsToUse;
+            let configToUse;
+            let fileNameToUse;
+
+            if (pending.isAlreadySaved && pending.existingKey) {
+                // Reuse existing quiz settings without duplicating
+                quizKey = pending.existingKey;
+                const existing = state.quizHistory[quizKey] || pending.existingQuiz;
+                questionsToUse = existing.questions || pending.questions;
+                configToUse = existing.config || pending.config;
+                fileNameToUse = existing.fileName || pending.fileName;
+            } else {
+                quizKey = 'shared-' + Date.now();
+                saveQuizToDB(quizKey, {
+                    questions: pending.questions,
+                    fileName: pending.fileName,
+                    config: pending.config,
+                    sourceShareId: pending.shareId,
+                    sourceShareUrl: pending.shareUrl
+                });
+                refreshHistory();
+                questionsToUse = pending.questions;
+                configToUse = pending.config;
+                fileNameToUse = pending.fileName;
+            }
 
             state.editOriginView = 'start';
-            state.customizingQuizData = { key: quizKey, questions: pending.questions, config: pending.config, fileName: pending.fileName };
+            state.customizingQuizData = { key: quizKey, questions: questionsToUse, config: configToUse, fileName: fileNameToUse };
             closeSharedQuizModal(false, false);
-            setupCustomizeView(pending.config, pending.fileName);
+            setupCustomizeView(configToUse, fileNameToUse);
             setHistoryVisibility(false);
             showView('start', false);
             pushSubState('#edit');
@@ -696,11 +728,23 @@ export function attachQuizEventListeners() {
         elements.sharedQuizSaveBtn.addEventListener('click', () => {
             if (!state.pendingSharedQuiz) return;
             const pending = state.pendingSharedQuiz;
+
+            if (pending.isAlreadySaved && pending.existingKey) {
+                // Already saved in account! Do not duplicate!
+                const existing = state.quizHistory[pending.existingKey] || pending.existingQuiz;
+                const existingName = existing?.fileName || pending.fileName || 'Quiz';
+                closeSharedQuizModal(false, false);
+                showToast(`"${existingName}" is already saved in your library!`, 3000, 'info');
+                return;
+            }
+
             const quizKey = 'shared-' + Date.now();
             saveQuizToDB(quizKey, {
                 questions: pending.questions,
                 fileName: pending.fileName,
-                config: pending.config
+                config: pending.config,
+                sourceShareId: pending.shareId,
+                sourceShareUrl: pending.shareUrl
             });
             refreshHistory();
             closeSharedQuizModal(false, false);

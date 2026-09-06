@@ -449,20 +449,85 @@ export async function resumeQuiz(savedData) {
 
 export async function loadSharedQuiz(publicUrl) {
     try {
+        const shareId = publicUrl.split('/').pop().split('?')[0];
+
+        // 1. Early local check: Check if user already has this quiz saved in history
+        const { findExistingQuizForSharedLink, openSharedQuizModal } = await import('../helpers.js');
+        const earlyExisting = findExistingQuizForSharedLink(shareId, publicUrl);
+
+        if (!navigator.onLine) {
+            if (earlyExisting) {
+                // Offline, but the user has already saved this quiz in their account!
+                state.pendingSharedQuiz = {
+                    questions: earlyExisting.quiz.questions,
+                    config: earlyExisting.quiz.config,
+                    fileName: earlyExisting.quiz.fileName || 'Shared Quiz',
+                    shareId: shareId,
+                    shareUrl: publicUrl,
+                    existingKey: earlyExisting.key,
+                    existingQuiz: earlyExisting.quiz,
+                    isAlreadySaved: true
+                };
+                openSharedQuizModal();
+                return;
+            } else {
+                throw new Error("You are offline. Cannot load new shared quizzes.");
+            }
+        }
+
         showLoadingOverlay('Opening Shared Quiz...', 'Retrieving quiz data from cloud...');
         
-        // 1. Fetch the data from the Puter public URL
-        const response = await fetch(publicUrl);
-        if (!response.ok) throw new Error("Link is invalid or has been removed.");
+        // 2. Fetch the data from the Puter public URL
+        let data = null;
+        try {
+            const response = await fetch(publicUrl);
+            if (!response.ok) throw new Error("Link is invalid or has been removed.");
+            data = await response.json();
+        } catch (fetchErr) {
+            // If fetch failed, but the user already has this quiz locally in their account:
+            if (earlyExisting) {
+                hideLoadingOverlay();
+                state.pendingSharedQuiz = {
+                    questions: earlyExisting.quiz.questions,
+                    config: earlyExisting.quiz.config,
+                    fileName: earlyExisting.quiz.fileName || 'Shared Quiz',
+                    shareId: shareId,
+                    shareUrl: publicUrl,
+                    existingKey: earlyExisting.key,
+                    existingQuiz: earlyExisting.quiz,
+                    isAlreadySaved: true
+                };
+                openSharedQuizModal();
+                return;
+            }
+            throw fetchErr;
+        }
         
-        const data = await response.json();
-        
-        // 2. Expiration Validation Logic
+        // 3. Expiration Validation Logic
         if (data.expiryTimestamp && Date.now() > data.expiryTimestamp) {
             try {
                 await puter.fs.unlink(publicUrl.split('/').pop().split('?')[0]);
             } catch (err) {
                 console.warn("Cleanup of expired file failed (already deleted?)");
+            }
+
+            // If link expired, check if user already has it saved in their account
+            const existingMatch = earlyExisting || findExistingQuizForSharedLink(shareId, publicUrl, data.q);
+            if (existingMatch) {
+                hideLoadingOverlay();
+                state.pendingSharedQuiz = {
+                    questions: existingMatch.quiz.questions,
+                    config: existingMatch.quiz.config,
+                    fileName: existingMatch.quiz.fileName || 'Shared Quiz',
+                    shareId: shareId,
+                    shareUrl: publicUrl,
+                    existingKey: existingMatch.key,
+                    existingQuiz: existingMatch.quiz,
+                    isAlreadySaved: true
+                };
+                showToast('Shared link expired, but this quiz is saved in your library.', 4000, 'info');
+                openSharedQuizModal();
+                return;
             }
             throw new Error("This shared link has expired.");
         }
@@ -471,19 +536,24 @@ export async function loadSharedQuiz(publicUrl) {
             throw new Error("Shared quiz file data is corrupted or invalid.");
         }
         
-        // 3. Stage the shared quiz for user action modal selection
+        // 4. Check if this shared quiz is already saved in the user's account
+        const existingMatch = earlyExisting || findExistingQuizForSharedLink(shareId, publicUrl, data.q);
+
+        // 5. Stage the shared quiz for user action modal selection
         state.pendingSharedQuiz = {
             questions: data.q,
             config: data.c,
             fileName: data.n || 'Shared Quiz',
-            shareId: publicUrl.split('/').pop().split('?')[0],
-            shareUrl: publicUrl
+            shareId: shareId,
+            shareUrl: publicUrl,
+            existingKey: existingMatch ? existingMatch.key : null,
+            existingQuiz: existingMatch ? existingMatch.quiz : null,
+            isAlreadySaved: !!existingMatch
         };
 
         hideLoadingOverlay();
 
-        // 4. Open the shared quiz 3-option choice modal
-        const { openSharedQuizModal } = await import('../helpers.js');
+        // 6. Open the shared quiz 3-option choice modal
         openSharedQuizModal();
         
     } catch (e) {

@@ -1330,13 +1330,16 @@ export function saveQuizToDB(key, data) {
             counter++;
         }
 
-        // MERGE: Keep old 'share' data, update the rest
+        // MERGE: Keep old 'share' data, source share info, and update the rest
         state.quizHistory[key] = {
-            ...existingQuiz, // Preserve existing 'share' object if it exists
+            ...existingQuiz,
             questions: data.questions, 
             fileName: finalName, 
             config: data.config, 
-            timestamp: Date.now() 
+            timestamp: Date.now(),
+            ...(data.sourceShareId ? { sourceShareId: data.sourceShareId } : {}),
+            ...(data.sourceShareUrl ? { sourceShareUrl: data.sourceShareUrl } : {}),
+            ...(data.share ? { share: data.share } : {})
         };
 
         localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
@@ -2337,20 +2340,117 @@ export function closeHistoryActionsModal(isFromPopState = false, popHistory = tr
 }
 
 // ==========================================
-// SHARED QUIZ ACTION MODAL
+// SHARED QUIZ HELPERS & ACTION MODAL
 // ==========================================
+
+export function areQuizQuestionsMatching(questionsA, questionsB) {
+    if (!Array.isArray(questionsA) || !Array.isArray(questionsB)) return false;
+    if (questionsA.length !== questionsB.length || questionsA.length === 0) return false;
+    for (let i = 0; i < questionsA.length; i++) {
+        const a = questionsA[i];
+        const b = questionsB[i];
+        if (!a || !b) return false;
+        if (a.question?.trim() !== b.question?.trim()) return false;
+        if (a.type !== b.type) return false;
+    }
+    return true;
+}
+
+export function findExistingQuizForSharedLink(shareId, shareUrl, questions = null) {
+    if (!state.quizHistory || typeof state.quizHistory !== 'object') return null;
+
+    const entries = Object.entries(state.quizHistory);
+
+    // 1. Exact match by shareId or sourceShareId
+    if (shareId) {
+        for (const [key, quiz] of entries) {
+            if (!quiz) continue;
+            if (quiz.sourceShareId === shareId) {
+                return { key, quiz };
+            }
+            if (quiz.share && quiz.share.shareId === shareId) {
+                return { key, quiz };
+            }
+            if (quiz.share && quiz.share.shareUrl && quiz.share.shareUrl.includes(shareId)) {
+                return { key, quiz };
+            }
+            if (quiz.sourceShareUrl && quiz.sourceShareUrl.includes(shareId)) {
+                return { key, quiz };
+            }
+        }
+    }
+
+    // 2. Match by full shareUrl
+    if (shareUrl) {
+        for (const [key, quiz] of entries) {
+            if (!quiz) continue;
+            if (quiz.sourceShareUrl === shareUrl || (quiz.share && quiz.share.shareUrl === shareUrl)) {
+                return { key, quiz };
+            }
+        }
+    }
+
+    // 3. Fallback content match (questions equality)
+    if (Array.isArray(questions) && questions.length > 0) {
+        for (const [key, quiz] of entries) {
+            if (!quiz) continue;
+            if (areQuizQuestionsMatching(quiz.questions, questions)) {
+                // Link sourceShareId if missing
+                if (shareId && !quiz.sourceShareId && !quiz.share?.shareId) {
+                    quiz.sourceShareId = shareId;
+                    if (shareUrl) quiz.sourceShareUrl = shareUrl;
+                    saveQuizToDB(key, quiz);
+                }
+                return { key, quiz };
+            }
+        }
+    }
+
+    return null;
+}
+
 export function openSharedQuizModal() {
     if (!elements.sharedQuizModal || !state.pendingSharedQuiz) return;
-    const { questions, config, fileName } = state.pendingSharedQuiz;
-    const title = (config && config.quizTitle) || fileName || 'Shared Quiz';
-    const count = Array.isArray(questions) ? questions.length : 0;
-    const mode = (config && config.difficulty) ? (config.difficulty === 'custom' && config.customTypeShort ? config.customTypeShort.toUpperCase() : config.difficulty.toUpperCase()) : 'Mixed Mode';
+    const { questions, config, fileName, isAlreadySaved, existingQuiz } = state.pendingSharedQuiz;
+    const displayQuiz = existingQuiz || {};
+    const title = displayQuiz.fileName || (config && config.quizTitle) || fileName || 'Shared Quiz';
+    const displayConfig = displayQuiz.config || config || {};
+    const count = Array.isArray(questions) ? questions.length : (Array.isArray(displayQuiz.questions) ? displayQuiz.questions.length : 0);
+    const mode = (displayConfig && displayConfig.difficulty) ? 
+        (displayConfig.difficulty === 'custom' && displayConfig.customTypeShort ? displayConfig.customTypeShort.toUpperCase() : displayConfig.difficulty.toUpperCase()) : 'Mixed Mode';
+    
     if (elements.sharedQuizTitle) {
         elements.sharedQuizTitle.textContent = title;
     }
     if (elements.sharedQuizMeta) {
         elements.sharedQuizMeta.textContent = `${count} Questions • ${mode}`;
     }
+
+    // Dynamic UI states based on whether the quiz is already saved in the user's account
+    if (elements.sharedQuizBadge) {
+        if (isAlreadySaved) {
+            elements.sharedQuizBadge.classList.remove('hidden');
+        } else {
+            elements.sharedQuizBadge.classList.add('hidden');
+        }
+    }
+    if (elements.sharedQuizSubheading) {
+        if (isAlreadySaved) {
+            elements.sharedQuizSubheading.textContent = 'This quiz is already saved in your library.';
+            elements.sharedQuizSubheading.className = 'text-xs text-emerald-400 mt-1 font-medium';
+        } else {
+            elements.sharedQuizSubheading.textContent = 'A practice quiz has been shared with you.';
+            elements.sharedQuizSubheading.className = 'text-xs text-gray-400 mt-1';
+        }
+    }
+    if (elements.sharedQuizSaveText) {
+        if (isAlreadySaved) {
+            elements.sharedQuizSaveText.textContent = 'Already in Library';
+        } else {
+            elements.sharedQuizSaveText.textContent = 'Save for Later';
+        }
+    }
+
     elements.sharedQuizModal.classList.remove('hidden');
     pushSubState('#shared-quiz');
 }

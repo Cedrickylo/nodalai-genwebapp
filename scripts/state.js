@@ -231,10 +231,14 @@ export const elements = {
     // Shared Quiz Received Action Modal
     sharedQuizModal: document.getElementById('shared-quiz-modal'),
     sharedQuizTitle: document.getElementById('shared-quiz-title'),
+    sharedQuizSubheading: document.getElementById('shared-quiz-subheading'),
+    sharedQuizBadge: document.getElementById('shared-quiz-badge'),
     sharedQuizMeta: document.getElementById('shared-quiz-meta'),
     sharedQuizStartBtn: document.getElementById('shared-quiz-start-btn'),
+    sharedQuizStartText: document.getElementById('shared-quiz-start-text'),
     sharedQuizCustomizeBtn: document.getElementById('shared-quiz-customize-btn'),
     sharedQuizSaveBtn: document.getElementById('shared-quiz-save-btn'),
+    sharedQuizSaveText: document.getElementById('shared-quiz-save-text'),
     sharedQuizCloseBtn: document.getElementById('shared-quiz-close-btn')
 };
 
