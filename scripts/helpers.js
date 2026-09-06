@@ -1026,7 +1026,9 @@ export const SUB_STATE_HASHES = [
     '#share',
     '#share-config',
     '#share-live',
-    '#share-manage'
+    '#share-manage',
+    '#history-actions',
+    '#shared-quiz'
 ];
 
 export function pushSubState(hash) {
@@ -1068,6 +1070,12 @@ export function isSubStateAuthorized(hash) {
     if (hash.startsWith('#share')) {
         const shareModal = document.getElementById('share-modal');
         return shareModal && !shareModal.classList.contains('hidden');
+    }
+    if (hash === '#history-actions') {
+        return elements.historyActionsModal && !elements.historyActionsModal.classList.contains('hidden');
+    }
+    if (hash === '#shared-quiz') {
+        return elements.sharedQuizModal && !elements.sharedQuizModal.classList.contains('hidden');
     }
     return true;
 }
@@ -1176,6 +1184,29 @@ export async function handlePopState(event) {
         // 5. Mobile Menu Dismiss
         if (elements.mobileMenuModal && !elements.mobileMenuModal.classList.contains('hidden')) {
             elements.mobileMenuModal.classList.add('hidden');
+        }
+
+        // 5a. History Actions Submenu Modal Dismiss
+        if (elements.historyActionsModal && !elements.historyActionsModal.classList.contains('hidden')) {
+            if (targetHash !== '#history-actions') {
+                closeHistoryActionsModal(true);
+                if (targetHash === '#history') {
+                    const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
+                    showAllHistoryFullScreen();
+                    return;
+                }
+            }
+        }
+
+        // 5b. Shared Quiz Action Modal Dismiss
+        if (elements.sharedQuizModal && !elements.sharedQuizModal.classList.contains('hidden')) {
+            if (targetHash !== '#shared-quiz') {
+                closeSharedQuizModal(true);
+                if (targetHash === '#home') {
+                    showView('start', false);
+                    return;
+                }
+            }
         }
 
         // 6. Active Quiz (#quiz) - Prompt before leaving
@@ -1401,18 +1432,34 @@ export function refreshHistory() {
                 </div>
                 <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
-            <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
+            <!-- Mobile 2-button layout: Options (Submenu) and Load -->
+            <div class="flex md:hidden flex-shrink-0 gap-1.5">
+                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+                    <span>Options</span>
+                </button>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="load" title="Load Quiz">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    <span>Load</span>
+                </button>
+            </div>
+            <!-- Desktop buttons: Share, Edit, Load, Delete -->
+            <div class="hidden md:flex flex-shrink-0 gap-1 sm:gap-2"> 
                 <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="share" title="Share / Export">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                    <span class="hidden sm:inline">Share</span>
+                    <span>Share</span>
                 </button>
                 <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="customize" title="Edit">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
-                    <span class="hidden sm:inline">Edit</span>
+                    <span>Edit</span>
                 </button>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="load" title="Load">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
                     <span>Load</span>
+                </button>
+                <button class="bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 sm:px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="delete" title="Delete Quiz">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <span>Delete</span>
                 </button>
             </div>
         `;
@@ -2248,6 +2295,61 @@ export function initWelcomeModal() {
             }
             welcomeModal.classList.add('hidden');
         };
+    }
+}
+
+// ==========================================
+// MOBILE HISTORY ACTIONS SUBMENU MODAL
+// ==========================================
+export function openHistoryActionsModal(quizKey) {
+    if (!elements.historyActionsModal) return;
+    state.activeHistoryMenuKey = quizKey;
+    const db = getQuizDB();
+    const item = db[quizKey];
+    const title = (item && item.fileName) ? item.fileName : (quizKey ? quizKey.replace(/_/g, ' ') : 'Quiz Options');
+    if (elements.historySubmenuQuizTitle) {
+        elements.historySubmenuQuizTitle.textContent = title;
+    }
+    elements.historyActionsModal.classList.remove('hidden');
+    pushSubState('#history-actions');
+}
+
+export function closeHistoryActionsModal(isFromPopState = false) {
+    if (!elements.historyActionsModal || elements.historyActionsModal.classList.contains('hidden')) return;
+    elements.historyActionsModal.classList.add('hidden');
+    clearSubState('#history-actions');
+    state.activeHistoryMenuKey = null;
+    if (!isFromPopState && window.location.hash === '#history-actions') {
+        window.history.back();
+    }
+}
+
+// ==========================================
+// SHARED QUIZ ACTION MODAL
+// ==========================================
+export function openSharedQuizModal() {
+    if (!elements.sharedQuizModal || !state.pendingSharedQuiz) return;
+    const { questions, config, fileName } = state.pendingSharedQuiz;
+    const title = (config && config.quizTitle) || fileName || 'Shared Quiz';
+    const count = Array.isArray(questions) ? questions.length : 0;
+    const mode = (config && config.difficulty) ? (config.difficulty === 'custom' && config.customTypeShort ? config.customTypeShort.toUpperCase() : config.difficulty.toUpperCase()) : 'Mixed Mode';
+    if (elements.sharedQuizTitle) {
+        elements.sharedQuizTitle.textContent = title;
+    }
+    if (elements.sharedQuizMeta) {
+        elements.sharedQuizMeta.textContent = `${count} Questions • ${mode}`;
+    }
+    elements.sharedQuizModal.classList.remove('hidden');
+    pushSubState('#shared-quiz');
+}
+
+export function closeSharedQuizModal(isFromPopState = false) {
+    if (!elements.sharedQuizModal || elements.sharedQuizModal.classList.contains('hidden')) return;
+    elements.sharedQuizModal.classList.add('hidden');
+    clearSubState('#shared-quiz');
+    state.pendingSharedQuiz = null;
+    if (!isFromPopState && window.location.hash === '#shared-quiz') {
+        window.history.back();
     }
 }
 

@@ -449,7 +449,7 @@ export async function resumeQuiz(savedData) {
 
 export async function loadSharedQuiz(publicUrl) {
     try {
-        elements.statusMessage.textContent = 'Verifying shared quiz...';
+        showLoadingOverlay('Opening Shared Quiz...', 'Retrieving quiz data from cloud...');
         
         // 1. Fetch the data from the Puter public URL
         const response = await fetch(publicUrl);
@@ -459,43 +459,37 @@ export async function loadSharedQuiz(publicUrl) {
         
         // 2. Expiration Validation Logic
         if (data.expiryTimestamp && Date.now() > data.expiryTimestamp) {
-            // Link has expired!
-            // Clean up the file from Puter to save space
             try {
-                // The publicUrl usually contains the file path; we need the filename
-                // This assumes standard Puter URL structure
                 await puter.fs.unlink(publicUrl.split('/').pop().split('?')[0]);
             } catch (err) {
                 console.warn("Cleanup of expired file failed (already deleted?)");
             }
             throw new Error("This shared link has expired.");
         }
-        
-        // 3. Load the quiz if valid
-        state.questions = data.q;
-        state.currentQuizConfig = data.c;
-        state.currentFileName = data.n;
 
-        // ADDED: Generate a temporary key so it behaves like a saved history item
-        state.currentQuizKey = 'shared-' + Date.now();
+        if (!data.q || !data.c) {
+            throw new Error("Shared quiz file data is corrupted or invalid.");
+        }
         
-        // ADDED: Register this as an existing quiz to bypass AI generation logic
-        state.customizingQuizData = {
-            key: state.currentQuizKey,
-            questions: state.questions,
-            config: state.currentQuizConfig,
-            fileName: state.currentFileName
+        // 3. Stage the shared quiz for user action modal selection
+        state.pendingSharedQuiz = {
+            questions: data.q,
+            config: data.c,
+            fileName: data.n || 'Shared Quiz',
+            shareId: publicUrl.split('/').pop().split('?')[0],
+            shareUrl: publicUrl
         };
-        
-        // Setup view and toast
-        setupCustomizeView(state.currentQuizConfig, state.currentFileName);
-        showView('start');
-        showToast('Shared quiz loaded successfully!');
-        elements.statusMessage.textContent = '';
+
+        hideLoadingOverlay();
+
+        // 4. Open the shared quiz 3-option choice modal
+        const { openSharedQuizModal } = await import('../helpers.js');
+        openSharedQuizModal();
         
     } catch (e) {
         console.error('Shared Link Error:', e);
-        showToast(e.message || 'Error loading shared quiz.', 'error');
+        hideLoadingOverlay();
+        showToast(e.message || 'Error loading shared quiz.', 4000, 'error');
         elements.statusMessage.textContent = '';
     }
 }

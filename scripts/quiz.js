@@ -23,7 +23,14 @@ import {
     openAiPromptModal,
     closeAiPromptModal,
     autoBalanceMixedCounts,
-    setHistoryVisibility
+    setHistoryVisibility,
+    saveQuizToDB,
+    closeHistoryActionsModal,
+    openHistoryActionsModal,
+    closeSharedQuizModal,
+    openSharedQuizModal,
+    setupCustomizeView,
+    pushSubState
 } from './helpers.js';
 
 // Import modules
@@ -592,6 +599,113 @@ export function attachQuizEventListeners() {
 
     if (elements.revealAnswerBtn) {
         elements.revealAnswerBtn.addEventListener('click', revealAnswer);
+    }
+
+    // Mobile History Actions Submenu Event Listeners
+    if (elements.historyActionsBackdrop) {
+        elements.historyActionsBackdrop.addEventListener('click', () => closeHistoryActionsModal(false));
+    }
+    if (elements.historyActionsCloseBtn) {
+        elements.historyActionsCloseBtn.addEventListener('click', () => closeHistoryActionsModal(false));
+    }
+    if (elements.historyActionsCancelBtn) {
+        elements.historyActionsCancelBtn.addEventListener('click', () => closeHistoryActionsModal(false));
+    }
+    if (elements.historySubmenuShareBtn) {
+        elements.historySubmenuShareBtn.addEventListener('click', () => {
+            const key = state.activeHistoryMenuKey;
+            closeHistoryActionsModal(false);
+            if (key) {
+                handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'share' } }) } });
+            }
+        });
+    }
+    if (elements.historySubmenuEditBtn) {
+        elements.historySubmenuEditBtn.addEventListener('click', () => {
+            const key = state.activeHistoryMenuKey;
+            closeHistoryActionsModal(false);
+            if (key) {
+                handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'customize' } }) } });
+            }
+        });
+    }
+    if (elements.historySubmenuDeleteBtn) {
+        elements.historySubmenuDeleteBtn.addEventListener('click', () => {
+            const key = state.activeHistoryMenuKey;
+            closeHistoryActionsModal(false);
+            if (key) {
+                handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'delete' } }) } });
+            }
+        });
+    }
+
+    // Shared Quiz Received Action Modal Event Listeners
+    if (elements.sharedQuizCloseBtn) {
+        elements.sharedQuizCloseBtn.addEventListener('click', () => closeSharedQuizModal(false));
+    }
+    if (elements.sharedQuizStartBtn) {
+        elements.sharedQuizStartBtn.addEventListener('click', () => {
+            if (!state.pendingSharedQuiz) return;
+            const pending = state.pendingSharedQuiz;
+            const quizKey = 'shared-' + Date.now();
+            saveQuizToDB(quizKey, {
+                questions: pending.questions,
+                fileName: pending.fileName,
+                config: pending.config
+            });
+            refreshHistory();
+            
+            clearInProgressQuiz();
+            state.questions = pending.questions;
+            state.currentQuizConfig = pending.config || {};
+            state.currentQuizKey = quizKey;
+            state.currentFileName = pending.fileName || 'Shared Quiz';
+            state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
+            state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
+            state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
+            state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
+            
+            closeSharedQuizModal(false);
+            showToast('Quiz started!', 2000, 'success');
+            startQuiz();
+        });
+    }
+    if (elements.sharedQuizCustomizeBtn) {
+        elements.sharedQuizCustomizeBtn.addEventListener('click', () => {
+            if (!state.pendingSharedQuiz) return;
+            const pending = state.pendingSharedQuiz;
+            const quizKey = 'shared-' + Date.now();
+            saveQuizToDB(quizKey, {
+                questions: pending.questions,
+                fileName: pending.fileName,
+                config: pending.config
+            });
+            refreshHistory();
+
+            state.editOriginView = 'start';
+            state.customizingQuizData = { key: quizKey, questions: pending.questions, config: pending.config, fileName: pending.fileName };
+            closeSharedQuizModal(false);
+            setupCustomizeView(pending.config, pending.fileName);
+            setHistoryVisibility(false);
+            showView('start', false);
+            pushSubState('#edit');
+            showToast('Quiz settings loaded.', 2000, 'info');
+        });
+    }
+    if (elements.sharedQuizSaveBtn) {
+        elements.sharedQuizSaveBtn.addEventListener('click', () => {
+            if (!state.pendingSharedQuiz) return;
+            const pending = state.pendingSharedQuiz;
+            const quizKey = 'shared-' + Date.now();
+            saveQuizToDB(quizKey, {
+                questions: pending.questions,
+                fileName: pending.fileName,
+                config: pending.config
+            });
+            refreshHistory();
+            closeSharedQuizModal(false);
+            showToast(`Saved "${pending.fileName || 'Quiz'}" to history!`, 3000, 'success');
+        });
     }
 }
 

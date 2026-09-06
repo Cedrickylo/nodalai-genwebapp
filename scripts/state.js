@@ -213,7 +213,29 @@ export const elements = {
     modernQuestionTypeBadge: document.getElementById('modern-question-type-badge'),
     modernScoreStats: document.getElementById('modern-score-stats'),
     modernStatCorrectCount: document.getElementById('modern-stat-correct-count'),
-    modernStatWrongCount: document.getElementById('modern-stat-wrong-count')
+    modernStatWrongCount: document.getElementById('modern-stat-wrong-count'),
+    // Startup & Loading Overlay
+    appInitLoader: document.getElementById('app-init-loader'),
+    loadingOverlay: document.getElementById('loading-overlay'),
+    loadingOverlayTitle: document.getElementById('loading-overlay-title'),
+    loadingOverlayMessage: document.getElementById('loading-overlay-message'),
+    // Mobile History Actions Submenu
+    historyActionsModal: document.getElementById('history-actions-modal'),
+    historyActionsBackdrop: document.getElementById('history-actions-backdrop'),
+    historyActionsCloseBtn: document.getElementById('history-actions-close-btn'),
+    historyActionsCancelBtn: document.getElementById('history-actions-cancel-btn'),
+    historySubmenuQuizTitle: document.getElementById('history-submenu-quiz-title'),
+    historySubmenuShareBtn: document.getElementById('history-submenu-share-btn'),
+    historySubmenuEditBtn: document.getElementById('history-submenu-edit-btn'),
+    historySubmenuDeleteBtn: document.getElementById('history-submenu-delete-btn'),
+    // Shared Quiz Received Action Modal
+    sharedQuizModal: document.getElementById('shared-quiz-modal'),
+    sharedQuizTitle: document.getElementById('shared-quiz-title'),
+    sharedQuizMeta: document.getElementById('shared-quiz-meta'),
+    sharedQuizStartBtn: document.getElementById('shared-quiz-start-btn'),
+    sharedQuizCustomizeBtn: document.getElementById('shared-quiz-customize-btn'),
+    sharedQuizSaveBtn: document.getElementById('shared-quiz-save-btn'),
+    sharedQuizCloseBtn: document.getElementById('shared-quiz-close-btn')
 };
 
 export const state = {
@@ -261,5 +283,7 @@ export const state = {
     currentQuestionTimeRemaining: 0,
     currentQuestionChancesLeft: 0,
     selectedAnswerTemp: null,
-    questionTimerInterval: null
+    questionTimerInterval: null,
+    activeHistoryMenuKey: null,
+    pendingSharedQuiz: null
 };

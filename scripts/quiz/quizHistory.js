@@ -139,6 +139,12 @@ export async function handleHistoryClick(e) {
     const quizData = state.quizHistory[key];
     if (!quizData) return;
 
+    if (action === 'history-submenu') {
+        const { openHistoryActionsModal } = await import('../helpers.js');
+        openHistoryActionsModal(key);
+        return;
+    }
+
     if (action === 'load') {
         if (state.savedProgress?.key === key && (state.savedProgress.shuffledIndexPos < state.savedProgress.shuffledIndices?.length || state.savedProgress.inSkippedRound)) {
             const doResume = await customConfirm(
@@ -294,7 +300,19 @@ export function showAllHistoryFullScreen() {
                 ${titleHtml}
                 <p class="text-xs text-gray-400 truncate">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
-            <div class="flex-shrink-0 flex gap-1 sm:gap-2"> 
+            <!-- Mobile 2-button layout: Options (Submenu) and Load -->
+            <div class="flex md:hidden flex-shrink-0 gap-1.5">
+                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+                    <span>Options</span>
+                </button>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="load" title="Load Quiz">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    <span>Load</span>
+                </button>
+            </div>
+            <!-- Desktop buttons: Share, Edit, Load, Delete -->
+            <div class="hidden md:flex flex-shrink-0 gap-1 sm:gap-2"> 
                 <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="share" title="Share / Export">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                     <span class="hidden sm:inline">Share</span>

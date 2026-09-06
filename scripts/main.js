@@ -59,12 +59,21 @@ async function initApp() {
         initWelcomeModal();
         initRouter();
 
+        // Smoothly dismiss the initial startup loader overlay
+        const appInitLoader = document.getElementById('app-init-loader');
+        if (appInitLoader) {
+            appInitLoader.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                appInitLoader.classList.add('hidden');
+            }, 300);
+        }
+
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (V5)
+        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (v8)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const SW_VERSION_TAG = 'nodal_sw_migration_v7';
+                const SW_VERSION_TAG = 'nodal_sw_migration_v8';
                 try {
                     const registrations = await navigator.serviceWorker.getRegistrations();
                     const isMigrated = localStorage.getItem(SW_VERSION_TAG) === 'complete';
@@ -90,6 +99,7 @@ async function initApp() {
                         localStorage.removeItem('nodal_sw_migration_v4');
                         localStorage.removeItem('nodal_sw_migration_v5');
                         localStorage.removeItem('nodal_sw_migration_v6');
+                        localStorage.removeItem('nodal_sw_migration_v7');
                         localStorage.setItem(SW_VERSION_TAG, 'complete');
 
                         // Register the new service worker
@@ -108,6 +118,7 @@ async function initApp() {
                         localStorage.removeItem('nodal_sw_migration_v4');
                         localStorage.removeItem('nodal_sw_migration_v5');
                         localStorage.removeItem('nodal_sw_migration_v6');
+                        localStorage.removeItem('nodal_sw_migration_v7');
                         localStorage.setItem(SW_VERSION_TAG, 'complete');
                         const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
                         console.log('[SW] ServiceWorker registered with scope:', reg.scope);
@@ -124,7 +135,7 @@ async function initApp() {
             // Listen for service worker activation or updates to reload smoothly if needed
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing && localStorage.getItem('nodal_sw_migration_v7') !== 'complete') {
+                if (!refreshing && localStorage.getItem('nodal_sw_migration_v8') !== 'complete') {
                     refreshing = true;
                     window.location.reload();
                 }
@@ -161,6 +172,8 @@ async function initApp() {
                 
     } catch (error) {
         console.error('Critical Init Error:', error);
+        const appInitLoader = document.getElementById('app-init-loader');
+        if (appInitLoader) appInitLoader.classList.add('hidden');
         document.body.innerHTML = `
             <div style="max-width:400px; margin:50px auto; padding:20px; background-color:#400; border:1px solid #800; color:#fcc; text-align:center; font-family:sans-serif;">
                 <h1 style="font-size:1.2em; font-weight:bold; color:#f99;">App Failed</h1>

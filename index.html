@@ -6,10 +6,10 @@
     <title>Nodal AI</title>
     <link rel="icon" href="data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;64&quot; height=&quot;64&quot; viewBox=&quot;0 0 64 64&quot;&gt;&lt;defs&gt;&lt;filter id=&quot;g&quot;&gt;&lt;feGaussianBlur stdDeviation=&quot;2.2&quot; result=&quot;b&quot;/&gt;&lt;feMerge&gt;&lt;feMergeNode in=&quot;b&quot;/&gt;&lt;feMergeNode in=&quot;SourceGraphic&quot;/&gt;&lt;/feMerge&gt;&lt;/filter&gt;&lt;/defs&gt;&lt;rect width=&quot;64&quot; height=&quot;64&quot; rx=&quot;8&quot; fill=&quot;none&quot;/&gt;&lt;g filter=&quot;url(%23g)&quot;&gt;&lt;text x=&quot;50%&quot; y=&quot;50%&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;central&quot; font-family=&quot;Inter, Arial&quot; font-size=&quot;34&quot; font-weight=&quot;700&quot; fill=&quot;none&quot; stroke=&quot;%23ffffff&quot; stroke-width=&quot;2.5&quot;&gt;N&lt;/text&gt;&lt;/g&gt;&lt;text x=&quot;50%&quot; y=&quot;50%&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;central&quot; font-family=&quot;Inter, Arial&quot; font-size=&quot;34&quot; font-weight=&quot;700&quot; fill=&quot;none&quot; stroke=&quot;%230ea5e9&quot; stroke-width=&quot;1.2&quot; opacity=&quot;0.9&quot;/&gt;&lt;/svg&gt;">
     <script>
-        // Immediate Service Worker Check & Legacy Cache Invalidation (v4)
+        // Immediate Service Worker Check & Legacy Cache Invalidation (v8)
         (async function() {
             if (!('serviceWorker' in navigator)) return;
-            const SW_VERSION_TAG = 'nodal_sw_migration_v5';
+            const SW_VERSION_TAG = 'nodal_sw_migration_v8';
             try {
                 if (localStorage.getItem(SW_VERSION_TAG) === 'complete') return;
                 const registrations = await navigator.serviceWorker.getRegistrations();
@@ -26,6 +26,9 @@
                     localStorage.removeItem('nodal_sw_migration_v2');
                     localStorage.removeItem('nodal_sw_migration_v3');
                     localStorage.removeItem('nodal_sw_migration_v4');
+                    localStorage.removeItem('nodal_sw_migration_v5');
+                    localStorage.removeItem('nodal_sw_migration_v6');
+                    localStorage.removeItem('nodal_sw_migration_v7');
                     localStorage.setItem(SW_VERSION_TAG, 'complete');
                     await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
                     window.location.reload();
@@ -35,6 +38,9 @@
                     localStorage.removeItem('nodal_sw_migration_v2');
                     localStorage.removeItem('nodal_sw_migration_v3');
                     localStorage.removeItem('nodal_sw_migration_v4');
+                    localStorage.removeItem('nodal_sw_migration_v5');
+                    localStorage.removeItem('nodal_sw_migration_v6');
+                    localStorage.removeItem('nodal_sw_migration_v7');
                     localStorage.setItem(SW_VERSION_TAG, 'complete');
                 }
             } catch (e) {
@@ -53,6 +59,25 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-900 text-white flex min-h-screen p-4">
+    <!-- Startup Initial Loading Screen (prevents user interaction before modules & cloud auth initialize) -->
+    <div id="app-init-loader" class="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-gray-900 transition-opacity duration-300">
+        <div class="flex flex-col items-center space-y-5 px-6 text-center max-w-sm">
+            <div class="relative w-16 h-16 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
+                <div class="w-16 h-16 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                <div class="p-2 bg-blue-500/10 rounded-full text-blue-400">
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="space-y-1.5">
+                <h2 class="text-2xl font-bold text-white tracking-tight">Nodal AI</h2>
+                <p class="text-sm text-gray-400">Initializing app & resources...</p>
+            </div>
+        </div>
+    </div>
+
 <!-- Updated Desktop Sidebar Navigation with Cohesive Icons -->
     <aside class="hidden md:flex md:w-56 md:flex-col md:bg-gray-800 md:rounded-xl md:shadow-2xl md:p-6 md:mr-4 md:h-fit md:sticky md:top-4 md:border md:border-gray-700">
         <div class="md:space-y-4">
@@ -1182,6 +1207,98 @@
             <button id="welcome-close-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg transform hover:scale-[1.01]">
                 Get Started
             </button>
+        </div>
+    </div>
+
+    <!-- Mobile History Actions Submenu Modal (Bottom Sheet) -->
+    <div id="history-actions-modal" class="hidden fixed inset-0 z-[110] flex flex-col md:hidden">
+        <div class="flex-1 bg-black/70 backdrop-blur-md" id="history-actions-backdrop"></div>
+        <div class="w-full bg-gray-800 border-t border-gray-700 p-5 rounded-t-2xl shadow-2xl space-y-4">
+            <div class="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-1" aria-hidden="true"></div>
+            <div class="flex justify-between items-center pb-2 border-b border-gray-700/60">
+                <div class="min-w-0 flex-1 mr-3">
+                    <h3 class="text-lg font-bold text-white leading-tight">Quiz Options</h3>
+                    <p id="history-submenu-quiz-title" class="text-xs text-blue-400 font-medium truncate mt-0.5">Quiz Name</p>
+                </div>
+                <button id="history-actions-close-btn" class="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700/50 transition-colors" title="Close">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="space-y-2.5">
+                <!-- Share / Export Action -->
+                <button id="history-submenu-share-btn" class="w-full flex items-center gap-3.5 p-3 rounded-xl bg-purple-950/40 hover:bg-purple-900/50 border border-purple-800/50 text-left transition-colors">
+                    <div class="p-2.5 bg-purple-500/20 text-purple-400 rounded-lg flex-shrink-0">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <span class="block text-sm font-semibold text-purple-200">Share / Export</span>
+                        <span class="block text-xs text-purple-300/70">Create cloud link or download JSON</span>
+                    </div>
+                </button>
+
+                <!-- Edit Action -->
+                <button id="history-submenu-edit-btn" class="w-full flex items-center gap-3.5 p-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/50 text-left transition-colors">
+                    <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg flex-shrink-0">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <span class="block text-sm font-semibold text-amber-200">Edit Quiz</span>
+                        <span class="block text-xs text-amber-300/70">Modify timer, attempts & settings</span>
+                    </div>
+                </button>
+
+                <!-- Delete Action -->
+                <button id="history-submenu-delete-btn" class="w-full flex items-center gap-3.5 p-3 rounded-xl bg-red-950/40 hover:bg-red-900/50 border border-red-800/50 text-left transition-colors">
+                    <div class="p-2.5 bg-red-500/20 text-red-400 rounded-lg flex-shrink-0">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <span class="block text-sm font-semibold text-red-300">Delete Quiz</span>
+                        <span class="block text-xs text-red-300/70">Permanently delete from history</span>
+                    </div>
+                </button>
+            </div>
+            <button id="history-actions-cancel-btn" class="w-full py-2.5 bg-gray-700/60 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl text-center text-sm transition-colors">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Shared Quiz Received Action Modal -->
+    <div id="shared-quiz-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 transition-opacity duration-200">
+        <div class="bg-gray-800/95 border border-gray-700/80 w-full max-w-md rounded-2xl shadow-2xl p-6 sm:p-7 text-center space-y-5">
+            <div class="flex justify-center">
+                <div class="p-3.5 bg-blue-500/20 text-blue-400 rounded-2xl">
+                    <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-white">Shared Quiz Received</h3>
+                <p class="text-xs text-gray-400 mt-1">A practice quiz has been shared with you.</p>
+            </div>
+            <div class="p-3.5 bg-gray-900/70 border border-gray-700/60 rounded-xl text-left">
+                <p id="shared-quiz-title" class="font-bold text-base text-blue-400 truncate mb-1">Untitled Quiz</p>
+                <p id="shared-quiz-meta" class="text-xs text-gray-400">10 Questions • Mixed Mode</p>
+            </div>
+            <div class="space-y-2.5 pt-1">
+                <!-- Option 1: Start Quiz Now -->
+                <button id="shared-quiz-start-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-[1.01]">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span>Start Quiz Now</span>
+                </button>
+                <!-- Option 2: Change Settings -->
+                <button id="shared-quiz-customize-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Change Settings</span>
+                </button>
+                <!-- Option 3: Save for Later -->
+                <button id="shared-quiz-save-btn" class="w-full bg-gray-700/40 hover:bg-gray-700/70 border border-gray-600/50 text-gray-300 font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                    <span>Save for Later</span>
+                </button>
+            </div>
+            <button id="shared-quiz-close-btn" class="text-xs text-gray-400 hover:text-gray-200 transition-colors pt-1">Dismiss</button>
         </div>
     </div>
 
