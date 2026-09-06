@@ -7,7 +7,9 @@ import {
     validateAllInputs,
     loadGenerationCooldownState,
     getGenerationCooldownWarning,
-    setHistoryVisibility
+    setHistoryVisibility,
+    pushSubState,
+    clearSubState
 } from '../helpers.js';
 
 const {
@@ -235,6 +237,7 @@ export async function handleFileSelect(event) {
         if (generateBtn) generateBtn.disabled = false;
 
         validateAllInputs();
+        pushSubState('#customize');
 
     } catch (err) {
         console.error("Document analysis break:", err);
@@ -246,6 +249,7 @@ export async function handleFileSelect(event) {
 }
 
 function resetAppFiles() {
+    clearSubState('#customize');
     state.fileContent = '';
     state.fileHash = '';
     state.currentFileName = '';
@@ -265,6 +269,7 @@ function resetAppFiles() {
     document.getElementById('customize-section')?.classList.add('hidden');
     document.getElementById('customize-content')?.classList.add('hidden');
     validateAllInputs();
+    window.history.replaceState({ view: 'start' }, '', '#home');
 }
 
 export function handleQuizImport(event) {
@@ -273,6 +278,10 @@ export function handleQuizImport(event) {
         showToast('Requires .json', 3000, 'error');
         return;
     }
+
+    if (elements.loadingTitle) elements.loadingTitle.textContent = 'Importing Quiz...';
+    if (elements.loadingMessage) elements.loadingMessage.textContent = `Reading "${file.name}"...`;
+    showView('loading', false);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -338,6 +347,7 @@ export function handleQuizImport(event) {
                 );
                 
                 if (!importAnyway) {
+                    showView('start', false);
                     importQuizInput.value = '';
                     statusMessage.textContent = 'Import cancelled.';
                     statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
@@ -358,7 +368,7 @@ export function handleQuizImport(event) {
             state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
 
             const { saveQuizToDB, refreshHistory, closeAiPromptModal, syncHistoryWithCloud } = await import('../helpers.js');
-            if (typeof closeAiPromptModal === 'function') closeAiPromptModal();
+            if (typeof closeAiPromptModal === 'function') closeAiPromptModal(true);
 
             saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
             if (typeof puter !== 'undefined' && window.puter && puter.auth && puter.auth.isSignedIn() && navigator.onLine) {
@@ -369,26 +379,28 @@ export function handleQuizImport(event) {
                 }
             }
             refreshHistory();
-            statusMessage.textContent = `Imported "${state.currentFileName}". Opening customize screen...`;
-            statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
 
-            setTimeout(() => {
-                state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
-                setupCustomizeView(state.currentQuizConfig, state.currentFileName);
-                showView('start');
-                statusMessage.textContent = '';
-            }, 1000);
+            state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
+            setupCustomizeView(state.currentQuizConfig, state.currentFileName);
+            showView('start', false);
+            pushSubState('#edit');
+            showToast(`Imported "${state.currentFileName}" successfully!`, 3000, 'success');
+            statusMessage.textContent = '';
         } catch (err) {
             console.error('Import Err:', err);
+            showView('start', false);
             statusMessage.textContent = `Import Err: ${err.message}`;
             statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
+            showToast(`Import failed: ${err.message}`, 4000, 'error');
         } finally {
             importQuizInput.value = '';
         }
     };
     reader.onerror = () => {
+        showView('start', false);
         statusMessage.textContent = 'Read file error.';
         statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
+        showToast('Failed to read quiz file.', 3000, 'error');
         importQuizInput.value = '';
     };
     reader.readAsText(file);

@@ -11,7 +11,8 @@ import {
     handleDifficultyChange,
     handleTimeToggle,
     handleAttemptToggle,
-    validateAllInputs
+    validateAllInputs,
+    clearSubState
 } from '../helpers.js';
 
 const {
@@ -60,6 +61,9 @@ export function resetApp(clearProg = true) {
         clearInterval(state.questionTimerInterval);
         state.questionTimerInterval = null;
     }
+
+    clearSubState('#customize');
+    clearSubState('#edit');
 
     resetStartViewUI();
     
@@ -128,6 +132,9 @@ export function resetStartViewUI() {
     state.customizingQuizData = null;
     state.initialCustomizeState = {};
     state.currentFiles = []; 
+    state.fileContent = '';
+    state.fileHash = '';
+    state.currentFileName = '';
 
     if (startSubtitle) startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
     
@@ -139,6 +146,8 @@ export function resetStartViewUI() {
     if (editQuizNameInput) editQuizNameInput.value = ''; 
     
     document.getElementById('customize-section')?.classList.add('hidden');
+    document.getElementById('customize-content')?.classList.add('hidden');
+    document.getElementById('customize-toggle-icon')?.classList.remove('rotate-180');
     deleteCustomizeBtn?.classList.add('hidden');
     fileActionsDiv?.classList.remove('hidden');
     cancelCustomizeBtn?.classList.add('hidden');
@@ -148,7 +157,10 @@ export function resetStartViewUI() {
     elements.nextUnansweredBtn?.classList.add('hidden');
     state.isReviewingUnanswered = false;
     state.currentQuestionIndex = 0;
-    if (generateQuizBtn) generateQuizBtn.textContent = 'Generate Quiz';
+    if (generateQuizBtn) {
+        generateQuizBtn.textContent = 'Generate Quiz';
+        generateQuizBtn.disabled = true;
+    }
     
     // Reset fields and inputs on cancellation/reset
     const questionCountInput = document.getElementById('question-count') || document.getElementById('question-count-input');

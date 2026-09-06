@@ -272,8 +272,12 @@ export function attachQuizEventListeners() {
         closeShareModal();
     };
     elements.shareBackBtn.onclick = async () => {
-        const { navigateToShareStep } = await import('./helpers.js');
-        navigateToShareStep('menu');
+        if (window.location.hash === '#share-config' || window.location.hash === '#share-manage') {
+            window.history.back();
+        } else {
+            const { navigateToShareStep } = await import('./helpers.js');
+            navigateToShareStep('menu');
+        }
     };
     
     homeBtn.addEventListener('click', async () => { 
@@ -405,23 +409,40 @@ export function attachQuizEventListeners() {
             elements.desktopNavAccountBtn?.addEventListener('click', async () => { setDesktopNavActive('account'); await openAccountAsView(); });
     
     cancelCustomizeBtn.addEventListener('click', async () => {
-        const { hasUnsavedChanges, setupCustomizeView } = await import('./helpers.js');
-        if (hasUnsavedChanges() && state.isCustomizingHistory) {
-            const wantsToSave = await customConfirm(
-                'You have unsaved changes! Do you want to save them before exiting?\n\n• OK = Save changes\n• Cancel = Discard changes',
-                'Unsaved Changes',
-                'Save Changes',
-                'Discard',
-                false
-            );
-            
-            if (wantsToSave) {
-                handleQuizGeneration(false, true);
-                return;
+        const { hasUnsavedChanges, clearSubState } = await import('./helpers.js');
+        if (state.isCustomizingHistory) {
+            if (hasUnsavedChanges()) {
+                const wantsToSave = await customConfirm(
+                    'You have unsaved changes! Do you want to save them before exiting?\n\n• OK = Save changes\n• Cancel = Discard changes',
+                    'Unsaved Changes',
+                    'Save Changes',
+                    'Discard',
+                    false
+                );
+                
+                if (wantsToSave) {
+                    handleQuizGeneration(false, true);
+                    return;
+                }
             }
+            clearSubState('#edit');
+            resetApp(true);
+            window.history.replaceState({ view: 'start' }, '', '#home');
+            showToast('Customization closed.', 2000, 'info');
+        } else {
+            const confirmed = await customConfirm(
+                'Are you sure you want to cancel quiz generation and return to the home screen? Any selected documents will be cleared.',
+                'Cancel Quiz Generation',
+                'Yes, Return Home',
+                'Stay Here',
+                true
+            );
+            if (!confirmed) return;
+            clearSubState('#customize');
+            resetApp(true);
+            window.history.replaceState({ view: 'start' }, '', '#home');
+            showToast('Quiz generation cancelled.', 2000, 'info');
         }
-        resetApp(true);
-        showToast('Quiz generation cancelled.', 2000, 'info');
     });
     
     deleteCustomizeBtn.addEventListener('click', async () => {
@@ -440,7 +461,10 @@ export function attachQuizEventListeners() {
         localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
         refreshHistory();
         showToast('Quiz deleted.', 3000, 'success');
+        const { clearSubState } = await import('./helpers.js');
+        clearSubState('#edit');
         resetApp(true);
+        window.history.replaceState({ view: 'start' }, '', '#home');
     });
 
     document.getElementById('customize-toggle-btn').addEventListener('click', () => {

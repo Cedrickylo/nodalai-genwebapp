@@ -660,6 +660,7 @@ export async function openAccountAsModal() {
 
     elements.accountModalOverlay.appendChild(elements.accountCard);
     elements.accountModalOverlay.classList.remove('hidden');
+    pushSubState('#account-modal');
     await populateAccountData();
 }
 
@@ -786,10 +787,14 @@ export async function saveDisplayName() {
     }
 }
 
-export function closeAccountHandler() {
-// If it's inside the modal overlay, just hide the modal
-    if (elements.accountCard.parentElement.id === 'account-modal-overlay') {
+export function closeAccountHandler(fromPopState = false) {
+    // If it's inside the modal overlay, just hide the modal
+    if (elements.accountCard.parentElement?.id === 'account-modal-overlay') {
+        clearSubState('#account-modal');
         elements.accountModalOverlay.classList.add('hidden');
+        if (!fromPopState && window.location.hash === '#account-modal') {
+            window.history.back();
+        }
     } else {
         // If it's inside the view, go back to start screen
         showView('start');
@@ -941,6 +946,59 @@ export function hashToView(hash) {
     }
 }
 
+export const SUB_STATE_HASHES = [
+    '#customize',
+    '#edit',
+    '#ai-prompt',
+    '#account-modal',
+    '#share',
+    '#share-config',
+    '#share-manage'
+];
+
+export function pushSubState(hash) {
+    if (!SUB_STATE_HASHES.includes(hash)) return;
+    state.activeSubState = hash;
+    state.authorizedSubStates = state.authorizedSubStates || new Set();
+    state.authorizedSubStates.add(hash);
+    if (window.location.hash !== hash) {
+        window.history.pushState({ view: 'start', subState: hash, fromApp: true }, '', hash);
+    }
+}
+
+export function clearSubState(hash) {
+    if (state.authorizedSubStates) {
+        state.authorizedSubStates.delete(hash);
+    }
+    if (state.activeSubState === hash) {
+        state.activeSubState = null;
+    }
+}
+
+export function isSubStateAuthorized(hash) {
+    if (!SUB_STATE_HASHES.includes(hash)) return true;
+    if (!state.authorizedSubStates || !state.authorizedSubStates.has(hash)) return false;
+
+    // Prerequisite context checks for privacy and state safety
+    if (hash === '#customize') {
+        return (state.currentFiles && state.currentFiles.length > 0) || (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0);
+    }
+    if (hash === '#edit') {
+        return !!state.isCustomizingHistory && !!state.customizingQuizData;
+    }
+    if (hash === '#ai-prompt') {
+        return elements.aiPromptModal && !elements.aiPromptModal.classList.contains('hidden');
+    }
+    if (hash === '#account-modal') {
+        return elements.accountModalOverlay && !elements.accountModalOverlay.classList.contains('hidden');
+    }
+    if (hash.startsWith('#share')) {
+        const shareModal = document.getElementById('share-modal');
+        return shareModal && !shareModal.classList.contains('hidden');
+    }
+    return true;
+}
+
 export function getActiveViewId() {
     for (const [id, el] of Object.entries(elements.views)) {
         if (el && el.classList.contains('active')) return id;
@@ -984,60 +1042,70 @@ export async function handlePopState(event) {
     isPopStateHandling = true;
 
     try {
+        const targetHash = window.location.hash || '#home';
         const currentViewId = getActiveViewId();
-        const currentHash = viewToHash(currentViewId);
 
-        // 1. Check open Modals - close modal first without navigating page
-        if (elements.confirmModal && !elements.confirmModal.classList.contains('hidden')) {
-            window.history.pushState({ view: currentViewId }, '', currentHash);
-            elements.cancelConfirmBtn?.click();
+        // 0. DIRECT URL ACCESS GUARD
+        // Privacy & integrity check: disallow opening sub-states/modals by typing the # tag directly in address bar
+        if (SUB_STATE_HASHES.includes(targetHash) && !isSubStateAuthorized(targetHash)) {
+            console.warn(`[Router] Direct manual access to ${targetHash} blocked for privacy/safety. Redirecting to #home.`);
+            window.history.replaceState({ view: 'start' }, '', '#home');
+            showView('start', false);
             return;
         }
 
+        // 1. Check open Confirm / Unanswered Modals
+        if (elements.confirmModal && !elements.confirmModal.classList.contains('hidden')) {
+            window.history.pushState(event.state || { view: currentViewId }, '', window.location.hash);
+            elements.cancelConfirmBtn?.click();
+            return;
+        }
         if (elements.unansweredModal && !elements.unansweredModal.classList.contains('hidden')) {
-            window.history.pushState({ view: currentViewId }, '', currentHash);
+            window.history.pushState(event.state || { view: currentViewId }, '', window.location.hash);
             elements.unansweredModal.classList.add('hidden');
             return;
         }
 
-        if (elements.aiPromptModal && !elements.aiPromptModal.classList.contains('hidden')) {
-            window.history.pushState({ view: currentViewId }, '', currentHash);
-            closeAiPromptModal();
-            return;
-        }
-
+        // 2. Share Modal Sub-Steps & Dismiss
         const shareModal = document.getElementById('share-modal');
         if (shareModal && !shareModal.classList.contains('hidden')) {
-            window.history.pushState({ view: currentViewId }, '', currentHash);
-            const shareConfigStep = document.getElementById('share-config-step');
-            if (shareConfigStep && !shareConfigStep.classList.contains('hidden')) {
-                navigateToShareStep('menu');
+            if (targetHash === '#share-config' || targetHash === '#share-manage') {
+                const step = targetHash === '#share-config' ? 'config' : 'manage';
+                navigateToShareStep(step, false);
+                return;
+            } else if (targetHash === '#share') {
+                navigateToShareStep('menu', false);
+                return;
             } else {
-                closeShareModal();
+                closeShareModal(true);
             }
-            return;
         }
 
-        if (elements.mobileMenuModal && !elements.mobileMenuModal.classList.contains('hidden')) {
-            window.history.pushState({ view: currentViewId }, '', currentHash);
-            elements.mobileMenuModal.classList.add('hidden');
-            return;
+        // 3. AI Prompt Modal Dismiss
+        if (elements.aiPromptModal && !elements.aiPromptModal.classList.contains('hidden')) {
+            if (targetHash !== '#ai-prompt') {
+                closeAiPromptModal(true);
+                if (targetHash === '#customize' || targetHash === '#edit') {
+                    return;
+                }
+            }
         }
 
+        // 4. Account Modal Overlay Dismiss
         if (elements.accountModalOverlay && !elements.accountModalOverlay.classList.contains('hidden')) {
-            window.history.pushState({ view: currentViewId }, '', currentHash);
-            elements.accountModalOverlay.classList.add('hidden');
-            return;
+            if (targetHash !== '#account-modal') {
+                elements.accountModalOverlay.classList.add('hidden');
+                clearSubState('#account-modal');
+                if (targetHash === '#home') return;
+            }
         }
 
-        const welcomeModal = document.getElementById('welcome-modal');
-        if (welcomeModal && !welcomeModal.classList.contains('hidden')) {
-            window.history.pushState({ view: currentViewId }, '', currentHash);
-            welcomeModal.classList.add('hidden');
-            return;
+        // 5. Mobile Menu Dismiss
+        if (elements.mobileMenuModal && !elements.mobileMenuModal.classList.contains('hidden')) {
+            elements.mobileMenuModal.classList.add('hidden');
         }
 
-        // 2. Active Quiz (#quiz) - prompt before leaving
+        // 6. Active Quiz (#quiz) - Prompt before leaving
         if (currentViewId === 'quiz') {
             window.history.pushState({ view: 'quiz' }, '', '#quiz');
             const shouldExit = await customConfirm('Save progress and return to the home screen?', 'Return Home', 'Save & Exit', 'Cancel');
@@ -1048,10 +1116,35 @@ export async function handlePopState(event) {
             return;
         }
 
-        // 3. Unsaved or Customize states on Home Screen (#home)
-        if (currentViewId === 'start') {
-            if (state.isCustomizingHistory) {
-                window.history.pushState({ view: 'start' }, '', '#home');
+        // 7. Document Upload Customization Screen (#customize)
+        const isCustomizingDocs = (state.activeSubState === '#customize') || 
+            (!state.isCustomizingHistory && ((state.currentFiles && state.currentFiles.length > 0) || (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0)));
+        if (isCustomizingDocs) {
+            if (targetHash !== '#customize') {
+                window.history.pushState({ view: 'start', subState: '#customize', fromApp: true }, '', '#customize');
+                const confirmed = await customConfirm(
+                    'Are you sure you want to cancel quiz generation and return to the home screen? Any selected documents will be cleared.',
+                    'Cancel Quiz Generation',
+                    'Yes, Return Home',
+                    'Stay Here',
+                    true
+                );
+                if (confirmed) {
+                    clearSubState('#customize');
+                    const { resetApp } = await import('./quiz/quizUtils.js');
+                    resetApp(true);
+                    window.history.replaceState({ view: 'start' }, '', '#home');
+                    showToast('Quiz generation cancelled.', 2000, 'info');
+                }
+                return;
+            }
+        }
+
+        // 8. History Quiz Edit Mode (#edit)
+        const isCustomizingHist = (state.activeSubState === '#edit') || state.isCustomizingHistory;
+        if (isCustomizingHist) {
+            if (targetHash !== '#edit') {
+                window.history.pushState({ view: 'start', subState: '#edit', fromApp: true }, '', '#edit');
                 if (hasUnsavedChanges()) {
                     const wantsToSave = await customConfirm(
                         'You have unsaved changes! Do you want to save them before exiting?\n\n• OK = Save changes\n• Cancel = Discard changes',
@@ -1066,32 +1159,17 @@ export async function handlePopState(event) {
                         return;
                     }
                 }
+                clearSubState('#edit');
                 const { resetApp } = await import('./quiz/quizUtils.js');
                 resetApp(true);
+                window.history.replaceState({ view: 'start' }, '', '#home');
                 showToast('Customization closed.', 2000, 'info');
-                return;
-            }
-
-            if (state.currentFiles && state.currentFiles.length > 0) {
-                window.history.pushState({ view: 'start' }, '', '#home');
-                const { resetApp } = await import('./quiz/quizUtils.js');
-                resetApp(true);
-                showToast('Quiz generation cancelled.', 2000, 'info');
-                return;
-            }
-
-            const customizeContent = document.getElementById('customize-content');
-            if (customizeContent && !customizeContent.classList.contains('hidden')) {
-                window.history.pushState({ view: 'start' }, '', '#home');
-                customizeContent.classList.add('hidden');
-                document.getElementById('customize-toggle-icon')?.classList.remove('rotate-180');
-                setHistoryVisibility(true);
                 return;
             }
         }
 
-        // 4. Normal view navigation
-        const targetViewId = hashToView(window.location.hash);
+        // 9. Standard View Navigation (#home, #history, #help, #about, #account, #results)
+        const targetViewId = hashToView(targetHash);
         showView(targetViewId, false);
 
         if (targetViewId === 'start') {
@@ -1110,20 +1188,20 @@ export async function handlePopState(event) {
 }
 
 export function initRouter() {
-    if (!window.location.hash) {
+    const rawHash = window.location.hash || '';
+
+    // Privacy and Direct Access Guard:
+    // Disallow opening sub-states/modals/quiz execution directly via manual URL typing on page load
+    if (!rawHash || SUB_STATE_HASHES.includes(rawHash) || rawHash === '#quiz' || rawHash === '#loading' || rawHash === '#results') {
         window.history.replaceState({ view: 'start' }, '', '#home');
+        showView('start', false);
     } else {
-        const initialView = hashToView(window.location.hash);
-        if (initialView === 'quiz' || initialView === 'loading' || initialView === 'results') {
-            window.history.replaceState({ view: 'start' }, '', '#home');
-            showView('start', false);
-        } else {
-            showView(initialView, false);
-            if (initialView === 'history-fullscreen') {
-                import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
-            } else if (initialView === 'account') {
-                openAccountAsView();
-            }
+        const initialView = hashToView(rawHash);
+        showView(initialView, false);
+        if (initialView === 'history-fullscreen') {
+            import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
+        } else if (initialView === 'account') {
+            openAccountAsView();
         }
     }
 
@@ -1191,6 +1269,8 @@ export function refreshHistory() {
     const isCustomizing = state.isCustomizingHistory || (state.currentFiles && state.currentFiles.length > 0) || !document.getElementById('customize-content')?.classList.contains('hidden');
     if (isCustomizing) {
         setHistoryVisibility(false);
+    } else {
+        setHistoryVisibility(true);
     }
 
     const db = state.quizHistory;
@@ -1516,7 +1596,9 @@ export function validateAllInputs() {
     const totalCount = parseInt(questionCountInput.value, 10) || 0;
 
     // Check configuration parameters
-    let enabled = state.isCustomizingHistory ? hasCustomize : (totalCount >= constants.MIN_QUIZ_QUESTIONS && totalCount <= constants.MAX_QUIZ_QUESTIONS);
+    let enabled = state.isCustomizingHistory 
+        ? hasCustomize 
+        : (hasSource && totalCount >= constants.MIN_QUIZ_QUESTIONS && totalCount <= constants.MAX_QUIZ_QUESTIONS);
 
     const customFeedback = document.getElementById('custom-total-feedback');
 
@@ -1778,12 +1860,17 @@ export function openAiPromptModal(config, fileName) {
 
     if (elements.aiPromptModal) {
         elements.aiPromptModal.classList.remove('hidden');
+        pushSubState('#ai-prompt');
     }
 }
 
-export function closeAiPromptModal() {
+export function closeAiPromptModal(fromPopState = false) {
+    clearSubState('#ai-prompt');
     if (elements.aiPromptModal) {
         elements.aiPromptModal.classList.add('hidden');
+    }
+    if (!fromPopState && window.location.hash === '#ai-prompt') {
+        window.history.back();
     }
 }
 
@@ -1953,7 +2040,11 @@ export function openShareModal(quizKey) {
     }
 }
 
-export function closeShareModal() {
+export function closeShareModal(fromPopState = false) {
+    clearSubState('#share');
+    clearSubState('#share-config');
+    clearSubState('#share-manage');
+
     // 1. Hide the modal container
     if (elements.shareModal) {
         elements.shareModal.classList.add('hidden');
@@ -1966,11 +2057,12 @@ export function closeShareModal() {
         shareOverlay.classList.add('hidden');
     }
     
-    // 3. Reset any internal modal state
-    console.log("Share modal closed and state reset.");
+    if (!fromPopState && window.location.hash.startsWith('#share')) {
+        window.history.back();
+    }
 }
 
-export function navigateToShareStep(step) {
+export function navigateToShareStep(step, pushHash = true) {
     state.activeShareStep = step;
     
     // Hide all step containers
@@ -1979,15 +2071,23 @@ export function navigateToShareStep(step) {
     elements.shareStepManage.classList.add('hidden');
     
     // Show the requested step and manage the Back button visibility
+    let targetHash = '#share';
     if (step === 'menu') {
         elements.shareStepMenu.classList.remove('hidden');
         elements.shareBackBtn.classList.add('hidden'); // No back button on main menu
+        targetHash = '#share';
     } else if (step === 'config') {
         elements.shareStepConfig.classList.remove('hidden');
         elements.shareBackBtn.classList.remove('hidden');
+        targetHash = '#share-config';
     } else if (step === 'manage') {
         elements.shareStepManage.classList.remove('hidden');
         elements.shareBackBtn.classList.remove('hidden');
+        targetHash = '#share-manage';
+    }
+
+    if (pushHash && window.location.hash !== targetHash) {
+        pushSubState(targetHash);
     }
 }
 

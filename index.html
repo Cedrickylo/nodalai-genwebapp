@@ -9,7 +9,7 @@
         // Immediate Service Worker Check & Legacy Cache Invalidation (v4)
         (async function() {
             if (!('serviceWorker' in navigator)) return;
-            const SW_VERSION_TAG = 'nodal_sw_migration_v4';
+            const SW_VERSION_TAG = 'nodal_sw_migration_v5';
             try {
                 if (localStorage.getItem(SW_VERSION_TAG) === 'complete') return;
                 const registrations = await navigator.serviceWorker.getRegistrations();
@@ -25,6 +25,7 @@
                     localStorage.removeItem('nodal_sw_migration_v1');
                     localStorage.removeItem('nodal_sw_migration_v2');
                     localStorage.removeItem('nodal_sw_migration_v3');
+                    localStorage.removeItem('nodal_sw_migration_v4');
                     localStorage.setItem(SW_VERSION_TAG, 'complete');
                     await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
                     window.location.reload();
@@ -33,6 +34,7 @@
                     localStorage.removeItem('nodal_sw_migration_v1');
                     localStorage.removeItem('nodal_sw_migration_v2');
                     localStorage.removeItem('nodal_sw_migration_v3');
+                    localStorage.removeItem('nodal_sw_migration_v4');
                     localStorage.setItem(SW_VERSION_TAG, 'complete');
                 }
             } catch (e) {

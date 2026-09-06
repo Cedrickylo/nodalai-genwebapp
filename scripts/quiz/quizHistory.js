@@ -13,7 +13,8 @@ import {
     formatTime,
     exportQuizAsJSON,
     setupScrollReactiveHeader,
-    setHistoryVisibility
+    setHistoryVisibility,
+    pushSubState
 } from '../helpers.js';
 
 const {
@@ -181,7 +182,8 @@ export async function handleHistoryClick(e) {
         state.customizingQuizData = { ...quizData, key };
         setupCustomizeView(quizData.config, quizData.fileName);
         setHistoryVisibility(false);
-        showView('start');
+        showView('start', false);
+        pushSubState('#edit');
     } else if (action === 'share') {
         // ADDED: Require login before sharing
         if (!puter.auth.isSignedIn()) {

@@ -60,11 +60,11 @@ async function initApp() {
         initRouter();
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (V4)
+        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (V5)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const SW_VERSION_TAG = 'nodal_sw_migration_v4';
+                const SW_VERSION_TAG = 'nodal_sw_migration_v5';
                 try {
                     const registrations = await navigator.serviceWorker.getRegistrations();
                     const isMigrated = localStorage.getItem(SW_VERSION_TAG) === 'complete';
@@ -87,6 +87,7 @@ async function initApp() {
                         localStorage.removeItem('nodal_sw_migration_v1');
                         localStorage.removeItem('nodal_sw_migration_v2');
                         localStorage.removeItem('nodal_sw_migration_v3');
+                        localStorage.removeItem('nodal_sw_migration_v4');
                         localStorage.setItem(SW_VERSION_TAG, 'complete');
 
                         // Register the new service worker
@@ -102,6 +103,7 @@ async function initApp() {
                         localStorage.removeItem('nodal_sw_migration_v1');
                         localStorage.removeItem('nodal_sw_migration_v2');
                         localStorage.removeItem('nodal_sw_migration_v3');
+                        localStorage.removeItem('nodal_sw_migration_v4');
                         localStorage.setItem(SW_VERSION_TAG, 'complete');
                         const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
                         console.log('[SW] ServiceWorker registered with scope:', reg.scope);
@@ -118,7 +120,7 @@ async function initApp() {
             // Listen for service worker activation or updates to reload smoothly if needed
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing && localStorage.getItem('nodal_sw_migration_v4') !== 'complete') {
+                if (!refreshing && localStorage.getItem('nodal_sw_migration_v5') !== 'complete') {
                     refreshing = true;
                     window.location.reload();
                 }
