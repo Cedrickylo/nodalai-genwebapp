@@ -30,7 +30,8 @@ import {
     closeSharedQuizModal,
     openSharedQuizModal,
     setupCustomizeView,
-    pushSubState
+    pushSubState,
+    extractShareId
 } from './helpers.js';
 
 // Import modules
@@ -658,11 +659,12 @@ export function attachQuizEventListeners() {
                 state.currentFileName = existing.fileName || pending.fileName || 'Shared Quiz';
             } else {
                 quizKey = 'shared-' + Date.now();
+                const validShareId = (pending.shareId && pending.shareId !== 'token-read' && pending.shareId !== 'read') ? pending.shareId : extractShareId(pending.shareUrl);
                 saveQuizToDB(quizKey, {
                     questions: pending.questions,
                     fileName: pending.fileName,
                     config: pending.config,
-                    sourceShareId: pending.shareId,
+                    sourceShareId: validShareId,
                     sourceShareUrl: pending.shareUrl
                 });
                 refreshHistory();
@@ -701,11 +703,12 @@ export function attachQuizEventListeners() {
                 fileNameToUse = existing.fileName || pending.fileName;
             } else {
                 quizKey = 'shared-' + Date.now();
+                const validShareId = (pending.shareId && pending.shareId !== 'token-read' && pending.shareId !== 'read') ? pending.shareId : extractShareId(pending.shareUrl);
                 saveQuizToDB(quizKey, {
                     questions: pending.questions,
                     fileName: pending.fileName,
                     config: pending.config,
-                    sourceShareId: pending.shareId,
+                    sourceShareId: validShareId,
                     sourceShareUrl: pending.shareUrl
                 });
                 refreshHistory();
@@ -739,11 +742,12 @@ export function attachQuizEventListeners() {
             }
 
             const quizKey = 'shared-' + Date.now();
+            const validShareId = (pending.shareId && pending.shareId !== 'token-read' && pending.shareId !== 'read') ? pending.shareId : extractShareId(pending.shareUrl);
             saveQuizToDB(quizKey, {
                 questions: pending.questions,
                 fileName: pending.fileName,
                 config: pending.config,
-                sourceShareId: pending.shareId,
+                sourceShareId: validShareId,
                 sourceShareUrl: pending.shareUrl
             });
             refreshHistory();

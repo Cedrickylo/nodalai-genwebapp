@@ -2356,48 +2356,133 @@ export function areQuizQuestionsMatching(questionsA, questionsB) {
     return true;
 }
 
-export function findExistingQuizForSharedLink(shareId, shareUrl, questions = null) {
+export function extractShareId(url) {
+    if (!url || typeof url !== 'string') return '';
+    try {
+        let targetUrl = url;
+        const origin = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : 'http://localhost';
+        const u = new URL(url, origin);
+        if (u.searchParams.has('share')) {
+            targetUrl = u.searchParams.get('share') || '';
+        }
+        const parsed = new URL(targetUrl, origin);
+        const uid = parsed.searchParams.get('uid');
+        if (uid) return uid;
+        const token = parsed.searchParams.get('token');
+        if (token) return token;
+        const last = parsed.pathname.split('/').filter(Boolean).pop();
+        if (last && last !== 'token-read' && last !== 'read') {
+            return last;
+        }
+        return '';
+    } catch {
+        const clean = url.split('/').filter(Boolean).pop()?.split('?')[0];
+        if (clean && clean !== 'token-read' && clean !== 'read') {
+            return clean;
+        }
+        return '';
+    }
+}
+
+export function normalizeShareUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    try {
+        const origin = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : 'http://localhost';
+        const u = new URL(url, origin);
+        if (u.searchParams.has('share')) {
+            return u.searchParams.get('share') || '';
+        }
+        return u.href;
+    } catch {
+        return url;
+    }
+}
+
+export function findExactQuizForSharedLink(shareId, shareUrl) {
     if (!state.quizHistory || typeof state.quizHistory !== 'object') return null;
+
+    const invalidIds = ['token-read', 'read', 'undefined', 'null', ''];
+    const targetId = shareId && !invalidIds.includes(shareId) ? shareId : extractShareId(shareUrl);
+    const targetNormUrl = normalizeShareUrl(shareUrl);
 
     const entries = Object.entries(state.quizHistory);
 
-    // 1. Exact match by shareId or sourceShareId
-    if (shareId) {
-        for (const [key, quiz] of entries) {
-            if (!quiz) continue;
-            if (quiz.sourceShareId === shareId) {
+    for (const [key, quiz] of entries) {
+        if (!quiz) continue;
+
+        // Auto-heal legacy generic 'token-read' / 'read' from prior bug
+        if (quiz.sourceShareId && invalidIds.includes(quiz.sourceShareId)) {
+            const repaired = extractShareId(quiz.sourceShareUrl);
+            if (repaired) {
+                quiz.sourceShareId = repaired;
+            } else {
+                delete quiz.sourceShareId;
+            }
+            saveQuizToDB(key, quiz);
+        }
+
+        // 1. Direct ID matches (guarded against invalid/generic strings like 'token-read')
+        if (targetId) {
+            if (quiz.sourceShareId && !invalidIds.includes(quiz.sourceShareId) && quiz.sourceShareId === targetId) {
                 return { key, quiz };
             }
-            if (quiz.share && quiz.share.shareId === shareId) {
+            if (quiz.share) {
+                if (quiz.share.shareId && !invalidIds.includes(quiz.share.shareId) && quiz.share.shareId === targetId) {
+                    return { key, quiz };
+                }
+                if (quiz.share.uid && quiz.share.uid === targetId) {
+                    return { key, quiz };
+                }
+            }
+        }
+
+        // 2. Normalized URL comparison
+        if (targetNormUrl) {
+            if (quiz.sourceShareUrl && normalizeShareUrl(quiz.sourceShareUrl) === targetNormUrl) {
                 return { key, quiz };
             }
-            if (quiz.share && quiz.share.shareUrl === shareUrl) {
+            if (quiz.share) {
+                if (quiz.share.shareUrl && normalizeShareUrl(quiz.share.shareUrl) === targetNormUrl) {
+                    return { key, quiz };
+                }
+                if (quiz.share.publicUrl && normalizeShareUrl(quiz.share.publicUrl) === targetNormUrl) {
+                    return { key, quiz };
+                }
+            }
+        }
+
+        // 3. Compare extracted unique IDs from saved URLs
+        if (targetId) {
+            if (quiz.sourceShareUrl && extractShareId(quiz.sourceShareUrl) === targetId) {
                 return { key, quiz };
             }
-            if (quiz.sourceShareUrl === shareUrl) {
+            if (quiz.share && quiz.share.shareUrl && extractShareId(quiz.share.shareUrl) === targetId) {
                 return { key, quiz };
             }
         }
     }
 
-    // 2. Match by full shareUrl
-    if (shareUrl) {
-        for (const [key, quiz] of entries) {
-            if (!quiz) continue;
-            if (quiz.sourceShareUrl === shareUrl || (quiz.share && quiz.share.shareUrl === shareUrl)) {
-                return { key, quiz };
-            }
-        }
-    }
+    return null;
+}
 
-    // 3. Fallback content match (questions equality)
+export function findExistingQuizForSharedLink(shareId, shareUrl, questions = null) {
+    // 1. Check for exact match first
+    const exactMatch = findExactQuizForSharedLink(shareId, shareUrl);
+    if (exactMatch) return exactMatch;
+
+    // 2. Fallback content match (questions equality)
+    if (!state.quizHistory || typeof state.quizHistory !== 'object') return null;
+    const entries = Object.entries(state.quizHistory);
+
     if (Array.isArray(questions) && questions.length > 0) {
         for (const [key, quiz] of entries) {
             if (!quiz) continue;
             if (areQuizQuestionsMatching(quiz.questions, questions)) {
-                // Link sourceShareId if missing
-                if (shareId && !quiz.sourceShareId && !quiz.share?.shareId) {
-                    quiz.sourceShareId = shareId;
+                // Link valid sourceShareId if missing or previously generic
+                const invalidIds = ['token-read', 'read', 'undefined', 'null', ''];
+                const validId = shareId && !invalidIds.includes(shareId) ? shareId : extractShareId(shareUrl);
+                if (validId && (!quiz.sourceShareId || invalidIds.includes(quiz.sourceShareId))) {
+                    quiz.sourceShareId = validId;
                     if (shareUrl) quiz.sourceShareUrl = shareUrl;
                     saveQuizToDB(key, quiz);
                 }

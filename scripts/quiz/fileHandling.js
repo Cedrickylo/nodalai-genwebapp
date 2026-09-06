@@ -449,23 +449,23 @@ export async function resumeQuiz(savedData) {
 
 export async function loadSharedQuiz(publicUrl) {
     try {
-        const shareId = publicUrl.split('/').pop().split('?')[0];
+        const { findExactQuizForSharedLink, findExistingQuizForSharedLink, extractShareId, openSharedQuizModal } = await import('../helpers.js');
+        const shareId = extractShareId(publicUrl);
 
-        // 1. Early local check: Check if user already has this quiz saved in history
-        const { findExistingQuizForSharedLink, openSharedQuizModal } = await import('../helpers.js');
-        const earlyExisting = findExistingQuizForSharedLink(shareId, publicUrl);
+        // 1. Early local check: Check if user already has this exact quiz saved in history
+        const earlyExact = findExactQuizForSharedLink(shareId, publicUrl);
 
         if (!navigator.onLine) {
-            if (earlyExisting) {
+            if (earlyExact) {
                 // Offline, but the user has already saved this quiz in their account!
                 state.pendingSharedQuiz = {
-                    questions: earlyExisting.quiz.questions,
-                    config: earlyExisting.quiz.config,
-                    fileName: earlyExisting.quiz.fileName || 'Shared Quiz',
+                    questions: earlyExact.quiz.questions,
+                    config: earlyExact.quiz.config,
+                    fileName: earlyExact.quiz.fileName || 'Shared Quiz',
                     shareId: shareId,
                     shareUrl: publicUrl,
-                    existingKey: earlyExisting.key,
-                    existingQuiz: earlyExisting.quiz,
+                    existingKey: earlyExact.key,
+                    existingQuiz: earlyExact.quiz,
                     isAlreadySaved: true
                 };
                 openSharedQuizModal();
@@ -485,16 +485,16 @@ export async function loadSharedQuiz(publicUrl) {
             data = await response.json();
         } catch (fetchErr) {
             // If fetch failed, but the user already has this quiz locally in their account:
-            if (earlyExisting) {
+            if (earlyExact) {
                 hideLoadingOverlay();
                 state.pendingSharedQuiz = {
-                    questions: earlyExisting.quiz.questions,
-                    config: earlyExisting.quiz.config,
-                    fileName: earlyExisting.quiz.fileName || 'Shared Quiz',
+                    questions: earlyExact.quiz.questions,
+                    config: earlyExact.quiz.config,
+                    fileName: earlyExact.quiz.fileName || 'Shared Quiz',
                     shareId: shareId,
                     shareUrl: publicUrl,
-                    existingKey: earlyExisting.key,
-                    existingQuiz: earlyExisting.quiz,
+                    existingKey: earlyExact.key,
+                    existingQuiz: earlyExact.quiz,
                     isAlreadySaved: true
                 };
                 openSharedQuizModal();
@@ -511,15 +511,16 @@ export async function loadSharedQuiz(publicUrl) {
                 console.warn("Cleanup of expired file failed (already deleted?)");
             }
 
+            const effectiveShareId = data.shareId || shareId;
             // If link expired, check if user already has it saved in their account
-            const existingMatch = earlyExisting || findExistingQuizForSharedLink(shareId, publicUrl, data.q);
+            const existingMatch = earlyExact || findExactQuizForSharedLink(effectiveShareId, publicUrl) || findExistingQuizForSharedLink(effectiveShareId, publicUrl, data.q);
             if (existingMatch) {
                 hideLoadingOverlay();
                 state.pendingSharedQuiz = {
                     questions: existingMatch.quiz.questions,
                     config: existingMatch.quiz.config,
                     fileName: existingMatch.quiz.fileName || 'Shared Quiz',
-                    shareId: shareId,
+                    shareId: effectiveShareId,
                     shareUrl: publicUrl,
                     existingKey: existingMatch.key,
                     existingQuiz: existingMatch.quiz,
@@ -536,19 +537,21 @@ export async function loadSharedQuiz(publicUrl) {
             throw new Error("Shared quiz file data is corrupted or invalid.");
         }
         
-        // 4. Check if this shared quiz is already saved in the user's account
-        const existingMatch = earlyExisting || findExistingQuizForSharedLink(shareId, publicUrl, data.q);
+        const effectiveShareId = data.shareId || shareId;
+
+        // 4. Check if this shared quiz is already saved in the user's account (strict exact match)
+        const exactMatch = earlyExact || findExactQuizForSharedLink(effectiveShareId, publicUrl);
 
         // 5. Stage the shared quiz for user action modal selection
         state.pendingSharedQuiz = {
             questions: data.q,
             config: data.c,
             fileName: data.n || 'Shared Quiz',
-            shareId: shareId,
+            shareId: effectiveShareId,
             shareUrl: publicUrl,
-            existingKey: existingMatch ? existingMatch.key : null,
-            existingQuiz: existingMatch ? existingMatch.quiz : null,
-            isAlreadySaved: !!existingMatch
+            existingKey: exactMatch ? exactMatch.key : null,
+            existingQuiz: exactMatch ? exactMatch.quiz : null,
+            isAlreadySaved: !!exactMatch
         };
 
         hideLoadingOverlay();

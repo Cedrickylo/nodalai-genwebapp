@@ -18,7 +18,8 @@ import {
     getActiveViewId,
     showLoadingOverlay,
     hideLoadingOverlay,
-    deleteQuizPermanently
+    deleteQuizPermanently,
+    extractShareId
 } from '../helpers.js';
 
 const {
@@ -74,6 +75,7 @@ export async function generateShareableLink(quizKey) {
         // Prepare payload with metadata
         const shareId = 'quiz-' + Math.random().toString(36).substring(2, 10) + '.json';
         const sharePayload = { 
+            shareId: shareId,
             n: quiz.fileName, 
             c: quiz.config, 
             q: quiz.questions,
@@ -92,6 +94,8 @@ export async function generateShareableLink(quizKey) {
             isShared: true,
             shareId: shareId,
             shareUrl: shareUrl,
+            publicUrl: publicUrl,
+            uid: extractShareId(publicUrl),
             expiryTimestamp: expiryTimestamp
         };
         // Updates individual quiz timestamp for sync tracking
