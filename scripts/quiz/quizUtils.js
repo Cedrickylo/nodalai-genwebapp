@@ -127,14 +127,16 @@ export function resetApp(clearProg = true) {
     showView('start');
 }
 
-export function resetStartViewUI() {
+export function resetStartViewUI(preserveFileName = false) {
     state.isCustomizingHistory = false;
     state.customizingQuizData = null;
     state.initialCustomizeState = {};
     state.currentFiles = []; 
     state.fileContent = '';
     state.fileHash = '';
-    state.currentFileName = '';
+    if (!preserveFileName) {
+        state.currentFileName = '';
+    }
 
     if (startSubtitle) startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
     
@@ -243,7 +245,9 @@ export function stopLoadingAnimation() {
 
 export function saveCurrentQuiz() {
     if (state.currentQuizKey && state.questions.length > 0) {
-        const saved = saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
+        const fallbackName = state.currentFileName || state.quizHistory[state.currentQuizKey]?.fileName || 'Untitled Quiz';
+        state.currentFileName = fallbackName;
+        const saved = saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: fallbackName, config: state.currentQuizConfig });
         if (saved) {
             showToast('Progress saved!');
             refreshHistory();

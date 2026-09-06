@@ -1,5 +1,5 @@
-// Incremented to v5 to immediately replace legacy service workers and clear stale caches
-const CACHE_NAME = 'nodal-ai-cache-v5';
+// Incremented to v6 to immediately replace legacy service workers and clear stale caches
+const CACHE_NAME = 'nodal-ai-cache-v6';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
 const LOCAL_ASSETS_TO_CACHE = [

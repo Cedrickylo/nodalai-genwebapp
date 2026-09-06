@@ -14,7 +14,8 @@ import {
     exportQuizAsJSON,
     setupScrollReactiveHeader,
     setHistoryVisibility,
-    pushSubState
+    pushSubState,
+    getActiveViewId
 } from '../helpers.js';
 
 const {
@@ -65,10 +66,10 @@ export async function generateShareableLink(quizKey) {
             elements.shareModal.classList.add('hidden');
         }
 
-        // Trigger the loading view screen and display custom sharing context text
-        showView('loading');
+        // Trigger the loading view screen non-destructively without changing hash
         if (elements.loadingTitle) elements.loadingTitle.textContent = 'Link Share Creation';
         if (elements.loadingMessage) elements.loadingMessage.textContent = 'Please wait, generating link...';
+        showView('loading', false);
 
         // Get expiry duration from the dropdown
         const days = parseInt(elements.shareExpirySelect.value);
@@ -112,6 +113,9 @@ export async function generateShareableLink(quizKey) {
         elements.shareExpiryDisplay.textContent = `Expires in ${days} days`;
         elements.shareExpiryDisplay.className = 'text-xs text-blue-300 mt-1';
         
+        // Restore previous background view without altering hash
+        showView(state.shareOriginView || 'start', false);
+
         // Re-reveal the share modal now that the link text is ready!
         if (elements.shareModal) {
             elements.shareModal.classList.remove('hidden');
@@ -122,6 +126,7 @@ export async function generateShareableLink(quizKey) {
     } catch (err) {
         console.error('Generation Error:', err);
         showToast('Failed to generate link.', 4000, 'error');
+        showView(state.shareOriginView || 'start', false);
         // Bring back the menu if an error occurs so the user isn't stuck
         if (elements.shareModal) {
             elements.shareModal.classList.remove('hidden');
@@ -130,9 +135,6 @@ export async function generateShareableLink(quizKey) {
         // Clean up the text configurations so standard AI generations don't show the share notice
         if (elements.loadingTitle) elements.loadingTitle.textContent = originalTitle;
         if (elements.loadingMessage) elements.loadingMessage.textContent = originalMessage;
-        
-        // Return background view focus back to main dashboard layer
-        showView('start');
     }
 }
 
@@ -179,12 +181,14 @@ export async function handleHistoryClick(e) {
     } else if (action === 'export') {
         exportQuizFromHistory(quizData, key);
     } else if (action === 'customize') {
+        state.editOriginView = getActiveViewId();
         state.customizingQuizData = { ...quizData, key };
         setupCustomizeView(quizData.config, quizData.fileName);
         setHistoryVisibility(false);
         showView('start', false);
         pushSubState('#edit');
     } else if (action === 'share') {
+        state.shareOriginView = getActiveViewId();
         // ADDED: Require login before sharing
         if (!puter.auth.isSignedIn()) {
             const wantsToLogin = await customConfirm(

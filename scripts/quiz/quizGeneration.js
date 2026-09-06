@@ -78,10 +78,16 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         const { startQuiz } = await import('./quizExecution.js');
         resetStartViewUI();
         if (!skipStart) {
+            state.currentFileName = newName;
             startQuiz();
         } else {
             showToast('Changes saved successfully!');
             refreshHistory();
+            if (state.editOriginView === 'history-fullscreen') {
+                const { showAllHistoryFullScreen } = await import('./quizHistory.js');
+                window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
+                showAllHistoryFullScreen();
+            }
         }
         return;
     }

@@ -161,10 +161,10 @@ export function attachQuizEventListeners() {
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn.addEventListener('click', exportQuiz);
     elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
-    // Help, About, and Account back buttons (use browser history navigation)
-    elements.helpBackBtn?.addEventListener('click', () => window.history.back());
-    elements.aboutBackBtn?.addEventListener('click', () => window.history.back());
-    document.getElementById('account-mobile-back-btn')?.addEventListener('click', () => window.history.back());
+    // Help, About, and Account back buttons (navigate directly to homepage)
+    elements.helpBackBtn?.addEventListener('click', () => showView('start'));
+    elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
+    document.getElementById('account-mobile-back-btn')?.addEventListener('click', () => showView('start'));
     
     // Copy Link Button
     elements.copyShareLinkBtn.onclick = () => {
@@ -233,8 +233,17 @@ export function attachQuizEventListeners() {
     elements.disableShareBtn.onclick = async () => {
         const quiz = state.quizHistory[state.currentShareQuizKey];
         if (quiz && quiz.share && quiz.share.shareId) {
+            const originalTitle = elements.loadingTitle ? elements.loadingTitle.textContent : 'Generating Quiz...';
+            const originalMessage = elements.loadingMessage ? elements.loadingMessage.textContent : 'Contacting AI...';
+
             try {
-                const { syncHistoryWithCloud, closeShareModal } = await import('./helpers.js');
+                const { syncHistoryWithCloud, closeShareModal, showView } = await import('./helpers.js');
+
+                // Provide immediate feedback: show loading screen without polluting history
+                if (elements.shareModal) elements.shareModal.classList.add('hidden');
+                if (elements.loadingTitle) elements.loadingTitle.textContent = 'Revoking Link Access...';
+                if (elements.loadingMessage) elements.loadingMessage.textContent = 'Removing shared quiz from cloud...';
+                showView('loading', false);
                 
                 // Delete from Puter FS
                 await puter.fs.delete(quiz.share.shareId);
@@ -248,11 +257,18 @@ export function attachQuizEventListeners() {
 
                 await syncHistoryWithCloud();
                 refreshHistory();
-                closeShareModal();
+                showView(state.shareOriginView || 'start', false);
+                closeShareModal(true);
                 showToast('Sharing disabled.', 3000, 'info');
             } catch (err) {
                 console.error('Disable Error:', err);
+                const { showView } = await import('./helpers.js');
+                showView(state.shareOriginView || 'start', false);
+                if (elements.shareModal) elements.shareModal.classList.remove('hidden');
                 showToast('Failed to disable sharing.', 3000, 'error');
+            } finally {
+                if (elements.loadingTitle) elements.loadingTitle.textContent = originalTitle;
+                if (elements.loadingMessage) elements.loadingMessage.textContent = originalMessage;
             }
         }
     };
@@ -272,12 +288,8 @@ export function attachQuizEventListeners() {
         closeShareModal();
     };
     elements.shareBackBtn.onclick = async () => {
-        if (window.location.hash === '#share-config' || window.location.hash === '#share-manage') {
-            window.history.back();
-        } else {
-            const { navigateToShareStep } = await import('./helpers.js');
-            navigateToShareStep('menu');
-        }
+        const { navigateToShareStep } = await import('./helpers.js');
+        navigateToShareStep('menu');
     };
     
     homeBtn.addEventListener('click', async () => { 
@@ -290,7 +302,7 @@ export function attachQuizEventListeners() {
     historyList.addEventListener('click', handleHistoryClick);
     showAllHistoryBtn?.addEventListener('click', () => showAllHistoryFullScreen());
     // Full-screen history back button
-    elements.historyFullscreenBackBtn?.addEventListener('click', () => window.history.back());
+    elements.historyFullscreenBackBtn?.addEventListener('click', () => showView('start'));
     // Mobile bottom nav
     elements.mobileNavHomeBtn?.addEventListener('click', () => {
         showView('start');
@@ -427,7 +439,14 @@ export function attachQuizEventListeners() {
             }
             clearSubState('#edit');
             resetApp(true);
-            window.history.replaceState({ view: 'start' }, '', '#home');
+            if (state.editOriginView === 'history-fullscreen') {
+                const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
+                window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
+                showAllHistoryFullScreen();
+            } else {
+                window.history.replaceState({ view: 'start' }, '', '#home');
+                showView('start', false);
+            }
             showToast('Customization closed.', 2000, 'info');
         } else {
             const confirmed = await customConfirm(
@@ -457,14 +476,24 @@ export function attachQuizEventListeners() {
         );
         if (!confirmed) return;
 
-        delete state.quizHistory[state.customizingQuizData.key];
-        localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
-        refreshHistory();
-        showToast('Quiz deleted.', 3000, 'success');
-        const { clearSubState } = await import('./helpers.js');
+        const keyToDelete = state.customizingQuizData.key;
+        const returnToHistory = state.editOriginView === 'history-fullscreen';
+
+        const { deleteQuizPermanently, clearSubState } = await import('./helpers.js');
         clearSubState('#edit');
         resetApp(true);
-        window.history.replaceState({ view: 'start' }, '', '#home');
+
+        await deleteQuizPermanently(keyToDelete);
+        showToast('Quiz deleted.', 3000, 'success');
+
+        if (returnToHistory) {
+            const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
+            window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
+            showAllHistoryFullScreen();
+        } else {
+            window.history.replaceState({ view: 'start' }, '', '#home');
+            showView('start', false);
+        }
     });
 
     document.getElementById('customize-toggle-btn').addEventListener('click', () => {

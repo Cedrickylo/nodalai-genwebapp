@@ -251,6 +251,9 @@ export const state = {
     initialCustomizeState: {},
     activeShareStep: 'menu',
     currentShareQuizKey: null,
+    shareOriginView: 'start',
+    editOriginView: 'start',
+    deletedQuizKeys: JSON.parse(localStorage.getItem('nodal_deleted_quiz_keys') || '{}'),
     // --- ADVANCED RUNTIME STATE ---
     currentQuestionTimeRemaining: 0,
     currentQuestionChancesLeft: 0,

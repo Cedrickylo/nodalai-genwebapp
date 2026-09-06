@@ -312,6 +312,9 @@ export async function syncHistoryWithCloud(manual = false) {
     try {
         let combinedCloudItems = {};
 
+        // Ensure state.deletedQuizKeys is populated
+        state.deletedQuizKeys = state.deletedQuizKeys || JSON.parse(localStorage.getItem('nodal_deleted_quiz_keys') || '{}');
+
         // 2. Read from Puter KV
         try {
             const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
@@ -319,6 +322,9 @@ export async function syncHistoryWithCloud(manual = false) {
                 const parsedKv = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
                 if (parsedKv && parsedKv.items && typeof parsedKv.items === 'object') {
                     Object.assign(combinedCloudItems, parsedKv.items);
+                }
+                if (parsedKv && parsedKv.deletedKeys && typeof parsedKv.deletedKeys === 'object') {
+                    Object.assign(state.deletedQuizKeys, parsedKv.deletedKeys);
                 }
             }
         } catch (kvReadErr) {
@@ -337,6 +343,9 @@ export async function syncHistoryWithCloud(manual = false) {
                         }
                     }
                 }
+                if (parsedPrimary && parsedPrimary.deletedKeys && typeof parsedPrimary.deletedKeys === 'object') {
+                    Object.assign(state.deletedQuizKeys, parsedPrimary.deletedKeys);
+                }
             } catch (ePrimary) {
                 // Primary file not created yet or read issue
             }
@@ -351,19 +360,38 @@ export async function syncHistoryWithCloud(manual = false) {
                         }
                     }
                 }
+                if (parsedBackup && parsedBackup.deletedKeys && typeof parsedBackup.deletedKeys === 'object') {
+                    Object.assign(state.deletedQuizKeys, parsedBackup.deletedKeys);
+                }
             } catch (eBackup) {
                 // Backup file not created yet
             }
         }
 
+        // Save updated deletedQuizKeys
+        localStorage.setItem('nodal_deleted_quiz_keys', JSON.stringify(state.deletedQuizKeys));
+
         // 4. Fetch current local system matrix
         const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
         const mergedItems = {};
+
+        // Filter out any items in combinedCloudItems and localItems that have tombstones
+        for (const [delKey, delTime] of Object.entries(state.deletedQuizKeys)) {
+            if (combinedCloudItems[delKey] && (combinedCloudItems[delKey].timestamp || 0) <= delTime) {
+                delete combinedCloudItems[delKey];
+            }
+            if (localItems[delKey] && (localItems[delKey].timestamp || 0) <= delTime) {
+                delete localItems[delKey];
+            }
+        }
 
         // 5. Merge all keys across all cloud items and local items
         const allKeys = new Set([...Object.keys(combinedCloudItems), ...Object.keys(localItems)]);
 
         for (const key of allKeys) {
+            if (state.deletedQuizKeys[key] && Math.max(combinedCloudItems[key]?.timestamp || 0, localItems[key]?.timestamp || 0) <= state.deletedQuizKeys[key]) {
+                continue;
+            }
             const cloudQuiz = combinedCloudItems[key];
             const localQuiz = localItems[key];
             
@@ -389,6 +417,7 @@ export async function syncHistoryWithCloud(manual = false) {
 
         const payloadString = JSON.stringify({ 
             items: mergedItems, 
+            deletedKeys: state.deletedQuizKeys,
             updatedAt: now 
         });
 
@@ -424,6 +453,29 @@ export async function syncHistoryWithCloud(manual = false) {
         setSyncing('offline');
         showToast('Sync failed. Please check your network connection.', 4000, 'error');
     }
+}
+
+export async function deleteQuizPermanently(key) {
+    if (!key) return;
+    const quiz = state.quizHistory[key];
+    state.deletedQuizKeys = state.deletedQuizKeys || JSON.parse(localStorage.getItem('nodal_deleted_quiz_keys') || '{}');
+    state.deletedQuizKeys[key] = Date.now();
+    localStorage.setItem('nodal_deleted_quiz_keys', JSON.stringify(state.deletedQuizKeys));
+
+    if (quiz && quiz.share && quiz.share.shareId && window.puter && window.puter.fs && typeof puter.fs.delete === 'function') {
+        try {
+            await puter.fs.delete(quiz.share.shareId);
+        } catch (e) {
+            console.warn('Failed to delete shared file during permanent quiz deletion:', e);
+        }
+    }
+
+    delete state.quizHistory[key];
+    localStorage.setItem(DB_NAME, JSON.stringify(state.quizHistory));
+    localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
+    refreshHistory();
+
+    await syncHistoryWithCloud();
 }
 
 export function pruneGenerationLog(log = [], now = Date.now()) {
@@ -953,6 +1005,7 @@ export const SUB_STATE_HASHES = [
     '#account-modal',
     '#share',
     '#share-config',
+    '#share-live',
     '#share-manage'
 ];
 
@@ -1069,7 +1122,7 @@ export async function handlePopState(event) {
         // 2. Share Modal Sub-Steps & Dismiss
         const shareModal = document.getElementById('share-modal');
         if (shareModal && !shareModal.classList.contains('hidden')) {
-            if (targetHash === '#share-config' || targetHash === '#share-manage') {
+            if (targetHash === '#share-config' || targetHash === '#share-manage' || targetHash === '#share-live') {
                 const step = targetHash === '#share-config' ? 'config' : 'manage';
                 navigateToShareStep(step, false);
                 return;
@@ -1162,7 +1215,14 @@ export async function handlePopState(event) {
                 clearSubState('#edit');
                 const { resetApp } = await import('./quiz/quizUtils.js');
                 resetApp(true);
-                window.history.replaceState({ view: 'start' }, '', '#home');
+                if (state.editOriginView === 'history-fullscreen') {
+                    const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
+                    window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
+                    showAllHistoryFullScreen();
+                } else {
+                    window.history.replaceState({ view: 'start' }, '', '#home');
+                    showView('start', false);
+                }
                 showToast('Customization closed.', 2000, 'info');
                 return;
             }
@@ -1188,22 +1248,10 @@ export async function handlePopState(event) {
 }
 
 export function initRouter() {
-    const rawHash = window.location.hash || '';
-
-    // Privacy and Direct Access Guard:
-    // Disallow opening sub-states/modals/quiz execution directly via manual URL typing on page load
-    if (!rawHash || SUB_STATE_HASHES.includes(rawHash) || rawHash === '#quiz' || rawHash === '#loading' || rawHash === '#results') {
-        window.history.replaceState({ view: 'start' }, '', '#home');
-        showView('start', false);
-    } else {
-        const initialView = hashToView(rawHash);
-        showView(initialView, false);
-        if (initialView === 'history-fullscreen') {
-            import('./quiz/quizHistory.js').then(m => m.showAllHistoryFullScreen());
-        } else if (initialView === 'account') {
-            openAccountAsView();
-        }
-    }
+    // Reset to home view and nav highlights on fresh load or page refresh
+    window.history.replaceState({ view: 'start' }, '', '#home');
+    showView('start', false);
+    updateNavHighlights('home');
 
     window.addEventListener('popstate', handlePopState);
 }
@@ -1220,7 +1268,8 @@ export function getQuizDB() {
 
 export function saveQuizToDB(key, data) {
     try {
-        let finalName = data.fileName || 'Untitled Quiz';
+        const existingQuiz = state.quizHistory[key] || {};
+        let finalName = (data.fileName && data.fileName.trim()) || existingQuiz.fileName || state.currentFileName || 'Untitled Quiz';
         const existingEntries = Object.entries(state.quizHistory);
         let counter = 2;
         const baseName = finalName.replace(/\.[^/.]+$/, '');
@@ -1229,9 +1278,6 @@ export function saveQuizToDB(key, data) {
             finalName = `${counter} ${baseName}`;
             counter++;
         }
-
-        // GET EXISTING DATA FIRST
-        const existingQuiz = state.quizHistory[key] || {};
 
         // MERGE: Keep old 'share' data, update the rest
         state.quizHistory[key] = {
@@ -2043,6 +2089,7 @@ export function openShareModal(quizKey) {
 export function closeShareModal(fromPopState = false) {
     clearSubState('#share');
     clearSubState('#share-config');
+    clearSubState('#share-live');
     clearSubState('#share-manage');
 
     // 1. Hide the modal container
@@ -2058,7 +2105,15 @@ export function closeShareModal(fromPopState = false) {
     }
     
     if (!fromPopState && window.location.hash.startsWith('#share')) {
-        window.history.back();
+        if (state.shareOriginView === 'history-fullscreen') {
+            window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
+            showView('history-fullscreen', false);
+        } else {
+            window.history.back();
+        }
+    } else if (fromPopState && state.shareOriginView === 'history-fullscreen' && (!window.location.hash || window.location.hash === '#home' || window.location.hash === '#history')) {
+        window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
+        showView('history-fullscreen', false);
     }
 }
 
@@ -2083,7 +2138,7 @@ export function navigateToShareStep(step, pushHash = true) {
     } else if (step === 'manage') {
         elements.shareStepManage.classList.remove('hidden');
         elements.shareBackBtn.classList.remove('hidden');
-        targetHash = '#share-manage';
+        targetHash = '#share-live';
     }
 
     if (pushHash && window.location.hash !== targetHash) {
