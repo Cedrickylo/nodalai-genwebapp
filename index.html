@@ -408,7 +408,7 @@
         </div>
 
         <div id="history-fullscreen-view" class="view w-full max-w-5xl self-start">
-            <div class="page-shell bg-gray-800/90 border border-gray-700/80 w-full p-5 sm:p-8 rounded-2xl shadow-2xl relative min-h-[60vh]">
+            <div class="page-shell bg-gray-800/90 border border-gray-700/80 w-full p-5 sm:p-8 rounded-2xl shadow-2xl relative">
                 <div class="page-shell-glow page-shell-glow-left"></div>
                 <div class="page-shell-glow page-shell-glow-right"></div>
 
@@ -442,7 +442,7 @@
                         <p class="text-sm text-gray-400 text-center mb-0">All generated quizzes across time.</p>
                     </div> -->
 
-                    <div id="history-full-list" class="space-y-3 max-h-[70vh] overflow-y-auto mt-4 pr-1 sm:pr-2"></div>
+                    <div id="history-full-list" class="space-y-3 mt-4 pr-1 sm:pr-2"></div>
                 </div>
             </div>
         </div>
@@ -461,7 +461,7 @@
                             <span>Back</span>
                         </button>
                         <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Frequently Asked Questions</h2>
-                        <span class="header-spacer" aria-hidden="true"></span>
+                        <span class="header-spacer md:hidden" aria-hidden="true"></span>
                     </div>
 
                     <div class="info-grid grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -508,7 +508,7 @@
                             <span>Back</span>
                         </button>
                         <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">About</h2>
-                        <span class="header-spacer" aria-hidden="true"></span>
+                        <span class="header-spacer md:hidden" aria-hidden="true"></span>
                     </div>
 
                     <div class="info-grid grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -662,7 +662,7 @@
                 <div id="explanation-area" class="mt-6 hidden flex-shrink-0"></div>
                 
                 <!-- Navigation utility layout button columns -->
-                <div class="flex gap-4 mt-6 mb-auto flex-shrink-0">
+                <div class="flex gap-4 mt-auto pt-4 border-t border-gray-700/60 flex-shrink-0">
                     <button id="prev-question-btn" class="hidden w-1/3 sm:w-auto sm:min-w-[130px] bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                         <span>Previous</span>
@@ -803,7 +803,7 @@
                             <span>Back</span>
                         </button>
                         <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Account</h2>
-                        <span class="header-spacer" aria-hidden="true"></span>
+                        <span class="header-spacer md:hidden" aria-hidden="true"></span>
                     </div>
 
                     <div id="account-view-container" class="w-full flex justify-center items-center mt-6">
@@ -1182,6 +1182,20 @@
             <button id="welcome-close-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg transform hover:scale-[1.01]">
                 Get Started
             </button>
+        </div>
+    </div>
+
+    <!-- Blurred Backdrop Global Loading Overlay (for link creation, sharing disable, import, and delete) -->
+    <div id="loading-overlay" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-opacity duration-200">
+        <div class="bg-gray-800/95 border border-gray-700/80 rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center space-y-4">
+            <div class="relative w-14 h-14 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
+                <div class="w-14 h-14 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+            </div>
+            <div class="space-y-1">
+                <h3 id="loading-overlay-title" class="text-lg font-bold text-white">Please wait...</h3>
+                <p id="loading-overlay-message" class="text-sm text-gray-300">Processing request...</p>
+            </div>
         </div>
     </div>
 

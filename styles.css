@@ -147,7 +147,7 @@
             top: 0.75rem;
             z-index: 20;
             display: grid;
-            grid-template-columns: auto 1fr auto;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
             align-items: center;
             gap: 0.75rem;
             padding: 0.7rem 0.85rem;
@@ -173,10 +173,16 @@
         }
 
         .page-sticky-header h2 {
+            grid-column: 2;
             justify-self: center;
             text-align: center;
             margin: 0;
             line-height: 1.1;
+        }
+
+        #history-fullscreen-view #history-full-list {
+            max-height: none !important;
+            overflow: visible !important;
         }
 
         .header-spacer {

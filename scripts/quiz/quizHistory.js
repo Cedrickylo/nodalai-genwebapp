@@ -15,7 +15,10 @@ import {
     setupScrollReactiveHeader,
     setHistoryVisibility,
     pushSubState,
-    getActiveViewId
+    getActiveViewId,
+    showLoadingOverlay,
+    hideLoadingOverlay,
+    deleteQuizPermanently
 } from '../helpers.js';
 
 const {
@@ -56,20 +59,13 @@ export async function generateShareableLink(quizKey) {
     const quiz = state.quizHistory[quizKey];
     if (!quiz) return;
 
-    // Cache original loading template messages so we can restore them later
-    const originalTitle = elements.loadingTitle ? elements.loadingTitle.textContent : 'Generating Quiz...';
-    const originalMessage = elements.loadingMessage ? elements.loadingMessage.textContent : 'Contacting AI...';
-
     try {
         // Hide the modal immediately so it doesn't block the loader screen
         if (elements.shareModal) {
             elements.shareModal.classList.add('hidden');
         }
 
-        // Trigger the loading view screen non-destructively without changing hash
-        if (elements.loadingTitle) elements.loadingTitle.textContent = 'Link Share Creation';
-        if (elements.loadingMessage) elements.loadingMessage.textContent = 'Please wait, generating link...';
-        showView('loading', false);
+        showLoadingOverlay('Link Share Creation', 'Please wait, generating link...');
 
         // Get expiry duration from the dropdown
         const days = parseInt(elements.shareExpirySelect.value);
@@ -113,8 +109,7 @@ export async function generateShareableLink(quizKey) {
         elements.shareExpiryDisplay.textContent = `Expires in ${days} days`;
         elements.shareExpiryDisplay.className = 'text-xs text-blue-300 mt-1';
         
-        // Restore previous background view without altering hash
-        showView(state.shareOriginView || 'start', false);
+        hideLoadingOverlay();
 
         // Re-reveal the share modal now that the link text is ready!
         if (elements.shareModal) {
@@ -125,16 +120,12 @@ export async function generateShareableLink(quizKey) {
         
     } catch (err) {
         console.error('Generation Error:', err);
+        hideLoadingOverlay();
         showToast('Failed to generate link.', 4000, 'error');
-        showView(state.shareOriginView || 'start', false);
         // Bring back the menu if an error occurs so the user isn't stuck
         if (elements.shareModal) {
             elements.shareModal.classList.remove('hidden');
         }
-    } finally {
-        // Clean up the text configurations so standard AI generations don't show the share notice
-        if (elements.loadingTitle) elements.loadingTitle.textContent = originalTitle;
-        if (elements.loadingMessage) elements.loadingMessage.textContent = originalMessage;
     }
 }
 
@@ -218,6 +209,33 @@ export async function handleHistoryClick(e) {
         
         // Open the share modal seamlessly
         openShareModal(key);
+    } else if (action === 'delete') {
+        const confirmed = await customConfirm(
+            'Delete this quiz from history? This action cannot be undone.',
+            'Delete Quiz',
+            'Delete',
+            'Cancel',
+            true
+        );
+        if (!confirmed) return;
+
+        showLoadingOverlay('Deleting Quiz...', 'Removing quiz permanently...');
+        try {
+            await deleteQuizPermanently(key);
+            showToast('Quiz deleted.', 3000, 'success');
+        } catch (err) {
+            console.error('Delete error:', err);
+            showToast('Failed to delete quiz.', 3000, 'error');
+        } finally {
+            hideLoadingOverlay();
+        }
+
+        // Re-render fullscreen or inline history depending on current view
+        if (getActiveViewId() === 'history-fullscreen') {
+            showAllHistoryFullScreen();
+        } else {
+            refreshHistory();
+        }
     }
 }
 
@@ -228,9 +246,10 @@ export function showAllHistoryFullScreen() {
     if (!container) return;
     container.innerHTML = '';
 
+    showView('history-fullscreen', false);
+
     if (sorted.length === 0) {
         container.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
-        showView('history-fullscreen');
         return;
     }
 
@@ -288,6 +307,10 @@ export function showAllHistoryFullScreen() {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
                     <span>Load</span>
                 </button>
+                <button class="bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 sm:px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="delete" title="Delete Quiz">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <span class="hidden sm:inline">Delete</span>
+                </button>
             </div>
         `;
 
@@ -298,6 +321,4 @@ export function showAllHistoryFullScreen() {
     container.onclick = handleHistoryClick;
 
     setupScrollReactiveHeader('history-fullscreen');
-
-    showView('history-fullscreen');
 }

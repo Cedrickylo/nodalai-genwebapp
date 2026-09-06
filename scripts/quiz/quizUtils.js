@@ -85,7 +85,6 @@ export function resetApp(clearProg = true) {
 
     elements.unansweredModal?.classList.add('hidden');
     elements.nextUnansweredBtn?.classList.add('hidden');
-    elements.historySection?.classList.remove('hidden');
     setHistoryVisibility(true);
     
     if (fileUploadInput) fileUploadInput.value = '';
@@ -153,7 +152,6 @@ export function resetStartViewUI(preserveFileName = false) {
     deleteCustomizeBtn?.classList.add('hidden');
     fileActionsDiv?.classList.remove('hidden');
     cancelCustomizeBtn?.classList.add('hidden');
-    elements.historySection?.classList.remove('hidden');
     setHistoryVisibility(true);
     elements.unansweredModal?.classList.add('hidden');
     elements.nextUnansweredBtn?.classList.add('hidden');

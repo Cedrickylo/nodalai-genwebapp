@@ -9,7 +9,9 @@ import {
     getGenerationCooldownWarning,
     setHistoryVisibility,
     pushSubState,
-    clearSubState
+    clearSubState,
+    showLoadingOverlay,
+    hideLoadingOverlay
 } from '../helpers.js';
 
 const {
@@ -211,7 +213,6 @@ export async function handleFileSelect(event) {
         if (customizeSection) customizeSection.classList.remove('hidden');
         if (customizeContent) customizeContent.classList.remove('hidden');
         elements.cancelCustomizeBtn?.classList.remove('hidden');
-        elements.historySection?.classList.add('hidden');
         setHistoryVisibility(false);
 
         // Ensure quiz configuration selectors are visible and clean for new generation
@@ -264,7 +265,6 @@ function resetAppFiles() {
     selectedFilesListLocal.innerHTML = '';
     fileActionsDiv.classList.remove('hidden');
     elements.cancelCustomizeBtn?.classList.add('hidden');
-    elements.historySection?.classList.remove('hidden');
     setHistoryVisibility(true);
     document.getElementById('customize-section')?.classList.add('hidden');
     document.getElementById('customize-content')?.classList.add('hidden');
@@ -279,9 +279,7 @@ export function handleQuizImport(event) {
         return;
     }
 
-    if (elements.loadingTitle) elements.loadingTitle.textContent = 'Importing Quiz...';
-    if (elements.loadingMessage) elements.loadingMessage.textContent = `Reading "${file.name}"...`;
-    showView('loading', false);
+    showLoadingOverlay('Importing Quiz...', `Reading "${file.name}"...`);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -339,6 +337,7 @@ export function handleQuizImport(event) {
             const importedId = data.quizId || CryptoJS.SHA256(JSON.stringify(normalizedQuestions) + JSON.stringify(config) + (data.fileName || file.name)).toString();
             
             if (state.quizHistory[importedId]) {
+                hideLoadingOverlay();
                 const importAnyway = await customConfirm(
                     'A similar quiz already exists in your history. Do you want to import it anyway? (This will overwrite the existing one)',
                     'Duplicate Detected',
@@ -347,12 +346,12 @@ export function handleQuizImport(event) {
                 );
                 
                 if (!importAnyway) {
-                    showView('start', false);
                     importQuizInput.value = '';
                     statusMessage.textContent = 'Import cancelled.';
                     statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
                     return;
                 }
+                showLoadingOverlay('Importing Quiz...', `Saving "${file.name}"...`);
             }
 
             state.questions = normalizedQuestions;
@@ -384,10 +383,12 @@ export function handleQuizImport(event) {
             setupCustomizeView(state.currentQuizConfig, state.currentFileName);
             showView('start', false);
             pushSubState('#edit');
+            hideLoadingOverlay();
             showToast(`Imported "${state.currentFileName}" successfully!`, 3000, 'success');
             statusMessage.textContent = '';
         } catch (err) {
             console.error('Import Err:', err);
+            hideLoadingOverlay();
             showView('start', false);
             statusMessage.textContent = `Import Err: ${err.message}`;
             statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
@@ -397,6 +398,7 @@ export function handleQuizImport(event) {
         }
     };
     reader.onerror = () => {
+        hideLoadingOverlay();
         showView('start', false);
         statusMessage.textContent = 'Read file error.';
         statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';

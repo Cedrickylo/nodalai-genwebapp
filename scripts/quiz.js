@@ -233,17 +233,12 @@ export function attachQuizEventListeners() {
     elements.disableShareBtn.onclick = async () => {
         const quiz = state.quizHistory[state.currentShareQuizKey];
         if (quiz && quiz.share && quiz.share.shareId) {
-            const originalTitle = elements.loadingTitle ? elements.loadingTitle.textContent : 'Generating Quiz...';
-            const originalMessage = elements.loadingMessage ? elements.loadingMessage.textContent : 'Contacting AI...';
-
             try {
-                const { syncHistoryWithCloud, closeShareModal, showView } = await import('./helpers.js');
+                const { syncHistoryWithCloud, closeShareModal, showLoadingOverlay, hideLoadingOverlay } = await import('./helpers.js');
 
-                // Provide immediate feedback: show loading screen without polluting history
+                // Provide immediate feedback: show blurred loading screen without polluting history
                 if (elements.shareModal) elements.shareModal.classList.add('hidden');
-                if (elements.loadingTitle) elements.loadingTitle.textContent = 'Revoking Link Access...';
-                if (elements.loadingMessage) elements.loadingMessage.textContent = 'Removing shared quiz from cloud...';
-                showView('loading', false);
+                showLoadingOverlay('Revoking Link Access...', 'Removing shared quiz from cloud...');
                 
                 // Delete from Puter FS
                 await puter.fs.delete(quiz.share.shareId);
@@ -257,18 +252,15 @@ export function attachQuizEventListeners() {
 
                 await syncHistoryWithCloud();
                 refreshHistory();
-                showView(state.shareOriginView || 'start', false);
+                hideLoadingOverlay();
                 closeShareModal(true);
                 showToast('Sharing disabled.', 3000, 'info');
             } catch (err) {
                 console.error('Disable Error:', err);
-                const { showView } = await import('./helpers.js');
-                showView(state.shareOriginView || 'start', false);
+                const { hideLoadingOverlay } = await import('./helpers.js');
+                hideLoadingOverlay();
                 if (elements.shareModal) elements.shareModal.classList.remove('hidden');
                 showToast('Failed to disable sharing.', 3000, 'error');
-            } finally {
-                if (elements.loadingTitle) elements.loadingTitle.textContent = originalTitle;
-                if (elements.loadingMessage) elements.loadingMessage.textContent = originalMessage;
             }
         }
     };
@@ -479,12 +471,22 @@ export function attachQuizEventListeners() {
         const keyToDelete = state.customizingQuizData.key;
         const returnToHistory = state.editOriginView === 'history-fullscreen';
 
-        const { deleteQuizPermanently, clearSubState } = await import('./helpers.js');
-        clearSubState('#edit');
-        resetApp(true);
+        const { deleteQuizPermanently, clearSubState, showLoadingOverlay, hideLoadingOverlay } = await import('./helpers.js');
+        const { resetStartViewUI } = await import('./quiz/quizUtils.js');
 
-        await deleteQuizPermanently(keyToDelete);
-        showToast('Quiz deleted.', 3000, 'success');
+        showLoadingOverlay('Deleting Quiz...', 'Removing quiz permanently...');
+        clearSubState('#edit');
+        resetStartViewUI();
+
+        try {
+            await deleteQuizPermanently(keyToDelete);
+            showToast('Quiz deleted.', 3000, 'success');
+        } catch (err) {
+            console.error('Delete error:', err);
+            showToast('Failed to delete quiz.', 3000, 'error');
+        } finally {
+            hideLoadingOverlay();
+        }
 
         if (returnToHistory) {
             const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
@@ -503,7 +505,6 @@ export function attachQuizEventListeners() {
 
         if (!content.classList.contains('hidden')) {
             resumeQuizBtn.classList.add('hidden');
-            elements.historySection?.classList.add('hidden');
             setHistoryVisibility(false);
             if (!state.isCustomizingHistory) {
                 document.getElementById('quiz-custom-summary-banner')?.remove();
@@ -514,7 +515,6 @@ export function attachQuizEventListeners() {
             }
         } else {
             prepareResumeButton();
-            elements.historySection?.classList.remove('hidden');
             if (!state.isCustomizingHistory && (!state.currentFiles || state.currentFiles.length === 0)) {
                 setHistoryVisibility(true);
             }

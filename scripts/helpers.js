@@ -123,6 +123,8 @@ export function toggleContainerVisibility(containerId, isVisible) {
 export function setHistoryVisibility(show) {
     const section = elements.historySection || document.getElementById('history-section');
     if (!section) return;
+    if (!section.classList.contains('hidden')) section.classList.add('hidden');
+    if (!section.classList.contains('md:block')) section.classList.add('md:block');
     if (show) {
         section.classList.remove('customize-hidden');
     } else {
@@ -865,6 +867,24 @@ export function showToast(message, duration = 3000, type = 'success') {
     }, duration);
 }
 
+export function showLoadingOverlay(title = 'Please wait...', message = 'Processing request...') {
+    const overlay = elements.loadingOverlay || document.getElementById('loading-overlay');
+    const titleEl = elements.loadingOverlayTitle || document.getElementById('loading-overlay-title');
+    const msgEl = elements.loadingOverlayMessage || document.getElementById('loading-overlay-message');
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (overlay) {
+        overlay.classList.remove('hidden');
+    }
+}
+
+export function hideLoadingOverlay() {
+    const overlay = elements.loadingOverlay || document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
+    }
+}
+
 export function updateNavHighlights(activeKey) {
     // 1. Update Mobile Nav
     if (elements.mobileNavHomeBtn) {
@@ -1559,6 +1579,38 @@ export function setupCustomizeView(config, name) {
     const targetUiRadio = document.querySelector(`input[name="ui_mode"][value="${savedUiMode}"]`);
     if (targetUiRadio) targetUiRadio.checked = true;
 
+    // --- Unpack Time Limit & Presets ---
+    if (timeLimitToggle) {
+        timeLimitToggle.checked = !!config.isTimed;
+        handleTimeToggle();
+        if (config.isTimed) {
+            const totalMinutes = Math.max(1, Math.round((config.totalTime || 600) / 60));
+            const presetVal = config.timePreset || (['5', '10', '15'].includes(String(totalMinutes)) ? String(totalMinutes) : 'custom');
+            const presetRadio = document.querySelector(`input[name="time_preset"][value="${presetVal}"]`);
+            if (presetRadio) {
+                presetRadio.checked = true;
+            }
+            if (presetVal === 'custom' && customTimeLimitInput) {
+                customTimeLimitInput.value = config.customTime || totalMinutes;
+            }
+            handleTimePresetChange();
+        }
+    }
+
+    // --- Unpack Attempt Limit ---
+    if (attemptLimitToggle) {
+        attemptLimitToggle.checked = !!config.isAttemptLimited;
+        attemptLimitOptions?.classList.toggle('hidden', !attemptLimitToggle.checked);
+        if (attemptLimitInput && config.maxAttempts) {
+            attemptLimitInput.value = config.maxAttempts;
+        }
+    }
+
+    // --- Unpack Summary Only ---
+    if (summaryOnlyToggle) {
+        summaryOnlyToggle.checked = !!config.showAnswersInSummaryOnly;
+    }
+
     // --- Unpacking Form Field Variables and Syncing Sub-Containers ---
     if (elements.timerModeSelect) {
         elements.timerModeSelect.value = config.timerMode || 'quiz';
@@ -1580,14 +1632,12 @@ export function setupCustomizeView(config, name) {
     if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = config.randomizeQuestions !== false;
     if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = config.randomizeChoices !== false;
 
-    if (elements.manualRevealToggle) {
-        elements.manualRevealToggle.checked = config.manualReveal || false;
-    }
     if (elements.allowChangeToggle) {
         elements.allowChangeToggle.checked = config.allowChangeSelection || false;
     }
 
     validateAllInputs();
+    state.initialCustomizeState = getCustomizeState();
 }
 
 
@@ -2199,4 +2249,15 @@ export function initWelcomeModal() {
             welcomeModal.classList.add('hidden');
         };
     }
+}
+
+// Keep history section responsive layout classes synced on viewport change
+if (typeof window !== 'undefined' && window.matchMedia) {
+    window.matchMedia('(min-width: 768px)').addEventListener('change', () => {
+        const section = elements.historySection || document.getElementById('history-section');
+        if (section) {
+            if (!section.classList.contains('hidden')) section.classList.add('hidden');
+            if (!section.classList.contains('md:block')) section.classList.add('md:block');
+        }
+    });
 }
