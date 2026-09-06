@@ -2371,10 +2371,10 @@ export function findExistingQuizForSharedLink(shareId, shareUrl, questions = nul
             if (quiz.share && quiz.share.shareId === shareId) {
                 return { key, quiz };
             }
-            if (quiz.share && quiz.share.shareUrl && quiz.share.shareUrl.includes(shareId)) {
+            if (quiz.share && quiz.share.shareUrl === shareUrl) {
                 return { key, quiz };
             }
-            if (quiz.sourceShareUrl && quiz.sourceShareUrl.includes(shareId)) {
+            if (quiz.sourceShareUrl === shareUrl) {
                 return { key, quiz };
             }
         }
@@ -2412,12 +2412,30 @@ export function findExistingQuizForSharedLink(shareId, shareUrl, questions = nul
 export function openSharedQuizModal() {
     if (!elements.sharedQuizModal || !state.pendingSharedQuiz) return;
     const { questions, config, fileName, isAlreadySaved, existingQuiz } = state.pendingSharedQuiz;
-    const displayQuiz = existingQuiz || {};
-    const title = displayQuiz.fileName || (config && config.quizTitle) || fileName || 'Shared Quiz';
-    const displayConfig = displayQuiz.config || config || {};
-    const count = Array.isArray(questions) ? questions.length : (Array.isArray(displayQuiz.questions) ? displayQuiz.questions.length : 0);
-    const mode = (displayConfig && displayConfig.difficulty) ? 
-        (displayConfig.difficulty === 'custom' && displayConfig.customTypeShort ? displayConfig.customTypeShort.toUpperCase() : displayConfig.difficulty.toUpperCase()) : 'Mixed Mode';
+
+    // Determine which quiz data should be displayed.
+    // If the quiz is already saved, prefer the saved quiz's metadata.
+    const sourceQuiz = isAlreadySaved && existingQuiz ? existingQuiz : null;
+
+    // Title
+    const title = sourceQuiz?.fileName
+        || (sourceQuiz?.config && sourceQuiz.config.quizTitle)
+        || fileName
+        || (config && config.quizTitle)
+        || 'Shared Quiz';
+
+    // Config for mode display – prefer the saved config when available.
+    const displayConfig = sourceQuiz?.config || config || {};
+
+    // Question count – use the saved quiz's questions when we have them.
+    const count = sourceQuiz?.questions?.length ?? (Array.isArray(questions) ? questions.length : 0);
+
+    // Difficulty / mode label.
+    const mode = (displayConfig && displayConfig.difficulty)
+        ? (displayConfig.difficulty === 'custom' && displayConfig.customTypeShort
+            ? displayConfig.customTypeShort.toUpperCase()
+            : displayConfig.difficulty.toUpperCase())
+        : 'Mixed Mode';
     
     if (elements.sharedQuizTitle) {
         elements.sharedQuizTitle.textContent = title;
