@@ -238,21 +238,21 @@ export async function handleHistoryClick(e) {
 
         // Re-render fullscreen or inline history depending on current view
         if (getActiveViewId() === 'history-fullscreen') {
-            showAllHistoryFullScreen();
+            showAllHistoryFullScreen(false);
         } else {
             refreshHistory();
         }
     }
 }
 
-export function showAllHistoryFullScreen() {
+export function showAllHistoryFullScreen(pushHash = true) {
     const db = state.quizHistory;
     const sorted = Object.entries(db).sort(([, a], [, b]) => b.timestamp - a.timestamp);
     const container = elements.historyFullList || document.getElementById('history-full-list');
     if (!container) return;
     container.innerHTML = '';
 
-    showView('history-fullscreen', false);
+    showView('history-fullscreen', pushHash);
 
     if (sorted.length === 0) {
         container.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
@@ -300,11 +300,14 @@ export function showAllHistoryFullScreen() {
                 ${titleHtml}
                 <p class="text-xs text-gray-400 truncate">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
-            <!-- Mobile 2-button layout: Options (Submenu) and Load -->
-            <div class="flex md:hidden flex-shrink-0 gap-1.5">
-                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
-                    <span>Options</span>
+            <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
+            <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
+                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 p-1.5 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="12" cy="19" r="2"/>
+                    </svg>
                 </button>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="load" title="Load Quiz">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>

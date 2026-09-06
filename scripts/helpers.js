@@ -1192,7 +1192,7 @@ export async function handlePopState(event) {
                 closeHistoryActionsModal(true);
                 if (targetHash === '#history') {
                     const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
-                    showAllHistoryFullScreen();
+                    showAllHistoryFullScreen(false);
                     return;
                 }
             }
@@ -1288,7 +1288,7 @@ export async function handlePopState(event) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (targetViewId === 'history-fullscreen') {
             const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
-            showAllHistoryFullScreen();
+            showAllHistoryFullScreen(false);
         } else if (targetViewId === 'account') {
             openAccountAsView();
         }
@@ -1399,7 +1399,7 @@ export function refreshHistory() {
     }
 
     // Helper function to generate uniform inner HTML for both list items
-    function generateQuizItemHTML(key, data) {
+    function generateQuizItemHTML(key, data, showDelete = false) {
         const config = data.config || {};
         const tInfo = formatTime(config.totalTime);
         
@@ -1432,11 +1432,14 @@ export function refreshHistory() {
                 </div>
                 <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
-            <!-- Mobile 2-button layout: Options (Submenu) and Load -->
-            <div class="flex md:hidden flex-shrink-0 gap-1.5">
-                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
-                    <span>Options</span>
+            <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
+            <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
+                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 p-1.5 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="12" cy="19" r="2"/>
+                    </svg>
                 </button>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="load" title="Load Quiz">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
@@ -1457,30 +1460,32 @@ export function refreshHistory() {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
                     <span>Load</span>
                 </button>
+                ${showDelete ? `
                 <button class="bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 sm:px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="delete" title="Delete Quiz">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     <span>Delete</span>
                 </button>
+                ` : ''}
             </div>
         `;
     }
 
-    // 3. RENDER COMPACT LIST
+    // 3. RENDER COMPACT LIST (Homepage - desktop Delete button hidden)
     if (elements.historyList) {
         compactDisplayItems.forEach(([key, data]) => {
             const item = document.createElement('div');
             item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
-            item.innerHTML = generateQuizItemHTML(key, data);
+            item.innerHTML = generateQuizItemHTML(key, data, false);
             elements.historyList.appendChild(item);
         });
     }
 
-    // 4. RENDER FULL SCREEN LIST (If container exists in DOM layout)
+    // 4. RENDER FULL SCREEN LIST (If container exists in DOM layout - desktop Delete button visible)
     if (fullContainer) {
         sorted.forEach(([key, data]) => {
             const item = document.createElement('div');
             item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
-            item.innerHTML = generateQuizItemHTML(key, data);
+            item.innerHTML = generateQuizItemHTML(key, data, true);
             fullContainer.appendChild(item);
         });
     }
@@ -2304,6 +2309,7 @@ export function initWelcomeModal() {
 export function openHistoryActionsModal(quizKey) {
     if (!elements.historyActionsModal) return;
     state.activeHistoryMenuKey = quizKey;
+    state.historyMenuOriginHash = window.location.hash || '#history';
     const db = getQuizDB();
     const item = db[quizKey];
     const title = (item && item.fileName) ? item.fileName : (quizKey ? quizKey.replace(/_/g, ' ') : 'Quiz Options');
@@ -2314,13 +2320,19 @@ export function openHistoryActionsModal(quizKey) {
     pushSubState('#history-actions');
 }
 
-export function closeHistoryActionsModal(isFromPopState = false) {
+export function closeHistoryActionsModal(isFromPopState = false, popHistory = true) {
     if (!elements.historyActionsModal || elements.historyActionsModal.classList.contains('hidden')) return;
     elements.historyActionsModal.classList.add('hidden');
     clearSubState('#history-actions');
+    const originHash = state.historyMenuOriginHash || '#history';
     state.activeHistoryMenuKey = null;
+
     if (!isFromPopState && window.location.hash === '#history-actions') {
-        window.history.back();
+        if (popHistory) {
+            window.history.back();
+        } else {
+            window.history.replaceState({ view: hashToView(originHash) }, '', originHash);
+        }
     }
 }
 
@@ -2343,13 +2355,18 @@ export function openSharedQuizModal() {
     pushSubState('#shared-quiz');
 }
 
-export function closeSharedQuizModal(isFromPopState = false) {
+export function closeSharedQuizModal(isFromPopState = false, popHistory = true) {
     if (!elements.sharedQuizModal || elements.sharedQuizModal.classList.contains('hidden')) return;
     elements.sharedQuizModal.classList.add('hidden');
     clearSubState('#shared-quiz');
     state.pendingSharedQuiz = null;
+
     if (!isFromPopState && window.location.hash === '#shared-quiz') {
-        window.history.back();
+        if (popHistory) {
+            window.history.back();
+        } else {
+            window.history.replaceState({ view: 'start' }, '', '#home');
+        }
     }
 }
 

@@ -285,5 +285,6 @@ export const state = {
     selectedAnswerTemp: null,
     questionTimerInterval: null,
     activeHistoryMenuKey: null,
-    pendingSharedQuiz: null
+    pendingSharedQuiz: null,
+    historyMenuOriginHash: '#history'
 };

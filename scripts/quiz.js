@@ -614,7 +614,7 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuShareBtn) {
         elements.historySubmenuShareBtn.addEventListener('click', () => {
             const key = state.activeHistoryMenuKey;
-            closeHistoryActionsModal(false);
+            closeHistoryActionsModal(false, false);
             if (key) {
                 handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'share' } }) } });
             }
@@ -623,7 +623,7 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuEditBtn) {
         elements.historySubmenuEditBtn.addEventListener('click', () => {
             const key = state.activeHistoryMenuKey;
-            closeHistoryActionsModal(false);
+            closeHistoryActionsModal(false, false);
             if (key) {
                 handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'customize' } }) } });
             }
@@ -632,7 +632,7 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuDeleteBtn) {
         elements.historySubmenuDeleteBtn.addEventListener('click', () => {
             const key = state.activeHistoryMenuKey;
-            closeHistoryActionsModal(false);
+            closeHistoryActionsModal(false, false);
             if (key) {
                 handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'delete' } }) } });
             }
@@ -641,7 +641,7 @@ export function attachQuizEventListeners() {
 
     // Shared Quiz Received Action Modal Event Listeners
     if (elements.sharedQuizCloseBtn) {
-        elements.sharedQuizCloseBtn.addEventListener('click', () => closeSharedQuizModal(false));
+        elements.sharedQuizCloseBtn.addEventListener('click', () => closeSharedQuizModal(false, true));
     }
     if (elements.sharedQuizStartBtn) {
         elements.sharedQuizStartBtn.addEventListener('click', () => {
@@ -665,7 +665,7 @@ export function attachQuizEventListeners() {
             state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
             state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
             
-            closeSharedQuizModal(false);
+            closeSharedQuizModal(false, false);
             showToast('Quiz started!', 2000, 'success');
             startQuiz();
         });
@@ -684,7 +684,7 @@ export function attachQuizEventListeners() {
 
             state.editOriginView = 'start';
             state.customizingQuizData = { key: quizKey, questions: pending.questions, config: pending.config, fileName: pending.fileName };
-            closeSharedQuizModal(false);
+            closeSharedQuizModal(false, false);
             setupCustomizeView(pending.config, pending.fileName);
             setHistoryVisibility(false);
             showView('start', false);
@@ -703,7 +703,7 @@ export function attachQuizEventListeners() {
                 config: pending.config
             });
             refreshHistory();
-            closeSharedQuizModal(false);
+            closeSharedQuizModal(false, false);
             showToast(`Saved "${pending.fileName || 'Quiz'}" to history!`, 3000, 'success');
         });
     }
