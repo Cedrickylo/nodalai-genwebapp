@@ -1,6 +1,7 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
+import { elements } from './state.js';
 
 // ==================================================================
 // GLOBAL UNHANDLED REJECTION SAFETY NET
@@ -69,87 +70,106 @@ async function initApp() {
         }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & STALE CACHE MIGRATION (v10)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v13)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const SW_VERSION_TAG = 'nodal_sw_migration_v10';
                 try {
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    const isMigrated = localStorage.getItem(SW_VERSION_TAG) === 'complete';
-
-                    if (registrations.length > 0 && !isMigrated) {
-                        // User has an already saved legacy service worker: Remove and replace
-                        console.log('[SW Migration] Found existing saved service worker. Removing and replacing...');
-                        for (const registration of registrations) {
-                            await registration.unregister();
-                            console.log('[SW Migration] Unregistered old worker:', registration.scope);
+                    const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+                    console.log('[SW] ServiceWorker registered with scope:', reg.scope);
+                    
+                    // Listen for updates
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[SW] New version available, triggering activation...');
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                }
+                            });
                         }
-
-                        // Clear old caches to remove stale saved state
-                        if ('caches' in window) {
-                            const cacheKeys = await caches.keys();
-                            await Promise.all(cacheKeys.map(key => caches.delete(key)));
-                            console.log('[SW Migration] Deprecated caches cleared.');
-                        }
-
-                        localStorage.removeItem('nodal_sw_migration_v1');
-                        localStorage.removeItem('nodal_sw_migration_v2');
-                        localStorage.removeItem('nodal_sw_migration_v3');
-                        localStorage.removeItem('nodal_sw_migration_v4');
-                        localStorage.removeItem('nodal_sw_migration_v5');
-                        localStorage.removeItem('nodal_sw_migration_v6');
-                        localStorage.removeItem('nodal_sw_migration_v7');
-                        localStorage.removeItem('nodal_sw_migration_v8');
-                        localStorage.removeItem('nodal_sw_migration_v9');
-                        localStorage.setItem(SW_VERSION_TAG, 'complete');
-
-                        // Register the new service worker
-                        const newReg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                        console.log('[SW Migration] New service worker registered:', newReg.scope);
-
-                        // Reload page once to load fresh assets directly from the server
-                        window.location.reload();
-                        return;
-                    } else if (registrations.length === 0 && !isMigrated) {
-                        // If user doesn't have a service worker saved: clean keys, mark migrated
-                        console.log('[SW Migration] No existing service worker saved. Skipping removal.');
-                        localStorage.removeItem('nodal_sw_migration_v1');
-                        localStorage.removeItem('nodal_sw_migration_v2');
-                        localStorage.removeItem('nodal_sw_migration_v3');
-                        localStorage.removeItem('nodal_sw_migration_v4');
-                        localStorage.removeItem('nodal_sw_migration_v5');
-                        localStorage.removeItem('nodal_sw_migration_v6');
-                        localStorage.removeItem('nodal_sw_migration_v7');
-                        localStorage.removeItem('nodal_sw_migration_v8');
-                        localStorage.removeItem('nodal_sw_migration_v9');
-                        localStorage.setItem(SW_VERSION_TAG, 'complete');
-                        const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                        console.log('[SW] ServiceWorker registered with scope:', reg.scope);
-                    } else {
-                        // Already migrated, ensure current registration is active
-                        const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                        console.log('[SW] ServiceWorker active with scope:', reg.scope);
-                    }
+                    });
                 } catch (swErr) {
-                    console.warn('[SW Migration] ServiceWorker registration/migration failed:', swErr);
-                }
-            });
-
-            // Listen for service worker activation or updates to reload smoothly if needed
-            let refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing && localStorage.getItem('nodal_sw_migration_v10') !== 'complete') {
-                    refreshing = true;
-                    window.location.reload();
+                    console.warn('[SW] ServiceWorker registration failed:', swErr);
                 }
             });
 
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'SW_ACTIVATED') {
-                    console.log('[SW] New version activated:', event.data.version);
+                    console.log('[SW] Active version:', event.data.version);
                 }
             });
+        }
+
+        // ==================================================================
+        // PWA STANDALONE MODE & APP INSTALLATION PROMPTS
+        // ==================================================================
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isStandalone) {
+            document.documentElement.classList.add('pwa-standalone');
+            console.log('[PWA] Running in dedicated standalone window mode');
+        }
+
+        let deferredInstallPrompt = null;
+        const desktopInstallBtn = elements.desktopNavInstallBtn;
+        const mobileInstallBtn = elements.mobileMenuInstallBtn;
+
+        function setInstallButtonsVisibility(show) {
+            if (isStandalone) {
+                desktopInstallBtn?.classList.add('hidden');
+                mobileInstallBtn?.classList.add('hidden');
+                return;
+            }
+            if (show) {
+                desktopInstallBtn?.classList.remove('hidden');
+                mobileInstallBtn?.classList.remove('hidden');
+            } else {
+                desktopInstallBtn?.classList.add('hidden');
+                mobileInstallBtn?.classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+            setInstallButtonsVisibility(true);
+            console.log('[PWA] beforeinstallprompt captured; install affordance enabled');
+        });
+
+        async function handleAppInstall() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                const choice = await deferredInstallPrompt.userChoice;
+                if (choice && choice.outcome === 'accepted') {
+                    showToast('Thanks for installing Nodal AI!', 3500, 'success');
+                }
+                deferredInstallPrompt = null;
+                setInstallButtonsVisibility(false);
+            } else {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    showToast("To install on iOS: tap the Share button in Safari, then choose 'Add to Home Screen'.", 6000, 'info');
+                } else {
+                    showToast("To install Nodal AI, look for the 'Install' icon in your browser address bar or menu.", 4500, 'info');
+                }
+            }
+        }
+
+        desktopInstallBtn?.addEventListener('click', handleAppInstall);
+        mobileInstallBtn?.addEventListener('click', handleAppInstall);
+
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+            setInstallButtonsVisibility(false);
+            showToast('Nodal AI was successfully installed!', 3500, 'success');
+            console.log('[PWA] App successfully installed');
+        });
+
+        // For iOS Safari or browsers where beforeinstallprompt does not fire:
+        const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (!isStandalone && isIOSDevice) {
+            setInstallButtonsVisibility(true);
         }
 
         // ==================================================================

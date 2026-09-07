@@ -318,3 +318,20 @@
         grid-column: span 2 / span 2 !important;
     }
 }
+
+/* ==========================================
+   STANDALONE PWA DEDICATED APP ENHANCEMENTS
+   ========================================== */
+@media all and (display-mode: standalone) {
+    body {
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+}
+
+.pwa-standalone {
+    -webkit-tap-highlight-color: transparent;
+}
+

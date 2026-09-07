@@ -97,7 +97,15 @@ export async function showResults() {
     summaryCont.innerHTML = '';
     state.incorrectQuestionsForRemedial = [];
 
-    state.questions.forEach((qData, origIdx) => {
+    // Order questions according to their presentation sequence on the quiz screen
+    const displayOrder = (state.shuffledIndices && state.shuffledIndices.length === state.questions.length)
+        ? state.shuffledIndices
+        : state.questions.map((_, idx) => idx);
+
+    displayOrder.forEach((origIdx, displayIdx) => {
+        const qData = state.questions[origIdx];
+        if (!qData) return;
+
         const userAnsObj = state.userAnswers.find(a => a.originalIndex === origIdx);
         const isCorrect = userAnsObj ? userAnsObj.isCorrect : false;
         
@@ -112,7 +120,7 @@ export async function showResults() {
         const corrAnsTxt = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
         
         item.innerHTML = `
-            <p class="font-semibold text-gray-300">Q${origIdx + 1}: ${qData.question}</p>
+            <p class="font-semibold text-gray-300">Q${displayIdx + 1}: ${qData.question}</p>
             <p class="text-sm mt-2">You: <span class="font-mono text-gray-400">${userAnsTxt}</span></p>
             ${!isCorrect ? `<p class="text-sm">Correct: <span class="font-mono text-green-400">${corrAnsTxt || 'N/A'}</span></p>` : ''}
         `;

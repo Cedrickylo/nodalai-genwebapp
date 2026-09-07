@@ -1,10 +1,11 @@
-// Incremented to v12 to replace legacy service workers and clear stale caches
-const CACHE_NAME = 'nodal-ai-cache-v12';
+// Incremented to v13 for PWA standalone capabilities and stable caching
+const CACHE_NAME = 'nodal-ai-cache-v13';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
 const LOCAL_ASSETS_TO_CACHE = [
     '/',
     '/index.html',
+    '/manifest.json',
     '/styles.css',
     '/scripts/main.js',
     '/scripts/helpers.js',
@@ -16,7 +17,13 @@ const LOCAL_ASSETS_TO_CACHE = [
     '/scripts/quiz/quizGeneration.js',
     '/scripts/quiz/quizHistory.js',
     '/scripts/quiz/quizResults.js',
-    '/scripts/quiz/quizUtils.js'
+    '/scripts/quiz/quizUtils.js',
+    '/icons/icon.svg',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
+    '/icons/icon-maskable-192.png',
+    '/icons/icon-maskable-512.png',
+    '/icons/icon-180.png'
 ];
 
 // List of allowed external CDNs to be automatically cached dynamically at runtime
@@ -30,23 +37,29 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v10] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v13] Installing & Pre-caching Core Assets');
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(LOCAL_ASSETS_TO_CACHE);
+        caches.open(CACHE_NAME).then(async (cache) => {
+            for (const asset of LOCAL_ASSETS_TO_CACHE) {
+                try {
+                    await cache.add(asset);
+                } catch (err) {
+                    console.warn(`[Service Worker v13] Failed to pre-cache ${asset}:`, err);
+                }
+            }
         }).then(() => self.skipWaiting())
     );
 });
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v10] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v13] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
-                        console.log('[Service Worker v10] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v13] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -59,10 +72,16 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v10] Notification warning during activate:', err);
+                console.warn('[Service Worker v13] Notification warning during activate:', err);
             }
         })
     );
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 // 3. Fetch Event: Network-First for local assets (ensures fresh server updates), dynamic cache for CDNs

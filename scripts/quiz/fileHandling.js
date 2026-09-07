@@ -416,6 +416,7 @@ export async function resumeQuiz(savedData) {
     state.score = savedData.score;
     state.userAnswers = savedData.answers;
     state.shuffledIndices = savedData.shuffledIndices;
+    state.shuffledOptionsMap = savedData.shuffledOptionsMap || {};
     state.isTimedQuiz = savedData.config.isTimed || false;
     state.totalQuizTime = savedData.config.totalTime || 0;
     state.isAttemptLimited = savedData.config.isAttemptLimited || false;

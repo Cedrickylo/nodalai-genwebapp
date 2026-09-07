@@ -2,56 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Nodal AI</title>
-    <link rel="icon" href="data:image/svg+xml;utf8,&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;64&quot; height=&quot;64&quot; viewBox=&quot;0 0 64 64&quot;&gt;&lt;defs&gt;&lt;filter id=&quot;g&quot;&gt;&lt;feGaussianBlur stdDeviation=&quot;2.2&quot; result=&quot;b&quot;/&gt;&lt;feMerge&gt;&lt;feMergeNode in=&quot;b&quot;/&gt;&lt;feMergeNode in=&quot;SourceGraphic&quot;/&gt;&lt;/feMerge&gt;&lt;/filter&gt;&lt;/defs&gt;&lt;rect width=&quot;64&quot; height=&quot;64&quot; rx=&quot;8&quot; fill=&quot;none&quot;/&gt;&lt;g filter=&quot;url(%23g)&quot;&gt;&lt;text x=&quot;50%&quot; y=&quot;50%&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;central&quot; font-family=&quot;Inter, Arial&quot; font-size=&quot;34&quot; font-weight=&quot;700&quot; fill=&quot;none&quot; stroke=&quot;%23ffffff&quot; stroke-width=&quot;2.5&quot;&gt;N&lt;/text&gt;&lt;/g&gt;&lt;text x=&quot;50%&quot; y=&quot;50%&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;central&quot; font-family=&quot;Inter, Arial&quot; font-size=&quot;34&quot; font-weight=&quot;700&quot; fill=&quot;none&quot; stroke=&quot;%230ea5e9&quot; stroke-width=&quot;1.2&quot; opacity=&quot;0.9&quot;/&gt;&lt;/svg&gt;">
-    <script>
-        // Immediate Service Worker Check & Legacy Cache Invalidation (v9)
-        (async function() {
-            if (!('serviceWorker' in navigator)) return;
-            const SW_VERSION_TAG = 'nodal_sw_migration_v10';
-            try {
-                if (localStorage.getItem(SW_VERSION_TAG) === 'complete') return;
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                if (registrations.length > 0) {
-                    console.log('[SW Migration] Existing service worker detected. Removing and replacing...');
-                    for (const reg of registrations) {
-                        await reg.unregister();
-                    }
-                    if ('caches' in window) {
-                        const cacheKeys = await caches.keys();
-                        await Promise.all(cacheKeys.map(k => caches.delete(k)));
-                    }
-                    localStorage.removeItem('nodal_sw_migration_v1');
-                    localStorage.removeItem('nodal_sw_migration_v2');
-                    localStorage.removeItem('nodal_sw_migration_v3');
-                    localStorage.removeItem('nodal_sw_migration_v4');
-                    localStorage.removeItem('nodal_sw_migration_v5');
-                    localStorage.removeItem('nodal_sw_migration_v6');
-                    localStorage.removeItem('nodal_sw_migration_v7');
-                    localStorage.removeItem('nodal_sw_migration_v8');
-                    localStorage.removeItem('nodal_sw_migration_v9');
-                    localStorage.setItem(SW_VERSION_TAG, 'complete');
-                    await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    window.location.reload();
-                } else {
-                    console.log('[SW Migration] No existing service worker saved. Skipping removal.');
-                    localStorage.removeItem('nodal_sw_migration_v1');
-                    localStorage.removeItem('nodal_sw_migration_v2');
-                    localStorage.removeItem('nodal_sw_migration_v3');
-                    localStorage.removeItem('nodal_sw_migration_v4');
-                    localStorage.removeItem('nodal_sw_migration_v5');
-                    localStorage.removeItem('nodal_sw_migration_v6');
-                    localStorage.removeItem('nodal_sw_migration_v7');
-                    localStorage.removeItem('nodal_sw_migration_v8');
-                    localStorage.removeItem('nodal_sw_migration_v9');
-                    localStorage.setItem(SW_VERSION_TAG, 'complete');
-                }
-            } catch (e) {
-                console.warn('[SW Migration] Early migration check note:', e);
-            }
-        })();
-    </script>
+    <!-- Web App Manifest & Standalone App Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#111827">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Nodal AI">
+    <!-- Apple / iOS Standalone Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Nodal AI">
+    <link rel="apple-touch-icon" href="/icons/icon-180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png">
+    <!-- App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -134,6 +101,16 @@
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                     <span>Account</span>
+                </button>
+
+                <!-- Install App Button (PWA) -->
+                <button id="desktop-nav-install-btn" class="hidden w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-300 hover:text-white bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 transition-colors duration-200 font-medium">
+                    <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Install App</span>
                 </button>
 
             </nav>
@@ -875,6 +852,15 @@
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                     <span>Account</span>
+                </button>
+
+                <button id="mobile-menu-install-btn" class="hidden w-full flex items-center gap-3 px-4 py-3 rounded-md text-blue-300 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 transition-colors duration-150 font-medium">
+                    <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Install App</span>
                 </button>
 
             </div>

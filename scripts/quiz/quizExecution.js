@@ -101,6 +101,7 @@ export function persistQuizProgress() {
         score: state.score,
         answers: state.userAnswers,
         shuffledIndices: state.shuffledIndices,
+        shuffledOptionsMap: state.shuffledOptionsMap,
         timeRemaining: state.timeRemaining,
         currentAttempts: state.currentAttempts
     });
@@ -269,6 +270,7 @@ export function startQuiz() {
     state.inSkippedRound = false;
     state.currentSkippedArray = [];
     state.currentAttempts = 0;
+    state.shuffledOptionsMap = {};
 
     nextUnansweredBtn?.classList.add('hidden');
     unansweredModal?.classList.add('hidden');
@@ -420,6 +422,45 @@ export function handleTimeUp() {
 }
 
 // ---------------------------------------------------------------------
+// QUESTION OPTIONS HELPER (Cached per question for stable ordering)
+// ---------------------------------------------------------------------
+export function getOrGenerateQuestionOptions(qData, origIdx) {
+    if (!state.shuffledOptionsMap) {
+        state.shuffledOptionsMap = {};
+    }
+    if (state.shuffledOptionsMap[origIdx]) {
+        return state.shuffledOptionsMap[origIdx];
+    }
+
+    const questionType = (qData.type || '').toString().trim().toLowerCase();
+    const isTrueFalse = questionType === 'true-or-false' || (
+        Array.isArray(qData.options) &&
+        qData.options.length === 2 &&
+        qData.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase()))
+    );
+
+    let opts = [];
+    if (isTrueFalse) {
+        opts = ["True", "False"];
+    } else {
+        const shuffleChoices = state.currentQuizConfig?.randomizeChoices !== false;
+        if (Array.isArray(qData.options)) {
+            opts = [...qData.options];
+            if (shuffleChoices) {
+                // Fisher-Yates shuffle for uniform randomization
+                for (let i = opts.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [opts[i], opts[j]] = [opts[j], opts[i]];
+                }
+            }
+        }
+    }
+
+    state.shuffledOptionsMap[origIdx] = opts;
+    return opts;
+}
+
+// ---------------------------------------------------------------------
 // MODERN INTERACTION MODE QUESTION RENDERER
 // ---------------------------------------------------------------------
 export function displayCurrentQuestion() {
@@ -531,13 +572,7 @@ export function displayCurrentQuestion() {
     // Render Answer Options based on question type
     if (questionType === 'multiple-choice' || questionType === 'true-or-false') {
         const isTrueFalse = questionType === 'true-or-false' || (Array.isArray(qData.options) && qData.options.length === 2 && qData.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())));
-        let opts = [];
-        if (isTrueFalse) {
-            opts = ["True", "False"];
-        } else {
-            const shuffleChoices = state.currentQuizConfig.randomizeChoices !== false;
-            opts = qData.options ? (shuffleChoices ? [...qData.options].sort(() => Math.random() - 0.5) : [...qData.options]) : [];
-        }
+        const opts = getOrGenerateQuestionOptions(qData, currOrigIdx);
 
         const optsCont = document.createElement('div');
         optsCont.className = isTrueFalse ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1 md:grid-cols-2 gap-4';
@@ -880,13 +915,7 @@ export function displayNextQuestion() {
 
     if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
         const isTrueFalse = qData.type === 'true-or-false' || (Array.isArray(qData.options) && qData.options.length === 2 && qData.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())));
-        let opts = [];
-        if (isTrueFalse) {
-            opts = ["True", "False"];
-        } else {
-            const shuffleChoices = state.currentQuizConfig.randomizeChoices !== false;
-            opts = qData.options ? (shuffleChoices ? [...qData.options].sort(() => Math.random() - 0.5) : [...qData.options]) : [];
-        }
+        const opts = getOrGenerateQuestionOptions(qData, nextIdx);
         const optsCont = document.createElement('div');
         optsCont.className = isTrueFalse ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1 md:grid-cols-2 gap-4';
         opts.forEach(opt => {
