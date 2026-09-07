@@ -318,23 +318,23 @@ export function showAllHistoryFullScreen(pushHash = true) {
                     <span>Load</span>
                 </button>
             </div>
-            <!-- Desktop buttons: Share, Edit, Load, Delete -->
+            <!-- Desktop buttons: Option, Edit, Load -->
             <div class="hidden md:flex flex-shrink-0 gap-1 sm:gap-2"> 
-                <button class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="share" title="Share / Export">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                    <span class="hidden sm:inline">Share</span>
+                <button class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs font-bold py-1 px-2.5 sm:px-3 rounded inline-flex items-center justify-center gap-1.5 border border-gray-600/60 transition-colors cursor-pointer" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="12" cy="19" r="2"/>
+                    </svg>
+                    <span>Option</span>
                 </button>
-                <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="customize" title="Edit">
+                <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1 transition-colors cursor-pointer" data-key="${key}" data-action="customize" title="Edit">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
-                    <span class="hidden sm:inline">Edit</span>
+                    <span>Edit</span>
                 </button>
-                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1" data-key="${key}" data-action="load" title="Load">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1 transition-colors cursor-pointer" data-key="${key}" data-action="load" title="Load">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
                     <span>Load</span>
-                </button>
-                <button class="bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 sm:px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="delete" title="Delete Quiz">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    <span class="hidden sm:inline">Delete</span>
                 </button>
             </div>
         `;

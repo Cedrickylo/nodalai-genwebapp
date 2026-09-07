@@ -84,6 +84,10 @@ import {
     showAllHistoryFullScreen
 } from './quiz/quizHistory.js';
 
+import {
+    initQuizStatisticsListeners
+} from './quiz/quizStatistics.js';
+
 import { 
     resetApp,
     resetStartViewUI,
@@ -167,7 +171,7 @@ export function attachQuizEventListeners() {
     nextUnansweredBtn?.addEventListener('click', handleNextUnansweredOrSubmit);
     skipQuestionBtn.addEventListener('click', skipQuestion);
     restartQuizBtn.addEventListener('click', () => resetApp(true));
-    exportQuizBtn.addEventListener('click', exportQuiz);
+    exportQuizBtn?.addEventListener('click', exportQuiz);
     elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
     // Help, About, and Account back buttons (navigate directly to homepage)
     elements.helpBackBtn?.addEventListener('click', () => showView('start'));
@@ -612,6 +616,16 @@ export function attachQuizEventListeners() {
     if (elements.historyActionsCancelBtn) {
         elements.historyActionsCancelBtn.addEventListener('click', () => closeHistoryActionsModal(false));
     }
+    if (elements.historySubmenuStatsBtn) {
+        elements.historySubmenuStatsBtn.addEventListener('click', async () => {
+            const key = state.activeHistoryMenuKey;
+            closeHistoryActionsModal(false, false);
+            if (key) {
+                const { openQuizStatistics } = await import('./quiz/quizStatistics.js');
+                openQuizStatistics(key);
+            }
+        });
+    }
     if (elements.historySubmenuShareBtn) {
         elements.historySubmenuShareBtn.addEventListener('click', () => {
             const key = state.activeHistoryMenuKey;
@@ -755,6 +769,8 @@ export function attachQuizEventListeners() {
             showToast(`Saved "${pending.fileName || 'Quiz'}" to history!`, 3000, 'success');
         });
     }
+
+    initQuizStatisticsListeners();
 }
 
 export function prepareResumeButton() {

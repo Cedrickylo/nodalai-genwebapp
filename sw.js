@@ -1,5 +1,5 @@
-// Incremented to v13 for PWA standalone capabilities and stable caching
-const CACHE_NAME = 'nodal-ai-cache-v13';
+// Incremented to v14 for Quiz Statistics, Test Review, and Desktop Options redesign
+const CACHE_NAME = 'nodal-ai-cache-v14';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
 const LOCAL_ASSETS_TO_CACHE = [
@@ -18,6 +18,7 @@ const LOCAL_ASSETS_TO_CACHE = [
     '/scripts/quiz/quizHistory.js',
     '/scripts/quiz/quizResults.js',
     '/scripts/quiz/quizUtils.js',
+    '/scripts/quiz/quizStatistics.js',
     '/icons/icon.svg',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
@@ -37,7 +38,7 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v13] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v14] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             for (const asset of LOCAL_ASSETS_TO_CACHE) {

@@ -2,7 +2,9 @@ import { elements, state, constants } from '../state.js';
 import {
     showView,
     clearInProgressQuiz,
-    saveInProgressQuiz
+    saveInProgressQuiz,
+    getQuizTakes,
+    saveQuizTake
 } from '../helpers.js';
 
 const {
@@ -138,6 +140,48 @@ export async function showResults() {
     }
     remedialOptionsView.classList.add('hidden');
     resultsActions.classList.remove('hidden');
+
+    // Persist completed take separately in nodal_quiz_takes_v1
+    const quizKey = state.currentQuizKey || (state.currentFileName ? state.currentFileName.replace(/[^a-zA-Z0-9_-]/g, '_') : 'quiz_' + Date.now());
+    const existingTakes = getQuizTakes(quizKey) || [];
+    const takeNumber = existingTakes.length + 1;
+    const now = Date.now();
+    const dateStr = new Date(now).toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+
+    const takeRecord = {
+        id: `take_${now}_${Math.random().toString(36).substring(2, 7)}`,
+        quizKey: quizKey,
+        takeNumber: takeNumber,
+        completedAt: now,
+        formattedDate: dateStr,
+        score: state.score,
+        totalQuestions: totalQ,
+        percentage: perc,
+        fileName: state.currentFileName || 'Quiz',
+        displayOrder: [...displayOrder],
+        questions: JSON.parse(JSON.stringify(state.questions)),
+        userAnswers: JSON.parse(JSON.stringify(state.userAnswers || [])),
+        shuffledIndices: state.shuffledIndices ? [...state.shuffledIndices] : [...displayOrder],
+        shuffledOptionsMap: state.shuffledOptionsMap ? JSON.parse(JSON.stringify(state.shuffledOptionsMap)) : {}
+    };
+
+    saveQuizTake(quizKey, takeRecord);
+    state.currentCompletedTake = takeRecord;
+    state.currentStatsQuizKey = quizKey;
+
+    // Wire up Review Quiz button to launch test review with 'results' origin
+    if (elements.reviewQuizBtn) {
+        elements.reviewQuizBtn.onclick = async () => {
+            const { openTestReview } = await import('./quizStatistics.js');
+            openTestReview(state.currentCompletedTake, 'results');
+        };
+    }
 }
 
 export function setupRemedialView() {

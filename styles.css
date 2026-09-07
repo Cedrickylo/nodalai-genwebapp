@@ -26,13 +26,17 @@
                 left: 0rem !important; /* Eliminates the -4rem exterior bleed row */
             }
 
-            /* Keep the history fullscreen card sized to the mobile viewport without its own scroll area */
-            #history-fullscreen-view {
+            /* Keep fullscreen cards sized to the mobile viewport without their own scroll area */
+            #history-fullscreen-view,
+            #statistics-view,
+            #review-view {
                 width: 100%;
                 max-width: none;
             }
 
-            #history-fullscreen-view > div {
+            #history-fullscreen-view > div,
+            #statistics-view > div,
+            #review-view > div {
                 min-height: calc(100dvh - 9rem);
                 display: flex;
                 flex-direction: column;
@@ -334,4 +338,95 @@
 .pwa-standalone {
     -webkit-tap-highlight-color: transparent;
 }
+
+/* ==========================================
+   QUIZ STATISTICS & TEST REVIEW STYLES
+   ========================================== */
+
+/* Breadcrumbs Navigation */
+.breadcrumb-nav button,
+.breadcrumb-nav a {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
+
+/* Stat Metric Card */
+.stat-metric-card {
+    background: rgba(31, 41, 55, 0.7);
+    border: 1px solid rgba(75, 85, 99, 0.6);
+    border-radius: 0.875rem;
+    padding: 1rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-metric-card:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Review Choice Cards */
+.review-choice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    border-width: 1.5px;
+    font-size: 0.9375rem;
+    transition: all 0.15s ease-in-out;
+}
+
+/* Correct Choice */
+.review-choice-correct {
+    background-color: rgba(6, 78, 59, 0.35) !important;
+    border-color: rgba(16, 185, 129, 0.8) !important;
+    color: #ecfdf5 !important;
+}
+
+/* User Incorrect Choice */
+.review-choice-incorrect {
+    background-color: rgba(136, 19, 55, 0.35) !important;
+    border-color: rgba(244, 63, 94, 0.8) !important;
+    color: #fff1f2 !important;
+}
+
+/* Unselected Neutral Choice */
+.review-choice-neutral {
+    background-color: rgba(31, 41, 55, 0.5);
+    border-color: rgba(75, 85, 99, 0.4);
+    color: #9ca3af;
+}
+
+/* Review Badge */
+.review-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.review-badge-user-correct {
+    background-color: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    color: #6ee7b7;
+}
+
+.review-badge-user-wrong {
+    background-color: rgba(244, 63, 94, 0.2);
+    border: 1px solid rgba(244, 63, 94, 0.5);
+    color: #fda4af;
+}
+
+.review-badge-correct-answer {
+    background-color: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #a7f3d0;
+}
+
 

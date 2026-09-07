@@ -9,7 +9,8 @@ export const constants = {
     GENERATION_LOG_CLOUD_KEY: 'AIQuizGenerationLog_v1',
     MIN_QUIZ_QUESTIONS: 5,
     MAX_QUIZ_QUESTIONS: 100,
-    WELCOME_DISMISSED_KEY: 'nodal_welcome_dismissed_v1' // Cleaned up duplicate
+    WELCOME_DISMISSED_KEY: 'nodal_welcome_dismissed_v1', // Cleaned up duplicate
+    QUIZ_ATTEMPTS_DB_KEY: 'nodal_quiz_takes_v1'
 };
 
 export const elements = {
@@ -21,7 +22,9 @@ export const elements = {
         'history-fullscreen': document.getElementById('history-fullscreen-view'),
         help: document.getElementById('help-view'),
         about: document.getElementById('about-view'),
-        account: document.getElementById('account-view')
+        account: document.getElementById('account-view'),
+        statistics: document.getElementById('statistics-view'),
+        review: document.getElementById('review-view')
     },
     account: document.getElementById('account-view'),
     globalSyncDone: document.getElementById('sync-icon-done'),
@@ -59,7 +62,8 @@ export const elements = {
     nextQuestionBtn: document.getElementById('next-question-btn'),
     skipQuestionBtn: document.getElementById('skip-question-btn'),
     restartQuizBtn: document.getElementById('restart-quiz-btn'),
-    exportQuizBtn: document.getElementById('export-quiz-btn'),
+    reviewQuizBtn: document.getElementById('review-quiz-btn'),
+    exportQuizBtn: document.getElementById('export-quiz-btn') || document.getElementById('review-quiz-btn'),
     homeBtn: document.getElementById('home-btn'),
     saveQuizBtn: document.getElementById('save-quiz-btn'),
     progressEl: document.getElementById('progress'),
@@ -241,7 +245,29 @@ export const elements = {
     sharedQuizCustomizeBtn: document.getElementById('shared-quiz-customize-btn'),
     sharedQuizSaveBtn: document.getElementById('shared-quiz-save-btn'),
     sharedQuizSaveText: document.getElementById('shared-quiz-save-text'),
-    sharedQuizCloseBtn: document.getElementById('shared-quiz-close-btn')
+    sharedQuizCloseBtn: document.getElementById('shared-quiz-close-btn'),
+    // Statistics & Review Elements
+    statisticsView: document.getElementById('statistics-view'),
+    statisticsBackBtn: document.getElementById('statistics-back-btn'),
+    statisticsTitle: document.getElementById('statistics-title'),
+    statisticsSyncBtn: document.getElementById('statistics-sync-btn'),
+    statisticsBreadcrumbs: document.getElementById('statistics-breadcrumbs'),
+    statsCrumbHistory: document.getElementById('stats-crumb-history'),
+    statisticsSummary: document.getElementById('statistics-summary'),
+    statisticsTakeCountBadge: document.getElementById('statistics-take-count-badge'),
+    statisticsTakesContainer: document.getElementById('statistics-takes-container'),
+    statisticsTakesList: document.getElementById('statistics-takes-list'),
+    
+    reviewView: document.getElementById('review-view'),
+    reviewBackBtn: document.getElementById('review-back-btn'),
+    reviewTitle: document.getElementById('review-title'),
+    reviewBreadcrumbs: document.getElementById('review-breadcrumbs'),
+    reviewCrumbHistory: document.getElementById('review-crumb-history'),
+    reviewCrumbStats: document.getElementById('review-crumb-stats'),
+    reviewTakeSummaryBanner: document.getElementById('review-take-summary-banner'),
+    reviewQuestionsContainer: document.getElementById('review-questions-container'),
+    reviewQuizBtn: document.getElementById('review-quiz-btn'),
+    historySubmenuStatsBtn: document.getElementById('history-submenu-stats-btn')
 };
 
 export const state = {
@@ -293,5 +319,9 @@ export const state = {
     questionTimerInterval: null,
     activeHistoryMenuKey: null,
     pendingSharedQuiz: null,
-    historyMenuOriginHash: '#history'
+    historyMenuOriginHash: '#history',
+    currentStatsQuizKey: null,
+    currentReviewTake: null,
+    reviewOrigin: 'statistics',
+    currentCompletedTake: null
 };
