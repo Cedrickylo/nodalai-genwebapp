@@ -10,7 +10,9 @@ export const constants = {
     MIN_QUIZ_QUESTIONS: 5,
     MAX_QUIZ_QUESTIONS: 100,
     WELCOME_DISMISSED_KEY: 'nodal_welcome_dismissed_v1', // Cleaned up duplicate
-    QUIZ_ATTEMPTS_DB_KEY: 'nodal_quiz_takes_v1'
+    QUIZ_ATTEMPTS_DB_KEY: 'nodal_quiz_takes_v1',
+    OFFLINE_DOWNLOADS_DB_KEY: 'nodal_offline_downloads_v1',
+    OFFLINE_EXPIRATION_MS: 7 * 24 * 60 * 60 * 1000
 };
 
 export const elements = {
@@ -24,7 +26,8 @@ export const elements = {
         about: document.getElementById('about-view'),
         account: document.getElementById('account-view'),
         statistics: document.getElementById('statistics-view'),
-        review: document.getElementById('review-view')
+        review: document.getElementById('review-view'),
+        downloads: document.getElementById('downloads-view')
     },
     account: document.getElementById('account-view'),
     globalSyncDone: document.getElementById('sync-icon-done'),
@@ -84,6 +87,7 @@ export const elements = {
     mobileNavMenuBtn: document.getElementById('mobile-nav-menu-btn'),
     mobileMenuModal: document.getElementById('mobile-menu-modal'),
     mobileMenuCloseBtn: document.getElementById('mobile-menu-close-btn'),
+    mobileMenuDownloadsBtn: document.getElementById('mobile-menu-downloads-btn'),
     mobileMenuHelpBtn: document.getElementById('mobile-menu-help-btn'),
     mobileMenuAboutBtn: document.getElementById('mobile-menu-about-btn'),
     mobileMenuAccountBtn: document.getElementById('mobile-menu-account-btn'),
@@ -91,6 +95,7 @@ export const elements = {
     mobileMenuBackdrop: document.getElementById('mobile-menu-backdrop'),
     desktopNavHomeBtn: document.getElementById('desktop-nav-home-btn'),
     desktopNavHistoryBtn: document.getElementById('desktop-nav-history-btn'),
+    desktopNavDownloadsBtn: document.getElementById('desktop-nav-downloads-btn'),
     desktopNavHelpBtn: document.getElementById('desktop-nav-help-btn'),
     desktopNavAboutBtn: document.getElementById('desktop-nav-about-btn'),
     desktopNavAccountBtn: document.getElementById('desktop-nav-account-btn'),
@@ -257,6 +262,10 @@ export const elements = {
     statisticsTakeCountBadge: document.getElementById('statistics-take-count-badge'),
     statisticsTakesContainer: document.getElementById('statistics-takes-container'),
     statisticsTakesList: document.getElementById('statistics-takes-list'),
+    statisticsOfflineBar: document.getElementById('statistics-offline-bar'),
+    statisticsOfflineStatusText: document.getElementById('statistics-offline-status-text'),
+    statisticsOfflineSubtext: document.getElementById('statistics-offline-subtext'),
+    statisticsOfflineManageBtn: document.getElementById('statistics-offline-manage-btn'),
     
     reviewView: document.getElementById('review-view'),
     reviewBackBtn: document.getElementById('review-back-btn'),
@@ -267,7 +276,34 @@ export const elements = {
     reviewTakeSummaryBanner: document.getElementById('review-take-summary-banner'),
     reviewQuestionsContainer: document.getElementById('review-questions-container'),
     reviewQuizBtn: document.getElementById('review-quiz-btn'),
-    historySubmenuStatsBtn: document.getElementById('history-submenu-stats-btn')
+    historySubmenuStatsBtn: document.getElementById('history-submenu-stats-btn'),
+    
+    // Downloads View Elements
+    downloadsView: document.getElementById('downloads-view'),
+    downloadsBackBtn: document.getElementById('downloads-back-btn'),
+    downloadsStorageBadge: document.getElementById('downloads-storage-badge'),
+    downloadsList: document.getElementById('downloads-list'),
+
+    // History Submenu Offline Button
+    historySubmenuOfflineBtn: document.getElementById('history-submenu-offline-btn'),
+    historySubmenuOfflineIconContainer: document.getElementById('history-submenu-offline-icon-container'),
+    historySubmenuOfflineIcon: document.getElementById('history-submenu-offline-icon'),
+    historySubmenuOfflineText: document.getElementById('history-submenu-offline-text'),
+    historySubmenuOfflineSubtext: document.getElementById('history-submenu-offline-subtext'),
+
+    // Offline Modal Elements
+    offlineModal: document.getElementById('offline-modal'),
+    offlineModalQuizTitle: document.getElementById('offline-modal-quiz-title'),
+    offlineModalCloseBtn: document.getElementById('offline-modal-close-btn'),
+    offlineModalStatusBadge: document.getElementById('offline-modal-status-badge'),
+    offlineModalStorageSize: document.getElementById('offline-modal-storage-size'),
+    offlineModalExpiry: document.getElementById('offline-modal-expiry'),
+    offlineModalProgressContainer: document.getElementById('offline-modal-progress-container'),
+    offlineModalProgressBar: document.getElementById('offline-modal-progress-bar'),
+    offlineModalProgressText: document.getElementById('offline-modal-progress-text'),
+    offlineModalDownloadBtn: document.getElementById('offline-modal-download-btn'),
+    offlineModalRenewBtn: document.getElementById('offline-modal-renew-btn'),
+    offlineModalRemoveBtn: document.getElementById('offline-modal-remove-btn')
 };
 
 export const state = {
@@ -323,5 +359,6 @@ export const state = {
     currentStatsQuizKey: null,
     currentReviewTake: null,
     reviewOrigin: 'statistics',
-    currentCompletedTake: null
+    currentCompletedTake: null,
+    activeOfflineModalKey: null
 };

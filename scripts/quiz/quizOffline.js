@@ -1,0 +1,765 @@
+import { elements, state, constants } from '../state.js';
+import {
+    showView,
+    showToast,
+    customConfirm,
+    formatTime,
+    getQuizTakes,
+    setupScrollReactiveHeader,
+    pushSubState,
+    clearSubState
+} from '../helpers.js';
+import { handleHistoryClick } from './quizHistory.js';
+
+/**
+ * Retrieves the offline downloads registry from localStorage.
+ * @returns {Record<string, { quizKey: string, fileName: string, downloadedAt: number, expiresAt: number, sizeBytes: number, isManual: boolean, isOptedOut?: boolean }>}
+ */
+export function getOfflineDownloads() {
+    try {
+        const dbKey = constants.OFFLINE_DOWNLOADS_DB_KEY || 'nodal_offline_downloads_v1';
+        const raw = localStorage.getItem(dbKey);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        console.error('[QuizOffline] Failed to parse offline downloads:', e);
+        return {};
+    }
+}
+
+/**
+ * Persists the offline downloads registry to localStorage.
+ * @param {Record<string, any>} downloads
+ */
+export function saveOfflineDownloads(downloads) {
+    try {
+        const dbKey = constants.OFFLINE_DOWNLOADS_DB_KEY || 'nodal_offline_downloads_v1';
+        localStorage.setItem(dbKey, JSON.stringify(downloads));
+    } catch (e) {
+        console.error('[QuizOffline] Failed to save offline downloads:', e);
+    }
+}
+
+/**
+ * Formats a byte number to a human-readable KB or MB string.
+ * @param {number} bytes
+ * @returns {string}
+ */
+export function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return '0 KB';
+    const kb = bytes / 1024;
+    if (kb < 1024) {
+        return `${kb.toFixed(1)} KB`;
+    }
+    const mb = kb / 1024;
+    return `${mb.toFixed(2)} MB`;
+}
+
+/**
+ * Calculates the exact storage consumption in bytes for a quiz and its statistics takes.
+ * @param {string} quizKey
+ * @returns {{ totalBytes: number, quizBytes: number, takesBytes: number, totalFormatted: string, quizFormatted: string, takesFormatted: string }}
+ */
+export function calculateQuizStorageBytes(quizKey) {
+    const quiz = (state.quizHistory && state.quizHistory[quizKey]) || {};
+    const takes = getQuizTakes(quizKey) || [];
+
+    const quizStr = JSON.stringify(quiz);
+    const takesStr = JSON.stringify(takes);
+
+    const encoder = new TextEncoder();
+    const quizBytes = encoder.encode(quizStr).length;
+    const takesBytes = encoder.encode(takesStr).length;
+    const totalBytes = quizBytes + takesBytes;
+
+    return {
+        totalBytes,
+        quizBytes,
+        takesBytes,
+        totalFormatted: formatBytes(totalBytes),
+        quizFormatted: formatBytes(quizBytes),
+        takesFormatted: formatBytes(takesBytes)
+    };
+}
+
+/**
+ * Formats remaining milliseconds into human-readable duration (e.g., '6 days', '14 hours').
+ * @param {number} ms
+ * @returns {string}
+ */
+export function formatTimeLeft(ms) {
+    if (ms <= 0) return 'Expired';
+    const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+
+    if (days > 1) {
+        return `${days} days`;
+    } else if (days === 1) {
+        return hours > 0 ? `1 day ${hours}h` : '1 day';
+    } else if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    } else {
+        return `${Math.max(1, minutes)}m`;
+    }
+}
+
+/**
+ * Checks whether a quiz is available for offline usage based on the 1-week retention policy.
+ * - Manual download active (expires 7 days from download)
+ * - Auto-offline active (created/imported < 7 days ago and not opted out)
+ * @param {string} quizKey
+ * @returns {{ available: boolean, isManual?: boolean, isAuto?: boolean, expiresAt?: number, downloadedAt?: number, remainingMs?: number, formattedTimeLeft?: string, sizeBytes?: number }}
+ */
+export function isQuizAvailableOffline(quizKey) {
+    if (!quizKey) return { available: false };
+
+    const downloads = getOfflineDownloads();
+    const record = downloads[quizKey];
+    const now = Date.now();
+
+    // Explicit opt-out flag (user manually clicked remove on an auto-offline quiz)
+    if (record && record.isOptedOut) {
+        return { available: false, remainingMs: 0 };
+    }
+
+    // 1. Check if active manual download exists
+    if (record && record.expiresAt && record.expiresAt > now && !record.isOptedOut) {
+        const remainingMs = record.expiresAt - now;
+        return {
+            available: true,
+            isManual: true,
+            isAuto: false,
+            expiresAt: record.expiresAt,
+            downloadedAt: record.downloadedAt,
+            remainingMs,
+            formattedTimeLeft: formatTimeLeft(remainingMs),
+            sizeBytes: record.sizeBytes || 0
+        };
+    }
+
+    // 2. Check 1-week auto-offline window (< 7 days from creation/import)
+    const quiz = state.quizHistory && state.quizHistory[quizKey];
+    if (quiz && quiz.timestamp) {
+        const expiryMs = constants.OFFLINE_EXPIRATION_MS || (7 * 24 * 60 * 60 * 1000);
+        const autoExpiresAt = quiz.timestamp + expiryMs;
+        if (autoExpiresAt > now) {
+            const remainingMs = autoExpiresAt - now;
+            return {
+                available: true,
+                isManual: false,
+                isAuto: true,
+                expiresAt: autoExpiresAt,
+                downloadedAt: quiz.timestamp,
+                remainingMs,
+                formattedTimeLeft: formatTimeLeft(remainingMs),
+                sizeBytes: record?.sizeBytes || 0
+            };
+        }
+    }
+
+    return { available: false, remainingMs: 0 };
+}
+
+/**
+ * Prunes expired offline downloads according to the 1-week retention rule.
+ * @returns {string[]} List of quiz keys whose offline access has expired
+ */
+export function pruneExpiredOfflineDownloads() {
+    const downloads = getOfflineDownloads();
+    const now = Date.now();
+    let modified = false;
+    const expiredKeys = [];
+
+    for (const [key, record] of Object.entries(downloads)) {
+        if (record.expiresAt && record.expiresAt <= now) {
+            delete downloads[key];
+            expiredKeys.push(key);
+            modified = true;
+        }
+    }
+
+    if (modified) {
+        saveOfflineDownloads(downloads);
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'PRUNE_EXPIRED_QUIZZES',
+                expiredKeys
+            });
+        }
+    }
+
+    return expiredKeys;
+}
+
+/**
+ * Downloads a quiz and its statistics for 1 week of offline use.
+ * @param {string} quizKey
+ * @param {(progress: number) => void} [onProgress]
+ * @returns {Promise<{ quizKey: string, expiresAt: number, sizeBytes: number }>}
+ */
+export async function downloadQuizForOffline(quizKey, onProgress) {
+    const quiz = state.quizHistory && state.quizHistory[quizKey];
+    if (!quiz) throw new Error('Quiz not found in history');
+
+    const takes = getQuizTakes(quizKey) || [];
+    const storageInfo = calculateQuizStorageBytes(quizKey);
+
+    // Simulate progress steps
+    const setProg = (p) => {
+        if (onProgress) onProgress(p);
+        if (elements.offlineModalProgressBar) {
+            elements.offlineModalProgressBar.style.width = `${p}%`;
+        }
+    };
+
+    setProg(15);
+    await new Promise((r) => setTimeout(r, 120));
+    setProg(55);
+    await new Promise((r) => setTimeout(r, 150));
+    setProg(90);
+    await new Promise((r) => setTimeout(r, 100));
+
+    const now = Date.now();
+    const expiryMs = constants.OFFLINE_EXPIRATION_MS || (7 * 24 * 60 * 60 * 1000);
+    const expiresAt = now + expiryMs;
+
+    const record = {
+        quizKey,
+        fileName: quiz.fileName || 'Untitled Quiz',
+        downloadedAt: now,
+        expiresAt,
+        sizeBytes: storageInfo.totalBytes,
+        isManual: true,
+        isOptedOut: false
+    };
+
+    const downloads = getOfflineDownloads();
+    downloads[quizKey] = record;
+    saveOfflineDownloads(downloads);
+
+    // Send payload to Service Worker for dedicated offline caching
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'CACHE_OFFLINE_QUIZ',
+            quizKey,
+            quizData: quiz,
+            takesData: takes,
+            expiresAt
+        });
+    }
+
+    setProg(100);
+    await new Promise((r) => setTimeout(r, 100));
+
+    return record;
+}
+
+/**
+ * Removes a quiz and its cached statistics from offline storage.
+ * @param {string} quizKey
+ */
+export async function removeQuizFromOffline(quizKey) {
+    const downloads = getOfflineDownloads();
+    // Mark opted-out so auto 7-day window doesn't immediately bring it back
+    downloads[quizKey] = {
+        quizKey,
+        isOptedOut: true,
+        expiresAt: 0
+    };
+    saveOfflineDownloads(downloads);
+
+    // Notify Service Worker to purge synthetic offline responses
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'REMOVE_OFFLINE_QUIZ',
+            quizKey
+        });
+    }
+}
+
+/**
+ * Renews the 1-week offline timer for an already downloaded quiz.
+ * @param {string} quizKey
+ * @returns {Promise<{ quizKey: string, expiresAt: number }>}
+ */
+export async function renewQuizOfflineAccess(quizKey) {
+    return downloadQuizForOffline(quizKey);
+}
+
+/**
+ * Opens the Offline Download & Management Modal for a quiz.
+ * @param {string} quizKey
+ */
+export function openOfflineModal(quizKey) {
+    if (!quizKey || !elements.offlineModal) return;
+
+    state.activeOfflineModalKey = quizKey;
+    const quiz = (state.quizHistory && state.quizHistory[quizKey]) || {};
+    const title = quiz.fileName || 'Quiz Details';
+
+    if (elements.offlineModalQuizTitle) {
+        elements.offlineModalQuizTitle.textContent = title;
+    }
+
+    const storage = calculateQuizStorageBytes(quizKey);
+    if (elements.offlineModalStorageSize) {
+        elements.offlineModalStorageSize.textContent = `${storage.totalFormatted} (Quiz: ${storage.quizFormatted}, Stats: ${storage.takesFormatted})`;
+    }
+
+    // Reset progress container
+    if (elements.offlineModalProgressContainer) {
+        elements.offlineModalProgressContainer.classList.add('hidden');
+    }
+    if (elements.offlineModalProgressBar) {
+        elements.offlineModalProgressBar.style.width = '0%';
+    }
+
+    refreshOfflineModalContent(quizKey);
+
+    elements.offlineModal.classList.remove('hidden');
+    pushSubState('#offline-modal');
+}
+
+/**
+ * Updates the modal UI based on whether the quiz is currently available offline.
+ * @param {string} quizKey
+ */
+export function refreshOfflineModalContent(quizKey) {
+    const status = isQuizAvailableOffline(quizKey);
+
+    if (elements.offlineModalStatusBadge) {
+        if (status.available) {
+            elements.offlineModalStatusBadge.textContent = 'Available Offline';
+            elements.offlineModalStatusBadge.className = 'px-2.5 py-0.5 rounded-full font-semibold text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        } else {
+            elements.offlineModalStatusBadge.textContent = 'Not Downloaded';
+            elements.offlineModalStatusBadge.className = 'px-2.5 py-0.5 rounded-full font-semibold text-xs bg-gray-700/60 text-gray-400 border border-gray-600/40';
+        }
+    }
+
+    if (elements.offlineModalExpiry) {
+        if (status.available && status.expiresAt) {
+            const expDate = new Date(status.expiresAt).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            elements.offlineModalExpiry.textContent = `${expDate} (${status.formattedTimeLeft} remaining)`;
+            elements.offlineModalExpiry.className = 'font-medium text-emerald-400';
+        } else {
+            elements.offlineModalExpiry.textContent = '7 days from download';
+            elements.offlineModalExpiry.className = 'font-medium text-amber-300';
+        }
+    }
+
+    // Configure buttons:
+    // If available: download button acts as "Already Available" (clicking it asks to remove),
+    // and Renew & Remove buttons are displayed.
+    if (status.available) {
+        if (elements.offlineModalDownloadBtn) {
+            elements.offlineModalDownloadBtn.textContent = 'Available Offline (Tap to Remove)';
+            elements.offlineModalDownloadBtn.className = 'w-full py-2.5 bg-cyan-800/60 hover:bg-rose-900/60 text-cyan-200 hover:text-rose-200 border border-cyan-700/60 hover:border-rose-700 font-semibold rounded-xl text-center text-sm transition-colors cursor-pointer shadow-md';
+        }
+        if (elements.offlineModalRenewBtn) {
+            elements.offlineModalRenewBtn.classList.remove('hidden');
+        }
+        if (elements.offlineModalRemoveBtn) {
+            elements.offlineModalRemoveBtn.classList.remove('hidden');
+        }
+    } else {
+        if (elements.offlineModalDownloadBtn) {
+            elements.offlineModalDownloadBtn.textContent = 'Download for Offline Use';
+            elements.offlineModalDownloadBtn.className = 'w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-xl text-center text-sm transition-colors cursor-pointer shadow-md';
+        }
+        if (elements.offlineModalRenewBtn) {
+            elements.offlineModalRenewBtn.classList.add('hidden');
+        }
+        if (elements.offlineModalRemoveBtn) {
+            elements.offlineModalRemoveBtn.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Closes the Offline Download Modal.
+ * @param {boolean} isFromPopState
+ * @param {boolean} popHistory
+ */
+export function closeOfflineModal(isFromPopState = false, popHistory = true) {
+    if (!elements.offlineModal || elements.offlineModal.classList.contains('hidden')) return;
+
+    elements.offlineModal.classList.add('hidden');
+    clearSubState('#offline-modal');
+
+    if (popHistory && !isFromPopState && window.location.hash === '#offline-modal') {
+        window.history.back();
+    }
+
+    state.activeOfflineModalKey = null;
+}
+
+/**
+ * Dynamically updates the Offline button inside the Options modal (#history-actions-modal).
+ * @param {string} quizKey
+ */
+export function updateHistorySubmenuOfflineButton(quizKey) {
+    if (!elements.historySubmenuOfflineBtn) return;
+
+    const status = isQuizAvailableOffline(quizKey);
+
+    if (status.available) {
+        if (elements.historySubmenuOfflineText) {
+            elements.historySubmenuOfflineText.textContent = 'Available Offline';
+            elements.historySubmenuOfflineText.className = 'block text-sm font-semibold text-emerald-200';
+        }
+        if (elements.historySubmenuOfflineSubtext) {
+            elements.historySubmenuOfflineSubtext.textContent = `Expires in ${status.formattedTimeLeft} • Tap to manage or remove`;
+            elements.historySubmenuOfflineSubtext.className = 'block text-xs text-emerald-300/80';
+        }
+        if (elements.historySubmenuOfflineIconContainer) {
+            elements.historySubmenuOfflineIconContainer.className = 'p-2.5 bg-emerald-500/20 text-emerald-400 rounded-lg flex-shrink-0';
+            elements.historySubmenuOfflineIconContainer.innerHTML = `
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 6L9 17l-5-5"></path>
+                </svg>
+            `;
+        }
+        elements.historySubmenuOfflineBtn.className = 'w-full flex items-center gap-3.5 p-3 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/50 text-left transition-colors cursor-pointer';
+    } else {
+        if (elements.historySubmenuOfflineText) {
+            elements.historySubmenuOfflineText.textContent = 'Make Available Offline';
+            elements.historySubmenuOfflineText.className = 'block text-sm font-semibold text-cyan-200';
+        }
+        if (elements.historySubmenuOfflineSubtext) {
+            elements.historySubmenuOfflineSubtext.textContent = 'Download quiz & stats for 1 week offline use';
+            elements.historySubmenuOfflineSubtext.className = 'block text-xs text-cyan-300/70';
+        }
+        if (elements.historySubmenuOfflineIconContainer) {
+            elements.historySubmenuOfflineIconContainer.className = 'p-2.5 bg-cyan-500/20 text-cyan-400 rounded-lg flex-shrink-0';
+            elements.historySubmenuOfflineIconContainer.innerHTML = `
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            `;
+        }
+        elements.historySubmenuOfflineBtn.className = 'w-full flex items-center gap-3.5 p-3 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-800/50 text-left transition-colors cursor-pointer';
+    }
+}
+
+/**
+ * Updates the Offline status bar inside the Quiz Statistics view.
+ * @param {string} quizKey
+ */
+export function updateStatisticsOfflineBar(quizKey) {
+    if (!elements.statisticsOfflineBar) return;
+
+    const status = isQuizAvailableOffline(quizKey);
+
+    if (elements.statisticsOfflineStatusText) {
+        elements.statisticsOfflineStatusText.textContent = status.available ? 'Available Offline' : 'Not Available Offline';
+        elements.statisticsOfflineStatusText.className = status.available ? 'text-emerald-300 font-semibold block truncate' : 'text-gray-300 font-medium block truncate';
+    }
+
+    if (elements.statisticsOfflineSubtext) {
+        if (status.available) {
+            elements.statisticsOfflineSubtext.textContent = `Expires in ${status.formattedTimeLeft} • Saved with statistics`;
+            elements.statisticsOfflineSubtext.className = 'text-emerald-400/80 text-[11px] block truncate';
+        } else {
+            elements.statisticsOfflineSubtext.textContent = 'Download quiz & retakes to practice without internet';
+            elements.statisticsOfflineSubtext.className = 'text-gray-400 text-[11px] block truncate';
+        }
+    }
+
+    if (elements.statisticsOfflineManageBtn) {
+        elements.statisticsOfflineManageBtn.textContent = status.available ? 'Manage Offline' : 'Make Offline';
+        elements.statisticsOfflineManageBtn.className = status.available
+            ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer flex-shrink-0'
+            : 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/40 transition-colors cursor-pointer flex-shrink-0';
+    }
+}
+
+/**
+ * Renders the full Downloads page (#downloads-view) with active offline quizzes.
+ * @param {boolean} pushHash - Whether to push the #downloads hash to browser history
+ */
+export function renderDownloadsView(pushHash = true) {
+    const container = elements.downloadsList || document.getElementById('downloads-list');
+    if (!container) return;
+
+    pruneExpiredOfflineDownloads();
+    showView('downloads', pushHash);
+
+    const db = state.quizHistory || {};
+    const offlineQuizzes = [];
+    let totalBytesAll = 0;
+
+    for (const [key, quiz] of Object.entries(db)) {
+        const offlineInfo = isQuizAvailableOffline(key);
+        if (offlineInfo.available) {
+            const storage = calculateQuizStorageBytes(key);
+            totalBytesAll += storage.totalBytes;
+            offlineQuizzes.push({
+                key,
+                quiz,
+                offlineInfo,
+                storage
+            });
+        }
+    }
+
+    // Update storage badge in header
+    if (elements.downloadsStorageBadge) {
+        elements.downloadsStorageBadge.textContent = formatBytes(totalBytesAll);
+    }
+
+    // Sort by expiration ascending (expiring soonest on top)
+    offlineQuizzes.sort((a, b) => (a.offlineInfo.expiresAt || 0) - (b.offlineInfo.expiresAt || 0));
+
+    container.innerHTML = '';
+
+    if (offlineQuizzes.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12 px-4 space-y-3">
+                <div class="p-3 bg-cyan-500/10 text-cyan-400 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-200">No Offline Downloads</h3>
+                <p class="text-xs text-gray-400 max-w-sm mx-auto">You don't have any quizzes saved for offline use yet. In History, open Quiz Options on any quiz and tap "Make Available Offline" to access it without an internet connection.</p>
+            </div>
+        `;
+        setupScrollReactiveHeader('downloads');
+        return;
+    }
+
+    offlineQuizzes.forEach(({ key, quiz, offlineInfo, storage }) => {
+        const item = document.createElement('div');
+        item.className = 'p-3 sm:p-4 bg-gray-700/50 rounded-xl flex justify-between items-center gap-2 border border-gray-600/50';
+
+        const config = quiz.config || {};
+        const tInfo = formatTime(config.totalTime);
+        let diffTxt = config.difficulty ? `(${config.difficulty}` : '(';
+        if (config.difficulty === 'custom' && config.customTypeShort) {
+            diffTxt += `: ${config.customTypeShort})`;
+        } else if (config.difficulty) {
+            diffTxt += ')';
+        } else {
+            diffTxt += `${config.type || 'mixed'})`;
+        }
+
+        const remainingMs = offlineInfo.remainingMs || 0;
+        const daysLeft = Math.floor(remainingMs / (24 * 60 * 60 * 1000));
+        let badgeClass = 'expiry-badge-fresh';
+        if (daysLeft < 1) {
+            badgeClass = 'expiry-badge-critical';
+        } else if (daysLeft <= 3) {
+            badgeClass = 'expiry-badge-warning';
+        }
+
+        const expiryBadgeHTML = `
+            <span class="expiry-badge ${badgeClass}" title="Expires in ${offlineInfo.formattedTimeLeft}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Expires in ${offlineInfo.formattedTimeLeft}</span>
+            </span>
+        `;
+
+        const titleHtml = `
+            <div class="flex items-center gap-2 min-w-0 mb-1 w-full flex-wrap">
+                <p class="font-semibold text-sm truncate min-w-0 text-white" title="${quiz.fileName || 'Untitled'}">
+                    ${quiz.fileName || 'Untitled'}
+                </p>
+                ${expiryBadgeHTML}
+                <span class="offline-pill" title="Total offline storage: Quiz + statistics">
+                    ${storage.totalFormatted}
+                </span>
+            </div>
+        `;
+
+        item.innerHTML = `
+            <div class="flex-grow min-w-0 mr-4 overflow-hidden">
+                ${titleHtml}
+                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} • Saved with statistics</p>
+            </div>
+            <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
+            <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
+                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 p-1.5 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors cursor-pointer" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="12" cy="19" r="2"/>
+                    </svg>
+                </button>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors cursor-pointer" data-key="${key}" data-action="load" title="Load Quiz">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    <span>Load</span>
+                </button>
+            </div>
+            <!-- Desktop buttons: Option, Edit, Load -->
+            <div class="hidden md:flex flex-shrink-0 gap-1 sm:gap-2">
+                <button class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs font-bold py-1 px-2.5 sm:px-3 rounded inline-flex items-center justify-center gap-1.5 border border-gray-600/60 transition-colors cursor-pointer" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="12" cy="19" r="2"/>
+                    </svg>
+                    <span>Option</span>
+                </button>
+                <button class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1 transition-colors cursor-pointer" data-key="${key}" data-action="customize" title="Edit">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                    <span>Edit</span>
+                </button>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2 sm:px-3 rounded inline-flex items-center justify-center gap-1 transition-colors cursor-pointer" data-key="${key}" data-action="load" title="Load">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    <span>Load</span>
+                </button>
+            </div>
+        `;
+
+        container.appendChild(item);
+    });
+
+    container.onclick = handleHistoryClick;
+    setupScrollReactiveHeader('downloads');
+}
+
+/**
+ * Initializes all event listeners for offline modal buttons and manage triggers.
+ */
+export function initQuizOfflineListeners() {
+    // 1. Modal Close Button
+    if (elements.offlineModalCloseBtn) {
+        elements.offlineModalCloseBtn.addEventListener('click', () => closeOfflineModal(false));
+    }
+
+    // 2. Download / Action Button in Modal
+    if (elements.offlineModalDownloadBtn) {
+        elements.offlineModalDownloadBtn.addEventListener('click', async () => {
+            const key = state.activeOfflineModalKey;
+            if (!key) return;
+
+            const status = isQuizAvailableOffline(key);
+
+            // If already downloaded: prompt with confirmation modal to remove from offline
+            if (status.available) {
+                const confirmed = await customConfirm(
+                    'Remove this quiz and its statistics from offline use? It will no longer be accessible without an active internet connection.',
+                    'Remove Offline Access',
+                    'Remove',
+                    'Keep Offline',
+                    true
+                );
+                if (!confirmed) return;
+
+                await removeQuizFromOffline(key);
+                showToast('Removed from offline downloads.', 3000, 'info');
+                refreshOfflineModalContent(key);
+                updateHistorySubmenuOfflineButton(key);
+                updateStatisticsOfflineBar(key);
+
+                if (elements.views.downloads && elements.views.downloads.classList.contains('active')) {
+                    renderDownloadsView(false);
+                }
+                return;
+            }
+
+            // Otherwise, perform the download
+            try {
+                if (elements.offlineModalProgressContainer) {
+                    elements.offlineModalProgressContainer.classList.remove('hidden');
+                }
+                elements.offlineModalDownloadBtn.disabled = true;
+                await downloadQuizForOffline(key);
+                showToast('Quiz & statistics saved offline for 1 week!', 3000, 'success');
+                refreshOfflineModalContent(key);
+                updateHistorySubmenuOfflineButton(key);
+                updateStatisticsOfflineBar(key);
+
+                if (elements.views.downloads && elements.views.downloads.classList.contains('active')) {
+                    renderDownloadsView(false);
+                }
+            } catch (err) {
+                console.error('[QuizOffline] Download failed:', err);
+                showToast('Failed to save quiz offline.', 3000, 'error');
+            } finally {
+                elements.offlineModalDownloadBtn.disabled = false;
+                if (elements.offlineModalProgressContainer) {
+                    elements.offlineModalProgressContainer.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    // 3. Renew Button in Modal (+7 Days)
+    if (elements.offlineModalRenewBtn) {
+        elements.offlineModalRenewBtn.addEventListener('click', async () => {
+            const key = state.activeOfflineModalKey;
+            if (!key) return;
+
+            try {
+                if (elements.offlineModalProgressContainer) {
+                    elements.offlineModalProgressContainer.classList.remove('hidden');
+                }
+                elements.offlineModalRenewBtn.disabled = true;
+                await renewQuizOfflineAccess(key);
+                showToast('Offline access renewed for 1 week!', 3000, 'success');
+                refreshOfflineModalContent(key);
+                updateHistorySubmenuOfflineButton(key);
+                updateStatisticsOfflineBar(key);
+
+                if (elements.views.downloads && elements.views.downloads.classList.contains('active')) {
+                    renderDownloadsView(false);
+                }
+            } catch (err) {
+                console.error('[QuizOffline] Renew failed:', err);
+                showToast('Failed to renew offline access.', 3000, 'error');
+            } finally {
+                elements.offlineModalRenewBtn.disabled = false;
+                if (elements.offlineModalProgressContainer) {
+                    elements.offlineModalProgressContainer.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    // 4. Remove Button in Modal (with customConfirm)
+    if (elements.offlineModalRemoveBtn) {
+        elements.offlineModalRemoveBtn.addEventListener('click', async () => {
+            const key = state.activeOfflineModalKey;
+            if (!key) return;
+
+            const confirmed = await customConfirm(
+                'Remove this quiz and its statistics from offline use? It will no longer be accessible without an active internet connection.',
+                'Remove Offline Access',
+                'Remove',
+                'Keep Offline',
+                true
+            );
+            if (!confirmed) return;
+
+            await removeQuizFromOffline(key);
+            showToast('Quiz and statistics removed from offline storage.', 3000, 'info');
+            refreshOfflineModalContent(key);
+            updateHistorySubmenuOfflineButton(key);
+            updateStatisticsOfflineBar(key);
+
+            if (elements.views.downloads && elements.views.downloads.classList.contains('active')) {
+                renderDownloadsView(false);
+            }
+        });
+    }
+
+    // 5. Statistics Offline Manage Button
+    if (elements.statisticsOfflineManageBtn) {
+        elements.statisticsOfflineManageBtn.addEventListener('click', () => {
+            if (state.currentStatsQuizKey) {
+                openOfflineModal(state.currentStatsQuizKey);
+            }
+        });
+    }
+}

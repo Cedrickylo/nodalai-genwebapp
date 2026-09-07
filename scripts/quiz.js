@@ -380,6 +380,7 @@ export function attachQuizEventListeners() {
                 const map = {
                     home: elements.desktopNavHomeBtn,
                     history: elements.desktopNavHistoryBtn,
+                    downloads: elements.desktopNavDownloadsBtn,
                     help: elements.desktopNavHelpBtn,
                     about: elements.desktopNavAboutBtn,
                     account: elements.desktopNavAccountBtn
@@ -413,6 +414,11 @@ export function attachQuizEventListeners() {
             elements.mobileMenuBackdrop?.addEventListener('click', () => {
                 if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
             });
+            elements.mobileMenuDownloadsBtn?.addEventListener('click', async () => {
+                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
+                const { renderDownloadsView } = await import('./quiz/quizOffline.js');
+                renderDownloadsView();
+            });
             elements.mobileMenuHelpBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('help'); });
             elements.mobileMenuAboutBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('about'); });
             elements.mobileMenuAccountBtn?.addEventListener('click', async () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); await openAccountAsView(); });
@@ -420,9 +426,20 @@ export function attachQuizEventListeners() {
             // Desktop nav handlers
             elements.desktopNavHomeBtn?.addEventListener('click', () => { setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
             elements.desktopNavHistoryBtn?.addEventListener('click', () => { setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
+            elements.desktopNavDownloadsBtn?.addEventListener('click', async () => {
+                setDesktopNavActive('downloads');
+                const { renderDownloadsView } = await import('./quiz/quizOffline.js');
+                renderDownloadsView();
+            });
             elements.desktopNavHelpBtn?.addEventListener('click', () => { setDesktopNavActive('help'); showView('help'); });
             elements.desktopNavAboutBtn?.addEventListener('click', () => { setDesktopNavActive('about'); showView('about'); });
             elements.desktopNavAccountBtn?.addEventListener('click', async () => { setDesktopNavActive('account'); await openAccountAsView(); });
+
+            // Downloads Back button
+            elements.downloadsBackBtn?.addEventListener('click', () => {
+                setDesktopNavActive('home'); setMobileNavActive('home');
+                showView('start');
+            });
     
     cancelCustomizeBtn.addEventListener('click', async () => {
         const { hasUnsavedChanges, clearSubState } = await import('./helpers.js');
@@ -615,6 +632,16 @@ export function attachQuizEventListeners() {
     }
     if (elements.historyActionsCancelBtn) {
         elements.historyActionsCancelBtn.addEventListener('click', () => closeHistoryActionsModal(false));
+    }
+    if (elements.historySubmenuOfflineBtn) {
+        elements.historySubmenuOfflineBtn.addEventListener('click', async () => {
+            const key = state.activeHistoryMenuKey;
+            closeHistoryActionsModal(false, false);
+            if (key) {
+                const { openOfflineModal } = await import('./quiz/quizOffline.js');
+                openOfflineModal(key);
+            }
+        });
     }
     if (elements.historySubmenuStatsBtn) {
         elements.historySubmenuStatsBtn.addEventListener('click', async () => {
@@ -867,3 +894,10 @@ if (clearFilesBtn) {
         }
     });
 }
+
+// Initialize Offline downloads listeners and prune expired downloads on startup
+import('./quiz/quizOffline.js').then(({ initQuizOfflineListeners, pruneExpiredOfflineDownloads }) => {
+    initQuizOfflineListeners();
+    pruneExpiredOfflineDownloads();
+}).catch(err => console.error('[Quiz] Failed to initialize offline module:', err));
+

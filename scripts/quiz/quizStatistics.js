@@ -1,5 +1,6 @@
 import { elements, state, constants } from '../state.js';
 import { showView, getQuizTakes } from '../helpers.js';
+import { updateStatisticsOfflineBar } from './quizOffline.js';
 
 /**
  * Opens the dedicated Statistics view for a specific quiz
@@ -26,6 +27,8 @@ export function renderQuizStatistics(quizKey) {
     if (elements.statisticsTitle) {
         elements.statisticsTitle.textContent = `${title} - Statistics`;
     }
+
+    updateStatisticsOfflineBar(quizKey);
 
     const takes = getQuizTakes(quizKey) || [];
     const takeCount = takes.length;

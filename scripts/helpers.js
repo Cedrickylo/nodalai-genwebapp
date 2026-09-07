@@ -951,7 +951,7 @@ export function updateNavHighlights(activeKey) {
     }
 
     // --- NEW: Track if current layout is nested inside the Mobile Menu overlay drawer ---
-    const isMenuPage = ['help', 'about', 'account'].includes(activeKey);
+    const isMenuPage = ['help', 'about', 'account', 'downloads'].includes(activeKey);
     if (elements.mobileNavMenuBtn) {
         elements.mobileNavMenuBtn.classList.toggle('text-white', isMenuPage);
         elements.mobileNavMenuBtn.classList.toggle('bg-blue-600', isMenuPage);
@@ -959,6 +959,12 @@ export function updateNavHighlights(activeKey) {
     }
 
     // --- NEW: Active context highlights directly on buttons inside the open Modal list ---
+    if (elements.mobileMenuDownloadsBtn) {
+        elements.mobileMenuDownloadsBtn.classList.toggle('text-white', activeKey === 'downloads');
+        elements.mobileMenuDownloadsBtn.classList.toggle('bg-blue-600', activeKey === 'downloads');
+        elements.mobileMenuDownloadsBtn.classList.toggle('bg-gray-700/30', activeKey !== 'downloads');
+        elements.mobileMenuDownloadsBtn.classList.toggle('text-gray-300', activeKey !== 'downloads');
+    }
     if (elements.mobileMenuHelpBtn) {
         elements.mobileMenuHelpBtn.classList.toggle('text-white', activeKey === 'help');
         elements.mobileMenuHelpBtn.classList.toggle('bg-blue-600', activeKey === 'help');
@@ -982,6 +988,7 @@ export function updateNavHighlights(activeKey) {
     const map = {
         home: elements.desktopNavHomeBtn,
         history: elements.desktopNavHistoryBtn,
+        downloads: elements.desktopNavDownloadsBtn,
         help: elements.desktopNavHelpBtn,
         about: elements.desktopNavAboutBtn,
         account: elements.desktopNavAccountBtn
@@ -1025,6 +1032,10 @@ export function setupScrollReactiveHeader(viewId) {
         review: {
             headerSelector: '#review-view .scroll-reactive-header',
             sentinelId: 'review-header-sentinel'
+        },
+        downloads: {
+            headerSelector: '#downloads-view .scroll-reactive-header',
+            sentinelId: 'downloads-header-sentinel'
         }
     };
 
@@ -1052,6 +1063,7 @@ export function viewToHash(viewId) {
     switch (viewId) {
         case 'start': return '#home';
         case 'history-fullscreen': return '#history';
+        case 'downloads': return '#downloads';
         case 'help': return '#help';
         case 'about': return '#about';
         case 'account': return '#account';
@@ -1070,6 +1082,7 @@ export function hashToView(hash) {
         case 'home':
         case '': return 'start';
         case 'history': return 'history-fullscreen';
+        case 'downloads': return 'downloads';
         case 'help': return 'help';
         case 'about': return 'about';
         case 'account': return 'account';
@@ -1094,7 +1107,8 @@ export const SUB_STATE_HASHES = [
     '#history-actions',
     '#shared-quiz',
     '#statistics',
-    '#review'
+    '#review',
+    '#offline-modal'
 ];
 
 export function pushSubState(hash) {
@@ -1148,6 +1162,9 @@ export function isSubStateAuthorized(hash) {
     }
     if (hash === '#review') {
         return !!state.currentReviewTake;
+    }
+    if (hash === '#offline-modal') {
+        return elements.offlineModal && !elements.offlineModal.classList.contains('hidden');
     }
     return true;
 }
@@ -1281,6 +1298,14 @@ export async function handlePopState(event) {
             }
         }
 
+        // 5c. Offline Download Modal Dismiss
+        if (elements.offlineModal && !elements.offlineModal.classList.contains('hidden')) {
+            if (targetHash !== '#offline-modal') {
+                const { closeOfflineModal } = await import('./quiz/quizOffline.js');
+                closeOfflineModal(true);
+            }
+        }
+
         // 6. Active Quiz (#quiz) - Prompt before leaving
         if (currentViewId === 'quiz') {
             window.history.pushState({ view: 'quiz' }, '', '#quiz');
@@ -1371,6 +1396,9 @@ export async function handlePopState(event) {
                 const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
                 showAllHistoryFullScreen(false);
             }
+        } else if (targetViewId === 'downloads') {
+            const { renderDownloadsView } = await import('./quiz/quizOffline.js');
+            renderDownloadsView(false);
         } else if (targetViewId === 'review') {
             if (state.currentReviewTake) {
                 const { renderTestReview } = await import('./quiz/quizStatistics.js');
@@ -2397,7 +2425,7 @@ export function initWelcomeModal() {
 // ==========================================
 // MOBILE HISTORY ACTIONS SUBMENU MODAL
 // ==========================================
-export function openHistoryActionsModal(quizKey) {
+export async function openHistoryActionsModal(quizKey) {
     if (!elements.historyActionsModal) return;
     state.activeHistoryMenuKey = quizKey;
     state.historyMenuOriginHash = window.location.hash || '#history';
@@ -2407,6 +2435,8 @@ export function openHistoryActionsModal(quizKey) {
     if (elements.historySubmenuQuizTitle) {
         elements.historySubmenuQuizTitle.textContent = title;
     }
+    const { updateHistorySubmenuOfflineButton } = await import('./quiz/quizOffline.js');
+    updateHistorySubmenuOfflineButton(quizKey);
     elements.historyActionsModal.classList.remove('hidden');
     pushSubState('#history-actions');
 }

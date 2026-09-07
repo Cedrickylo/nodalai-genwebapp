@@ -29,20 +29,23 @@
             /* Keep fullscreen cards sized to the mobile viewport without their own scroll area */
             #history-fullscreen-view,
             #statistics-view,
-            #review-view {
+            #review-view,
+            #downloads-view {
                 width: 100%;
                 max-width: none;
             }
 
             #history-fullscreen-view > div,
             #statistics-view > div,
-            #review-view > div {
+            #review-view > div,
+            #downloads-view > div {
                 min-height: calc(100dvh - 9rem);
                 display: flex;
                 flex-direction: column;
             }
 
-            #history-full-list {
+            #history-full-list,
+            #downloads-list {
                 flex: 1 1 auto;
                 min-height: 0;
                 max-height: none;
@@ -184,7 +187,8 @@
             line-height: 1.1;
         }
 
-        #history-fullscreen-view #history-full-list {
+        #history-fullscreen-view #history-full-list,
+        #downloads-view #downloads-list {
             max-height: none !important;
             overflow: visible !important;
         }
@@ -427,6 +431,50 @@
     background-color: rgba(16, 185, 129, 0.15);
     border: 1px solid rgba(16, 185, 129, 0.4);
     color: #a7f3d0;
+}
+
+/* Offline Downloads & Expiry Badge Styles */
+.expiry-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.expiry-badge-fresh {
+    background-color: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
+}
+
+.expiry-badge-warning {
+    background-color: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+}
+
+.expiry-badge-critical {
+    background-color: rgba(244, 63, 94, 0.15);
+    border: 1px solid rgba(244, 63, 94, 0.4);
+    color: #fda4af;
+}
+
+.offline-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+    background-color: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    color: #67e8f9;
 }
 
 
