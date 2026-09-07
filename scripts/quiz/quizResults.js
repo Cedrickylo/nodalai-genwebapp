@@ -122,9 +122,9 @@ export async function showResults() {
         const corrAnsTxt = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
         
         item.innerHTML = `
-            <p class="font-semibold text-gray-300">Q${displayIdx + 1}: ${qData.question}</p>
-            <p class="text-sm mt-2">You: <span class="font-mono text-gray-400">${userAnsTxt}</span></p>
-            ${!isCorrect ? `<p class="text-sm">Correct: <span class="font-mono text-green-400">${corrAnsTxt || 'N/A'}</span></p>` : ''}
+            <p class="font-semibold text-gray-300 break-words whitespace-normal leading-snug">Q${displayIdx + 1}: ${qData.question}</p>
+            <p class="text-sm mt-2 break-words whitespace-normal">You: <span class="font-mono text-gray-400 break-words">${userAnsTxt}</span></p>
+            ${!isCorrect ? `<p class="text-sm break-words whitespace-normal mt-1">Correct: <span class="font-mono text-green-400 break-words">${corrAnsTxt || 'N/A'}</span></p>` : ''}
         `;
         
         summaryCont.appendChild(item);

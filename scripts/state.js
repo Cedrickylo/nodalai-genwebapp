@@ -66,7 +66,7 @@ export const elements = {
     skipQuestionBtn: document.getElementById('skip-question-btn'),
     restartQuizBtn: document.getElementById('restart-quiz-btn'),
     reviewQuizBtn: document.getElementById('review-quiz-btn'),
-    exportQuizBtn: document.getElementById('export-quiz-btn') || document.getElementById('review-quiz-btn'),
+    exportQuizBtn: document.getElementById('export-quiz-btn'),
     homeBtn: document.getElementById('home-btn'),
     saveQuizBtn: document.getElementById('save-quiz-btn'),
     progressEl: document.getElementById('progress'),
@@ -359,6 +359,8 @@ export const state = {
     currentStatsQuizKey: null,
     currentReviewTake: null,
     reviewOrigin: 'statistics',
+    statisticsOrigin: 'history',
+    navRootOrigin: 'home',
     currentCompletedTake: null,
     activeOfflineModalKey: null
 };

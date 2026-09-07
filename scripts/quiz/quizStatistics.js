@@ -7,9 +7,15 @@ import { updateStatisticsOfflineBar } from './quizOffline.js';
  * @param {string} quizKey - Unique identifier of the quiz in history
  * @param {boolean} pushHash - Whether to push the #statistics hash into history
  */
-export function openQuizStatistics(quizKey, pushHash = true) {
+export function openQuizStatistics(quizKey, pushHash = true, origin = null) {
     if (!quizKey) return;
     state.currentStatsQuizKey = quizKey;
+    if (origin) {
+        state.statisticsOrigin = origin;
+        state.navRootOrigin = origin;
+    } else if (!state.statisticsOrigin) {
+        state.statisticsOrigin = state.navRootOrigin || 'history';
+    }
     renderQuizStatistics(quizKey);
     showView('statistics', pushHash);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -26,6 +32,14 @@ export function renderQuizStatistics(quizKey) {
 
     if (elements.statisticsTitle) {
         elements.statisticsTitle.textContent = `${title} - Statistics`;
+    }
+
+    const originLabel = state.statisticsOrigin === 'home' ? 'Home' : (state.statisticsOrigin === 'downloads' ? 'Downloads' : 'History');
+    if (elements.statsCrumbHistory) {
+        elements.statsCrumbHistory.textContent = originLabel;
+    }
+    if (elements.reviewCrumbHistory) {
+        elements.reviewCrumbHistory.textContent = originLabel;
     }
 
     updateStatisticsOfflineBar(quizKey);
@@ -424,20 +438,25 @@ export function renderTestReview(takeData) {
  * Initializes navigation listeners for Statistics and Review pages
  */
 export function initQuizStatisticsListeners() {
-    // Statistics Back Button -> returns to History
-    if (elements.statisticsBackBtn) {
-        elements.statisticsBackBtn.addEventListener('click', async () => {
+    const handleStatsBack = async () => {
+        if (state.statisticsOrigin === 'home') {
+            showView('start');
+        } else if (state.statisticsOrigin === 'downloads') {
+            showView('downloads');
+        } else {
             const { showAllHistoryFullScreen } = await import('./quizHistory.js');
             showAllHistoryFullScreen();
-        });
+        }
+    };
+
+    // Statistics Back Button -> returns to origin (Home, Downloads, or History)
+    if (elements.statisticsBackBtn) {
+        elements.statisticsBackBtn.addEventListener('click', handleStatsBack);
     }
 
-    // Statistics Crumb History -> returns to History
+    // Statistics Crumb History -> returns to origin
     if (elements.statsCrumbHistory) {
-        elements.statsCrumbHistory.addEventListener('click', async () => {
-            const { showAllHistoryFullScreen } = await import('./quizHistory.js');
-            showAllHistoryFullScreen();
-        });
+        elements.statsCrumbHistory.addEventListener('click', handleStatsBack);
     }
 
     // Review Back Button -> returns to Statistics or Results depending on origin
@@ -446,23 +465,20 @@ export function initQuizStatisticsListeners() {
             if (state.reviewOrigin === 'results') {
                 showView('results');
             } else {
-                openQuizStatistics(state.currentStatsQuizKey);
+                openQuizStatistics(state.currentStatsQuizKey, true, state.statisticsOrigin);
             }
         });
     }
 
-    // Review Breadcrumbs: History crumb -> returns to History
+    // Review Breadcrumbs: History crumb -> returns to origin
     if (elements.reviewCrumbHistory) {
-        elements.reviewCrumbHistory.addEventListener('click', async () => {
-            const { showAllHistoryFullScreen } = await import('./quizHistory.js');
-            showAllHistoryFullScreen();
-        });
+        elements.reviewCrumbHistory.addEventListener('click', handleStatsBack);
     }
 
     // Review Breadcrumbs: Statistics crumb -> returns to Statistics
     if (elements.reviewCrumbStats) {
         elements.reviewCrumbStats.addEventListener('click', () => {
-            openQuizStatistics(state.currentStatsQuizKey);
+            openQuizStatistics(state.currentStatsQuizKey, true, state.statisticsOrigin);
         });
     }
 }

@@ -175,6 +175,9 @@ export function updateUnansweredReviewBtn() {
     }
 
     const unanswered = getUnansweredQuestionIndices();
+    const isModern = state.currentQuizConfig?.uiMode !== 'classic';
+    const isSummaryOnly = !!state.currentQuizConfig?.showAnswersInSummaryOnly;
+
     nextUnansweredBtn.classList.remove('hidden');
 
     if (unanswered.length > 0) {
@@ -185,9 +188,38 @@ export function updateUnansweredReviewBtn() {
         nextUnansweredBtn.className = 'flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg flex items-center justify-center gap-2 animate-pulse';
         nextUnansweredBtn.innerHTML = `<span>Submit Quiz ✓</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
     }
+
+    // In immediate feedback mode, current question is unskippable - disabled until answered or choice pending confirmation
+    if (isModern && !isSummaryOnly) {
+        const currOrigIdx = state.shuffledIndices[state.currentQuestionIndex];
+        const answered = isQuestionAnswered(currOrigIdx);
+        const hasPendingChoice = state.currentQuizConfig?.allowChangeSelection && state.selectedAnswerTemp !== null;
+
+        if (hasPendingChoice) {
+            nextUnansweredBtn.disabled = false;
+            nextUnansweredBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextUnansweredBtn.innerHTML = `<span>Confirm Answer</span>`;
+        } else if (!answered) {
+            nextUnansweredBtn.disabled = true;
+            nextUnansweredBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            nextUnansweredBtn.disabled = false;
+            nextUnansweredBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    } else {
+        nextUnansweredBtn.disabled = false;
+        nextUnansweredBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
 }
 
 export function handleNextUnansweredOrSubmit() {
+    if (state.currentQuizConfig?.allowChangeSelection && state.selectedAnswerTemp !== null) {
+        const chosen = state.selectedAnswerTemp;
+        state.selectedAnswerTemp = null;
+        checkAnswer(chosen);
+        return;
+    }
+
     const unanswered = getUnansweredQuestionIndices();
     if (unanswered.length === 0) {
         showResults();
@@ -540,33 +572,59 @@ export function displayCurrentQuestion() {
 
     } else {
         // Immediate Feedback Mode:
-        // 1. Previous button is strictly DISABLED (prevent retroactive changes after seeing answers)
-        if (prevQuestionBtn) {
-            prevQuestionBtn.classList.remove('hidden');
-            prevQuestionBtn.disabled = true;
-            prevQuestionBtn.classList.add('opacity-40', 'cursor-not-allowed');
-        }
-
-        // 2. Skip button is available in immediate feedback mode
-        skipQuestionBtn?.classList.remove('hidden');
-
-        // 3. Next button: CANNOT advance without selecting an answer!
-        if (nextQuestionBtn) {
-            nextQuestionBtn.classList.remove('hidden');
-            const isLastQ = state.currentQuestionIndex === totalQ - 1;
-            nextQuestionBtn.textContent = isLastQ ? 'View Results' : 'Next Question';
-
-            if (!isAlreadyAnswered) {
-                // Must not allow user to go to next question when no choice is selected
-                nextQuestionBtn.disabled = true;
-                nextQuestionBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                nextQuestionBtn.disabled = false;
-                nextQuestionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        if (state.isReviewingUnanswered) {
+            // Reviewing unanswered questions in immediate feedback mode:
+            // 1. Previous button is strictly HIDDEN
+            if (prevQuestionBtn) {
+                prevQuestionBtn.classList.add('hidden');
+                prevQuestionBtn.disabled = true;
             }
-        }
 
-        nextUnansweredBtn?.classList.add('hidden');
+            // 2. Skip button is strictly HIDDEN (question was skipped earlier, now unskippable)
+            if (skipQuestionBtn) {
+                skipQuestionBtn.classList.add('hidden');
+                skipQuestionBtn.disabled = true;
+            }
+
+            // 3. Next button is strictly HIDDEN
+            if (nextQuestionBtn) {
+                nextQuestionBtn.classList.add('hidden');
+                nextQuestionBtn.disabled = true;
+            }
+
+            // 4. Next Unanswered button is the ONLY active navigation button
+            updateUnansweredReviewBtn();
+
+        } else {
+            // Normal Immediate Feedback Mode:
+            // 1. Previous button is strictly HIDDEN when auto-validate/immediate feedback is active
+            if (prevQuestionBtn) {
+                prevQuestionBtn.classList.add('hidden');
+                prevQuestionBtn.disabled = true;
+            }
+
+            // 2. Skip button is available in immediate feedback mode
+            skipQuestionBtn?.classList.remove('hidden');
+            if (skipQuestionBtn) skipQuestionBtn.disabled = false;
+
+            // 3. Next button: CANNOT advance without selecting an answer!
+            if (nextQuestionBtn) {
+                nextQuestionBtn.classList.remove('hidden');
+                const isLastQ = state.currentQuestionIndex === totalQ - 1;
+                nextQuestionBtn.textContent = isLastQ ? 'View Results' : 'Next Question';
+
+                if (!isAlreadyAnswered) {
+                    // Must not allow user to go to next question when no choice is selected
+                    nextQuestionBtn.disabled = true;
+                    nextQuestionBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    nextQuestionBtn.disabled = false;
+                    nextQuestionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+
+            nextUnansweredBtn?.classList.add('hidden');
+        }
     }
 
     // Render Answer Options based on question type
@@ -613,7 +671,9 @@ export function displayCurrentQuestion() {
                         btn.classList.add('bg-blue-600', 'border-blue-400', 'text-white', 'font-bold');
 
                         // Unlocks Next button to confirm selection
-                        if (nextQuestionBtn) {
+                        if (state.isReviewingUnanswered) {
+                            updateUnansweredReviewBtn();
+                        } else if (nextQuestionBtn) {
                             nextQuestionBtn.disabled = false;
                             nextQuestionBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                             nextQuestionBtn.textContent = 'Confirm Answer';
@@ -651,7 +711,9 @@ export function displayCurrentQuestion() {
                 idIn.addEventListener('input', () => {
                     const val = idIn.value.trim();
                     state.selectedAnswerTemp = val;
-                    if (nextQuestionBtn) {
+                    if (state.isReviewingUnanswered) {
+                        updateUnansweredReviewBtn();
+                    } else if (nextQuestionBtn) {
                         const hasVal = val.length > 0;
                         nextQuestionBtn.disabled = !hasVal;
                         nextQuestionBtn.classList.toggle('opacity-50', !hasVal);
@@ -688,7 +750,9 @@ export function displayCurrentQuestion() {
                 enIn.addEventListener('input', () => {
                     const items = enIn.value.split('\n').map(s => s.trim()).filter(Boolean);
                     state.selectedAnswerTemp = items;
-                    if (nextQuestionBtn) {
+                    if (state.isReviewingUnanswered) {
+                        updateUnansweredReviewBtn();
+                    } else if (nextQuestionBtn) {
                         const hasItems = items.length > 0;
                         nextQuestionBtn.disabled = !hasItems;
                         nextQuestionBtn.classList.toggle('opacity-50', !hasItems);
@@ -804,13 +868,13 @@ export function displayNextQuestion() {
                 return; // Let user inspect explanation and feedback before clicking Next again
             }
 
-            // Move to next question or show results
+            // Move to next question or trigger unanswered verification
             if (state.currentQuestionIndex < totalQ - 1) {
                 state.currentQuestionIndex++;
                 displayCurrentQuestion();
                 persistQuizProgress();
             } else {
-                showResults();
+                checkAndHandleSubmit();
             }
             return;
         }
@@ -984,7 +1048,7 @@ export function skipQuestion() {
             displayCurrentQuestion();
             persistQuizProgress();
         } else {
-            showResults();
+            checkAndHandleSubmit();
         }
         return;
     }
@@ -1140,7 +1204,21 @@ export function checkAnswer(userAnswer) {
     // In immediate feedback mode, display explanation and unlock Next button
     if (!isSummaryOnly) {
         displayExplanation(qData, isCorrect);
-        if (nextQuestionBtn) {
+        if (state.isReviewingUnanswered) {
+            if (nextQuestionBtn) {
+                nextQuestionBtn.classList.add('hidden');
+                nextQuestionBtn.disabled = true;
+            }
+            if (prevQuestionBtn) {
+                prevQuestionBtn.classList.add('hidden');
+                prevQuestionBtn.disabled = true;
+            }
+            if (skipQuestionBtn) {
+                skipQuestionBtn.classList.add('hidden');
+                skipQuestionBtn.disabled = true;
+            }
+            updateUnansweredReviewBtn();
+        } else if (nextQuestionBtn) {
             nextQuestionBtn.disabled = false;
             nextQuestionBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'hidden');
             const isLastQ = isModern 

@@ -1,5 +1,5 @@
-// Incremented to v15 for 1-Week Offline Retention, Downloads Page, and Dedicated Offline Cache
-const CACHE_NAME = 'nodal-ai-cache-v15';
+// Incremented to v17 for Skipped Questions Review and Unskippable Navigation Enforcement
+const CACHE_NAME = 'nodal-ai-cache-v17';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

@@ -57,6 +57,10 @@ export function exportQuizFromHistory(data, key) {
 }
 
 export async function generateShareableLink(quizKey) {
+    if (!navigator.onLine) {
+        showToast('Cannot generate a new share link while offline. Please connect to the internet.', 4000, 'warning');
+        return;
+    }
     const quiz = state.quizHistory[quizKey];
     if (!quiz) return;
 
@@ -142,6 +146,13 @@ export async function handleHistoryClick(e) {
     const action = btn.dataset.action;
     const quizData = state.quizHistory[key];
     if (!quizData) return;
+
+    // Guard: Block history operations for non-downloaded quizzes while offline
+    const { isQuizAvailableOffline } = await import('./quizOffline.js');
+    if (!navigator.onLine && !isQuizAvailableOffline(key).available) {
+        showToast('This quiz is not available offline. Please connect to the internet or download it for offline use.', 4000, 'error');
+        return;
+    }
 
     if (action === 'history-submenu') {
         const { openHistoryActionsModal } = await import('../helpers.js');

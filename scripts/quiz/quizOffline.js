@@ -409,24 +409,10 @@ export function updateHistorySubmenuOfflineButton(quizKey) {
     const status = isQuizAvailableOffline(quizKey);
 
     if (status.available) {
-        if (elements.historySubmenuOfflineText) {
-            elements.historySubmenuOfflineText.textContent = 'Available Offline';
-            elements.historySubmenuOfflineText.className = 'block text-sm font-semibold text-emerald-200';
-        }
-        if (elements.historySubmenuOfflineSubtext) {
-            elements.historySubmenuOfflineSubtext.textContent = `Expires in ${status.formattedTimeLeft} • Tap to manage or remove`;
-            elements.historySubmenuOfflineSubtext.className = 'block text-xs text-emerald-300/80';
-        }
-        if (elements.historySubmenuOfflineIconContainer) {
-            elements.historySubmenuOfflineIconContainer.className = 'p-2.5 bg-emerald-500/20 text-emerald-400 rounded-lg flex-shrink-0';
-            elements.historySubmenuOfflineIconContainer.innerHTML = `
-                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 6L9 17l-5-5"></path>
-                </svg>
-            `;
-        }
-        elements.historySubmenuOfflineBtn.className = 'w-full flex items-center gap-3.5 p-3 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/50 text-left transition-colors cursor-pointer';
+        // Quiz is already available offline: hide the button from the options menu
+        elements.historySubmenuOfflineBtn.classList.add('hidden');
     } else {
+        elements.historySubmenuOfflineBtn.classList.remove('hidden');
         if (elements.historySubmenuOfflineText) {
             elements.historySubmenuOfflineText.textContent = 'Make Available Offline';
             elements.historySubmenuOfflineText.className = 'block text-sm font-semibold text-cyan-200';
@@ -586,18 +572,19 @@ export function renderDownloadsView(pushHash = true) {
                 ${titleHtml}
                 <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} • Saved with statistics</p>
             </div>
-            <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
-            <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
-                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 p-1.5 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors cursor-pointer" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <!-- Mobile 2-button layout: Stacked Load on top, Option button with text below -->
+            <div class="flex flex-col md:hidden flex-shrink-0 gap-1.5 items-stretch min-w-[70px]">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors cursor-pointer w-full" data-key="${key}" data-action="load" title="Load Quiz">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    <span>Load</span>
+                </button>
+                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 text-xs font-semibold py-1 px-2 rounded inline-flex items-center justify-center gap-1 border border-gray-600/60 transition-colors cursor-pointer w-full" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                         <circle cx="12" cy="5" r="2"/>
                         <circle cx="12" cy="12" r="2"/>
                         <circle cx="12" cy="19" r="2"/>
                     </svg>
-                </button>
-                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors cursor-pointer" data-key="${key}" data-action="load" title="Load Quiz">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-                    <span>Load</span>
+                    <span>Option</span>
                 </button>
             </div>
             <!-- Desktop buttons: Option, Edit, Load -->

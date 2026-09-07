@@ -477,8 +477,8 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">Offline Downloads</h2>
-                        <span id="downloads-storage-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 justify-self-end">0 KB</span>
+                        <h2 id="downloads-header-title" class="text-base sm:text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-1 min-w-0">Offline Downloads</h2>
+                        <span id="downloads-storage-badge" class="text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 justify-self-end whitespace-nowrap">0 KB</span>
                     </div>
                     <div class="bg-gray-900/40 border border-gray-700/50 rounded-xl p-3 sm:p-4 mb-4 text-xs sm:text-sm text-gray-300 flex items-center gap-2.5">
                         <svg class="w-5 h-5 text-cyan-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -630,21 +630,26 @@
                         </section>
 
                         <section class="info-card">
-                            <h3>Can I use Nodal AI completely offline?</h3>
-                            <p>Yes! Once the app loads on your device, you can review your entire local history, customize options, and play any previously generated quiz without an active internet connection. Generating new quizzes requires network access.</p>
+                            <h3>Can I use Nodal AI offline? How does offline retention work?</h3>
+                            <p>Yes! Quizzes less than 1 week old are automatically cached on your device. For any quiz, open Quiz Options and tap <strong>"Make Available Offline"</strong> to download the quiz and its full statistics for 1 week of offline use. You can view storage usage and renew or remove quizzes anytime in the <strong>Offline Downloads</strong> tab.</p>
                         </section>
 
                         <section class="info-card">
-                            <h3>Where is my quiz history stored?</h3>
-                            <p>Your history is saved locally in your browser's secure cache database. If you log in with your Puter account, your records will automatically synchronize seamlessly across all your devices.</p>
+                            <h3>How do Quiz Statistics & Past Test Review work?</h3>
+                            <p>Every completed quiz session is saved as a separate take. In Quiz Statistics, you can inspect your progress over time (average score, best score, retake counts) and click <strong>"Review"</strong> on any past take to inspect all your submitted answers alongside correct answers and explanations.</p>
+                        </section>
+
+                        <section class="info-card">
+                            <h3>How does Cloud Sync work across multiple devices?</h3>
+                            <p>When you log in with your Puter account, your quiz library, settings, and retake history synchronize across all your devices. If you complete quizzes or edit settings on different devices while offline, the cloud sync automatically merges and re-indexes all retakes chronologically and resolves settings edits cleanly.</p>
                         </section>
 
                         <section class="info-card">
                             <h3>Is there a daily quiz generation limit?</h3>
-                            <p>To prevent abuse, there is a sliding rate limit of 5 quizzes every 3 hours per user session. You can monitor your current cooldown status inside your Account tab.</p>
+                            <p>To ensure fair usage, there is a sliding rate limit of 5 quizzes every 3 hours per user session. You can monitor your current cooldown status inside your Account tab.</p>
                         </section>
 
-                        <section class="info-card md:col-span-2">
+                        <section class="info-card">
                             <h3>Contact Information & Support</h3>
                             <p>For feedback, bug reports, or feature requests, feel free to reach out to the project maintainers via the repository issues section or contact support at <span class="text-blue-400 font-medium">support@nodalai.example.com</span>.</p>
                         </section>
@@ -685,15 +690,16 @@
                             <h3>Quick Steps</h3>
                             <ol class="list-decimal list-inside mb-0 space-y-1">
                                 <li>Select or upload documents using "Select Documents".</li>
-                                <li>Adjust quiz settings (number of questions, difficulty, timing) in "Customize Quiz Settings".</li>
+                                <li>Adjust quiz settings (question count, difficulty, timer mode) in "Customize Quiz Settings".</li>
                                 <li>Click "Generate Quiz" to create questions from your documents.</li>
-                                <li>Take the quiz, review results, and export or save to the cloud.</li>
+                                <li>Take the quiz, track your attempts, and review results with detailed answer keys.</li>
+                                <li>Track score trends in Quiz Statistics and download quizzes for 1 week of offline practice.</li>
                             </ol>
                         </section>
 
                         <section class="info-card">
                             <h3>What this site does</h3>
-                            <p>It analyzes uploaded documents and generates assessment-style questions (multiple choice, identification, enumeration, or a mix) using on-device logic and cloud helpers. You can save quizzes to your Puter account or export them locally.</p>
+                            <p>Nodal AI analyzes uploaded documents and builds tailored interactive assessments. It supports installable PWA usage across mobile and desktop, multi-device cloud syncing with Puter, dedicated Quiz Statistics with past test review, and intelligent 1-week offline downloads.</p>
                         </section>
 
                         <section class="info-card lg:col-span-2">
@@ -702,7 +708,7 @@
                                 <li>Quality of questions depends on the clarity and structure of the source document.</li>
                                 <li>Processing large or scanned PDFs may be slower and may not extract text perfectly.</li>
                                 <li>There is a rate limit on quiz generation to prevent abuse (see account modal).</li>
-                                <li>Some features rely on Puter cloud services; offline behavior is limited.</li>
+                                <li>Offline mode lets you take and review any downloaded or recent quiz without network connectivity; generating new quizzes requires an active internet connection.</li>
                             </ul>
                         </section>
 
@@ -840,11 +846,11 @@
         </div>
 
         <div id="results-view" class="view">
-             <div class="bg-gray-800 p-8 rounded-xl shadow-2xl">
-                <h2 class="text-3xl font-bold mb-4 text-center text-blue-400">Quiz Complete!</h2>
-                <div class="text-center mb-8"><p class="text-2xl font-semibold" id="final-percentage"></p><p class="text-lg text-gray-300" id="final-message"></p></div>
+             <div class="bg-gray-800 p-4 sm:p-8 rounded-xl shadow-2xl break-words">
+                <h2 class="text-2xl sm:text-3xl font-bold mb-4 text-center text-blue-400 break-words whitespace-normal">Quiz Complete!</h2>
+                <div class="text-center mb-8"><p class="text-xl sm:text-2xl font-semibold break-words whitespace-normal" id="final-percentage"></p><p class="text-base sm:text-lg text-gray-300 break-words whitespace-normal mt-1" id="final-message"></p></div>
                 <h3 class="text-lg font-semibold text-gray-300 mb-4">Review Answers:</h3>
-                <div id="summary-container" class="space-y-4 max-h-96 overflow-y-auto pr-2 rounded-lg"></div>
+                <div id="summary-container" class="space-y-4 max-h-96 overflow-y-auto pr-2 rounded-lg break-words"></div>
                 
                 <div id="results-actions" class="flex gap-4 mt-8">
                     <button id="restart-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition">Go to Home</button>
@@ -1424,7 +1430,7 @@
                 </button>
 
                 <!-- Edit Action -->
-                <button id="history-submenu-edit-btn" class="w-full flex items-center gap-3.5 p-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/50 text-left transition-colors cursor-pointer">
+                <button id="history-submenu-edit-btn" class="w-full flex md:hidden items-center gap-3.5 p-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/50 text-left transition-colors cursor-pointer">
                     <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg flex-shrink-0">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
                     </div>

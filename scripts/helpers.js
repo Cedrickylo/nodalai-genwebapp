@@ -313,9 +313,21 @@ export async function syncHistoryWithCloud(manual = false) {
 
     try {
         let combinedCloudItems = {};
+        let combinedCloudTakes = {};
 
         // Ensure state.deletedQuizKeys is populated
         state.deletedQuizKeys = state.deletedQuizKeys || JSON.parse(localStorage.getItem('nodal_deleted_quiz_keys') || '{}');
+
+        // Helper to ingest remote takes from parsed payload
+        const ingestCloudTakes = (takesObj) => {
+            if (takesObj && typeof takesObj === 'object') {
+                for (const [qKey, takesArr] of Object.entries(takesObj)) {
+                    if (Array.isArray(takesArr)) {
+                        combinedCloudTakes[qKey] = (combinedCloudTakes[qKey] || []).concat(takesArr);
+                    }
+                }
+            }
+        };
 
         // 2. Read from Puter KV
         try {
@@ -328,6 +340,7 @@ export async function syncHistoryWithCloud(manual = false) {
                 if (parsedKv && parsedKv.deletedKeys && typeof parsedKv.deletedKeys === 'object') {
                     Object.assign(state.deletedQuizKeys, parsedKv.deletedKeys);
                 }
+                ingestCloudTakes(parsedKv?.takes);
             }
         } catch (kvReadErr) {
             console.warn("Puter KV read warning:", kvReadErr);
@@ -340,7 +353,9 @@ export async function syncHistoryWithCloud(manual = false) {
                 const parsedPrimary = await parsePuterFSFile(fsItemPrimary);
                 if (parsedPrimary && parsedPrimary.items) {
                     for (const [k, v] of Object.entries(parsedPrimary.items)) {
-                        if (!combinedCloudItems[k] || (v.timestamp || 0) > (combinedCloudItems[k].timestamp || 0)) {
+                        const vTime = Math.max(v.timestamp || 0, v.lastModified || 0, v.config?.lastModified || 0);
+                        const existingTime = Math.max(combinedCloudItems[k]?.timestamp || 0, combinedCloudItems[k]?.lastModified || 0, combinedCloudItems[k]?.config?.lastModified || 0);
+                        if (!combinedCloudItems[k] || vTime > existingTime) {
                             combinedCloudItems[k] = v;
                         }
                     }
@@ -348,6 +363,7 @@ export async function syncHistoryWithCloud(manual = false) {
                 if (parsedPrimary && parsedPrimary.deletedKeys && typeof parsedPrimary.deletedKeys === 'object') {
                     Object.assign(state.deletedQuizKeys, parsedPrimary.deletedKeys);
                 }
+                ingestCloudTakes(parsedPrimary?.takes);
             } catch (ePrimary) {
                 // Primary file not created yet or read issue
             }
@@ -357,7 +373,9 @@ export async function syncHistoryWithCloud(manual = false) {
                 const parsedBackup = await parsePuterFSFile(fsItemBackup);
                 if (parsedBackup && parsedBackup.items) {
                     for (const [k, v] of Object.entries(parsedBackup.items)) {
-                        if (!combinedCloudItems[k] || (v.timestamp || 0) > (combinedCloudItems[k].timestamp || 0)) {
+                        const vTime = Math.max(v.timestamp || 0, v.lastModified || 0, v.config?.lastModified || 0);
+                        const existingTime = Math.max(combinedCloudItems[k]?.timestamp || 0, combinedCloudItems[k]?.lastModified || 0, combinedCloudItems[k]?.config?.lastModified || 0);
+                        if (!combinedCloudItems[k] || vTime > existingTime) {
                             combinedCloudItems[k] = v;
                         }
                     }
@@ -365,6 +383,7 @@ export async function syncHistoryWithCloud(manual = false) {
                 if (parsedBackup && parsedBackup.deletedKeys && typeof parsedBackup.deletedKeys === 'object') {
                     Object.assign(state.deletedQuizKeys, parsedBackup.deletedKeys);
                 }
+                ingestCloudTakes(parsedBackup?.takes);
             } catch (eBackup) {
                 // Backup file not created yet
             }
@@ -379,26 +398,30 @@ export async function syncHistoryWithCloud(manual = false) {
 
         // Filter out any items in combinedCloudItems and localItems that have tombstones
         for (const [delKey, delTime] of Object.entries(state.deletedQuizKeys)) {
-            if (combinedCloudItems[delKey] && (combinedCloudItems[delKey].timestamp || 0) <= delTime) {
+            const cTime = Math.max(combinedCloudItems[delKey]?.timestamp || 0, combinedCloudItems[delKey]?.lastModified || 0);
+            if (combinedCloudItems[delKey] && cTime <= delTime) {
                 delete combinedCloudItems[delKey];
             }
-            if (localItems[delKey] && (localItems[delKey].timestamp || 0) <= delTime) {
+            const lTime = Math.max(localItems[delKey]?.timestamp || 0, localItems[delKey]?.lastModified || 0);
+            if (localItems[delKey] && lTime <= delTime) {
                 delete localItems[delKey];
             }
         }
 
-        // 5. Merge all keys across all cloud items and local items
+        // 5. Merge all keys across all cloud items and local items (Last-Write-Wins on settings/timestamp)
         const allKeys = new Set([...Object.keys(combinedCloudItems), ...Object.keys(localItems)]);
 
         for (const key of allKeys) {
-            if (state.deletedQuizKeys[key] && Math.max(combinedCloudItems[key]?.timestamp || 0, localItems[key]?.timestamp || 0) <= state.deletedQuizKeys[key]) {
+            const cTime = Math.max(combinedCloudItems[key]?.timestamp || 0, combinedCloudItems[key]?.lastModified || 0, combinedCloudItems[key]?.config?.lastModified || 0);
+            const lTime = Math.max(localItems[key]?.timestamp || 0, localItems[key]?.lastModified || 0, localItems[key]?.config?.lastModified || 0);
+            if (state.deletedQuizKeys[key] && Math.max(cTime, lTime) <= state.deletedQuizKeys[key]) {
                 continue;
             }
             const cloudQuiz = combinedCloudItems[key];
             const localQuiz = localItems[key];
             
             if (cloudQuiz && localQuiz) {
-                if ((cloudQuiz.timestamp || 0) >= (localQuiz.timestamp || 0)) {
+                if (cTime >= lTime) {
                     mergedItems[key] = cloudQuiz;
                 } else {
                     mergedItems[key] = localQuiz;
@@ -410,6 +433,47 @@ export async function syncHistoryWithCloud(manual = false) {
             }
         }
 
+        // 5b. Merge and re-index quiz retakes across devices chronologically
+        const localTakesDb = getQuizTakes() || {};
+        const mergedTakesDb = {};
+        const allTakeKeys = new Set([...Object.keys(combinedCloudTakes), ...Object.keys(localTakesDb), ...Object.keys(mergedItems)]);
+
+        for (const qKey of allTakeKeys) {
+            if (state.deletedQuizKeys && state.deletedQuizKeys[qKey]) {
+                continue;
+            }
+            const cTakes = Array.isArray(combinedCloudTakes[qKey]) ? combinedCloudTakes[qKey] : [];
+            const lTakes = Array.isArray(localTakesDb[qKey]) ? localTakesDb[qKey] : [];
+
+            // Deduplicate takes by take ID or fallback composite key
+            const seenTakeIds = new Set();
+            const uniqueTakes = [];
+
+            for (const take of [...lTakes, ...cTakes]) {
+                if (!take || typeof take !== 'object') continue;
+                const takeId = take.id || `take_${take.completedAt || 0}_${take.score || 0}_${take.totalQuestions || 0}`;
+                if (!seenTakeIds.has(takeId)) {
+                    seenTakeIds.add(takeId);
+                    uniqueTakes.push(take);
+                }
+            }
+
+            if (uniqueTakes.length > 0) {
+                // Sort chronologically ascending by completedAt
+                uniqueTakes.sort((a, b) => (a.completedAt || 0) - (b.completedAt || 0));
+
+                // Re-index sequentially so Take #1, Take #2, etc. are consistent across devices
+                uniqueTakes.forEach((t, idx) => {
+                    t.takeNumber = idx + 1;
+                });
+
+                mergedTakesDb[qKey] = uniqueTakes;
+            }
+        }
+
+        // Persist merged takes to local storage
+        localStorage.setItem(constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1', JSON.stringify(mergedTakesDb));
+
         const now = Date.now();
 
         // 6. Push structural modifications back to core state pointers & localStorage
@@ -420,6 +484,7 @@ export async function syncHistoryWithCloud(manual = false) {
         const payloadString = JSON.stringify({ 
             items: mergedItems, 
             deletedKeys: state.deletedQuizKeys,
+            takes: mergedTakesDb,
             updatedAt: now 
         });
 
@@ -938,20 +1003,24 @@ export function hideLoadingOverlay() {
 }
 
 export function updateNavHighlights(activeKey) {
+    const effectiveKey = (activeKey === 'statistics' || activeKey === 'review')
+        ? (state.navRootOrigin || 'history')
+        : activeKey;
+
     // 1. Update Mobile Nav
     if (elements.mobileNavHomeBtn) {
-        elements.mobileNavHomeBtn.classList.toggle('text-white', activeKey === 'home');
-        elements.mobileNavHomeBtn.classList.toggle('bg-blue-600', activeKey === 'home');
-        elements.mobileNavHomeBtn.classList.toggle('text-gray-300', activeKey !== 'home');
+        elements.mobileNavHomeBtn.classList.toggle('text-white', effectiveKey === 'home');
+        elements.mobileNavHomeBtn.classList.toggle('bg-blue-600', effectiveKey === 'home');
+        elements.mobileNavHomeBtn.classList.toggle('text-gray-300', effectiveKey !== 'home');
     }
     if (elements.mobileNavHistoryBtn) {
-        elements.mobileNavHistoryBtn.classList.toggle('text-white', activeKey === 'history');
-        elements.mobileNavHistoryBtn.classList.toggle('bg-blue-600', activeKey === 'history');
-        elements.mobileNavHistoryBtn.classList.toggle('text-gray-300', activeKey !== 'history');
+        elements.mobileNavHistoryBtn.classList.toggle('text-white', effectiveKey === 'history');
+        elements.mobileNavHistoryBtn.classList.toggle('bg-blue-600', effectiveKey === 'history');
+        elements.mobileNavHistoryBtn.classList.toggle('text-gray-300', effectiveKey !== 'history');
     }
 
     // --- NEW: Track if current layout is nested inside the Mobile Menu overlay drawer ---
-    const isMenuPage = ['help', 'about', 'account', 'downloads'].includes(activeKey);
+    const isMenuPage = ['help', 'about', 'account', 'downloads'].includes(effectiveKey);
     if (elements.mobileNavMenuBtn) {
         elements.mobileNavMenuBtn.classList.toggle('text-white', isMenuPage);
         elements.mobileNavMenuBtn.classList.toggle('bg-blue-600', isMenuPage);
@@ -960,28 +1029,28 @@ export function updateNavHighlights(activeKey) {
 
     // --- NEW: Active context highlights directly on buttons inside the open Modal list ---
     if (elements.mobileMenuDownloadsBtn) {
-        elements.mobileMenuDownloadsBtn.classList.toggle('text-white', activeKey === 'downloads');
-        elements.mobileMenuDownloadsBtn.classList.toggle('bg-blue-600', activeKey === 'downloads');
-        elements.mobileMenuDownloadsBtn.classList.toggle('bg-gray-700/30', activeKey !== 'downloads');
-        elements.mobileMenuDownloadsBtn.classList.toggle('text-gray-300', activeKey !== 'downloads');
+        elements.mobileMenuDownloadsBtn.classList.toggle('text-white', effectiveKey === 'downloads');
+        elements.mobileMenuDownloadsBtn.classList.toggle('bg-blue-600', effectiveKey === 'downloads');
+        elements.mobileMenuDownloadsBtn.classList.toggle('bg-gray-700/30', effectiveKey !== 'downloads');
+        elements.mobileMenuDownloadsBtn.classList.toggle('text-gray-300', effectiveKey !== 'downloads');
     }
     if (elements.mobileMenuHelpBtn) {
-        elements.mobileMenuHelpBtn.classList.toggle('text-white', activeKey === 'help');
-        elements.mobileMenuHelpBtn.classList.toggle('bg-blue-600', activeKey === 'help');
-        elements.mobileMenuHelpBtn.classList.toggle('bg-gray-700/30', activeKey !== 'help');
-        elements.mobileMenuHelpBtn.classList.toggle('text-gray-300', activeKey !== 'help');
+        elements.mobileMenuHelpBtn.classList.toggle('text-white', effectiveKey === 'help');
+        elements.mobileMenuHelpBtn.classList.toggle('bg-blue-600', effectiveKey === 'help');
+        elements.mobileMenuHelpBtn.classList.toggle('bg-gray-700/30', effectiveKey !== 'help');
+        elements.mobileMenuHelpBtn.classList.toggle('text-gray-300', effectiveKey !== 'help');
     }
     if (elements.mobileMenuAboutBtn) {
-        elements.mobileMenuAboutBtn.classList.toggle('text-white', activeKey === 'about');
-        elements.mobileMenuAboutBtn.classList.toggle('bg-blue-600', activeKey === 'about');
-        elements.mobileMenuAboutBtn.classList.toggle('bg-gray-700/30', activeKey !== 'about');
-        elements.mobileMenuAboutBtn.classList.toggle('text-gray-300', activeKey !== 'about');
+        elements.mobileMenuAboutBtn.classList.toggle('text-white', effectiveKey === 'about');
+        elements.mobileMenuAboutBtn.classList.toggle('bg-blue-600', effectiveKey === 'about');
+        elements.mobileMenuAboutBtn.classList.toggle('bg-gray-700/30', effectiveKey !== 'about');
+        elements.mobileMenuAboutBtn.classList.toggle('text-gray-300', effectiveKey !== 'about');
     }
     if (elements.mobileMenuAccountBtn) {
-        elements.mobileMenuAccountBtn.classList.toggle('text-white', activeKey === 'account');
-        elements.mobileMenuAccountBtn.classList.toggle('bg-blue-600', activeKey === 'account');
-        elements.mobileMenuAccountBtn.classList.toggle('bg-gray-700/30', activeKey !== 'account');
-        elements.mobileMenuAccountBtn.classList.toggle('text-gray-300', activeKey !== 'account');
+        elements.mobileMenuAccountBtn.classList.toggle('text-white', effectiveKey === 'account');
+        elements.mobileMenuAccountBtn.classList.toggle('bg-blue-600', effectiveKey === 'account');
+        elements.mobileMenuAccountBtn.classList.toggle('bg-gray-700/30', effectiveKey !== 'account');
+        elements.mobileMenuAccountBtn.classList.toggle('text-gray-300', effectiveKey !== 'account');
     }
 
     // 2. Update Desktop Nav
@@ -997,9 +1066,9 @@ export function updateNavHighlights(activeKey) {
     Object.keys(map).forEach(key => {
         const btn = map[key];
         if (btn) {
-            btn.classList.toggle('text-white', key === activeKey);
-            btn.classList.toggle('bg-blue-600', key === activeKey);
-            btn.classList.toggle('text-gray-300', key !== activeKey);
+            btn.classList.toggle('text-white', key === effectiveKey);
+            btn.classList.toggle('bg-blue-600', key === effectiveKey);
+            btn.classList.toggle('text-gray-300', key !== effectiveKey);
         }
     });
 }
@@ -1192,6 +1261,9 @@ export function showView(id, pushHash = true) {
     let navKey = id;
     if (id === 'start') navKey = 'home';
     if (id === 'history-fullscreen') navKey = 'history';
+    if (id === 'statistics' || id === 'review') {
+        navKey = state.navRootOrigin || 'history';
+    }
     updateNavHighlights(navKey);
 
     setupScrollReactiveHeader(id);
@@ -2427,6 +2499,13 @@ export function initWelcomeModal() {
 // ==========================================
 export async function openHistoryActionsModal(quizKey) {
     if (!elements.historyActionsModal) return;
+
+    const { isQuizAvailableOffline, updateHistorySubmenuOfflineButton } = await import('./quiz/quizOffline.js');
+    if (!navigator.onLine && !isQuizAvailableOffline(quizKey).available) {
+        showToast('This quiz is not available offline. Please connect to the internet or download it for offline use.', 4000, 'error');
+        return;
+    }
+
     state.activeHistoryMenuKey = quizKey;
     state.historyMenuOriginHash = window.location.hash || '#history';
     const db = getQuizDB();
@@ -2435,7 +2514,6 @@ export async function openHistoryActionsModal(quizKey) {
     if (elements.historySubmenuQuizTitle) {
         elements.historySubmenuQuizTitle.textContent = title;
     }
-    const { updateHistorySubmenuOfflineButton } = await import('./quiz/quizOffline.js');
     updateHistorySubmenuOfflineButton(quizKey);
     elements.historyActionsModal.classList.remove('hidden');
     pushSubState('#history-actions');

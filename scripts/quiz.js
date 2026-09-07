@@ -283,7 +283,11 @@ export function attachQuizEventListeners() {
         closeShareModal();
     };
     elements.shareMenuLinkBtn.onclick = async () => {
-        const { navigateToShareStep } = await import('./helpers.js');
+        const { navigateToShareStep, showToast } = await import('./helpers.js');
+        if (!navigator.onLine) {
+            showToast('Cannot generate a new share link while offline. Please connect to the internet.', 4000, 'warning');
+            return;
+        }
         navigateToShareStep('config');
     };
     elements.shareMenuExportBtn.onclick = async () => {
@@ -646,10 +650,17 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuStatsBtn) {
         elements.historySubmenuStatsBtn.addEventListener('click', async () => {
             const key = state.activeHistoryMenuKey;
+            const { getActiveViewId } = await import('./helpers.js');
+            const activeV = getActiveViewId();
+            const origin = (state.historyMenuOriginHash === '#home' || state.historyMenuOriginHash === '' || activeV === 'start')
+                ? 'home'
+                : (state.historyMenuOriginHash === '#downloads' || activeV === 'downloads')
+                ? 'downloads'
+                : 'history';
             closeHistoryActionsModal(false, false);
             if (key) {
                 const { openQuizStatistics } = await import('./quiz/quizStatistics.js');
-                openQuizStatistics(key);
+                openQuizStatistics(key, true, origin);
             }
         });
     }
