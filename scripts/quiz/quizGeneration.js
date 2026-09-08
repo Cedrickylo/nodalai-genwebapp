@@ -7,6 +7,7 @@ import {
     openAiPromptModal,
     openAiChoiceModal,
     closeAiChoiceModal,
+    clearSubState,
     formatTime
 } from '../helpers.js';
 
@@ -230,11 +231,15 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 }
 
 /**
- * Executes automated quiz generation using Google Gemini 2.5 Flash-Lite via Vercel Serverless Function.
+ * Executes automated quiz generation using Google Gemini 3.5 Flash-Lite via Vercel Serverless Function.
  * Includes accurate time estimation, organic progress curve, 3-minute cancel button, and 10-minute auto-cancel.
  */
 export async function startNodalAiGeneration(config, fileName) {
-    closeAiChoiceModal();
+    // Dismiss the AI Choice modal immediately without popping browser history
+    clearSubState('#ai-choice');
+    if (elements.aiChoiceModal) {
+        elements.aiChoiceModal.classList.add('hidden');
+    }
 
     // Offline Guard: Live AI generation requires an active internet connection
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -256,7 +261,7 @@ export async function startNodalAiGeneration(config, fileName) {
     const systemPrompt = buildQuizSystemPrompt(config, fileName, state.fileContent);
 
     // Compute accurate time estimation:
-    // Gemini 2.5 Flash-Lite: ~3s base latency + 0.45s per question + prompt read overhead
+    // Gemini 3.5 Flash-Lite: ~3s base latency + 0.45s per question + prompt read overhead
     const count = config.count || 10;
     const fileLen = (typeof state.fileContent === 'string') ? state.fileContent.length : 0;
     const estimatedSec = Math.max(5, Math.round(3 + (count * 0.45) + Math.min(6, (fileLen / 25000) * 1.5)));
@@ -268,14 +273,15 @@ export async function startNodalAiGeneration(config, fileName) {
     }
     state.aiGenerationAbortController = new AbortController();
 
-    // Switch to loading view
+    // Switch to loading view and atomically replace history so the loading screen stays visible
     showView('loading', false);
+    window.history.replaceState({ view: 'loading' }, '', '#loading');
 
     if (elements.loadingTitle) {
         elements.loadingTitle.textContent = 'Generating Quiz with Nodal AI...';
     }
     if (elements.loadingMessage) {
-        elements.loadingMessage.textContent = 'Connecting to Gemini 2.5 Flash-Lite...';
+        elements.loadingMessage.textContent = 'Connecting to Gemini 3.5 Flash-Lite...';
     }
 
     // Populate badges in loading screen
@@ -346,7 +352,7 @@ export async function startNodalAiGeneration(config, fileName) {
         // Dynamic stage messaging
         if (elements.loadingProgressStageText) {
             if (elapsedSec < 2) {
-                elements.loadingProgressStageText.textContent = 'Connecting to Gemini 2.5 Flash-Lite...';
+                elements.loadingProgressStageText.textContent = 'Connecting to Gemini 3.5 Flash-Lite...';
             } else if (elapsedSec < estimatedSec * 0.5) {
                 elements.loadingProgressStageText.textContent = 'Analyzing material & formulating questions...';
             } else if (elapsedSec < estimatedSec) {
@@ -436,6 +442,7 @@ export async function startNodalAiGeneration(config, fileName) {
             cancelNodalAiGenerationAndCopyPrompt(config, fileName);
         } else {
             showView('start', false);
+            window.history.replaceState({ view: 'start' }, '', '#home');
         }
     }
 }
@@ -450,6 +457,7 @@ export function cancelNodalAiGeneration() {
         state.aiGenerationAbortController = null;
     }
     showView('start', false);
+    window.history.replaceState({ view: 'start' }, '', '#home');
 }
 
 export function cancelNodalAiGenerationAndCopyPrompt(config = state.currentQuizConfig, fileName = state.currentFileName) {
@@ -462,5 +470,6 @@ export function cancelNodalAiGenerationAndCopyPrompt(config = state.currentQuizC
         state.aiGenerationAbortController = null;
     }
     showView('start', false);
+    window.history.replaceState({ view: 'start' }, '', '#home');
     openAiPromptModal(config, fileName);
 }

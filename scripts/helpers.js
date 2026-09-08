@@ -1578,6 +1578,23 @@ export async function handlePopState(event) {
             return;
         }
 
+        // 6b. Quiz Generation in Progress (#loading) - Prompt before aborting
+        if (currentViewId === 'loading') {
+            window.history.pushState({ view: 'loading' }, '', '#loading');
+            const shouldCancel = await customConfirm(
+                'Quiz generation is currently in progress. Do you want to cancel and return to the home screen?',
+                'Cancel Quiz Generation',
+                'Yes, Cancel',
+                'Keep Generating',
+                true
+            );
+            if (shouldCancel) {
+                const { cancelNodalAiGeneration } = await import('./quiz/quizGeneration.js');
+                cancelNodalAiGeneration();
+            }
+            return;
+        }
+
         // 7. Document Upload Customization Screen (#customize)
         const isCustomizingDocs = (state.activeSubState === '#customize') || 
             (!state.isCustomizingHistory && ((state.currentFiles && state.currentFiles.length > 0) || (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0)));
@@ -2415,10 +2432,10 @@ export function openAiChoiceModal(config, fileName) {
     }
 }
 
-export function closeAiChoiceModal(fromPopState = false) {
+export function closeAiChoiceModal(fromPopState = false, skipHistoryBack = false) {
     clearSubState('#ai-choice');
     closeModalWithAnimation(elements.aiChoiceModal, () => {
-        if (!fromPopState && window.location.hash === '#ai-choice') {
+        if (!fromPopState && !skipHistoryBack && window.location.hash === '#ai-choice') {
             window.history.back();
         }
     });

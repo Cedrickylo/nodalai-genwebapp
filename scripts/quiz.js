@@ -211,7 +211,7 @@ export function attachQuizEventListeners() {
         startNodalAiGeneration(state.currentQuizConfig, state.currentFileName);
     });
     elements.aiChoiceOtherBtn?.addEventListener('click', () => {
-        closeAiChoiceModal();
+        closeAiChoiceModal(false, true);
         openAiPromptModal(state.currentQuizConfig, state.currentFileName);
     });
 
