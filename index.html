@@ -793,11 +793,66 @@
             </div>
         </div>
 
-        <div id="loading-view" class="view">
-             <div class="bg-gray-800 p-8 rounded-xl shadow-2xl text-center">
-                <div class="flex justify-center items-center mb-6"><svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
-                <h2 id="loading-title" class="text-2xl font-semibold text-blue-400">Generating Quiz...</h2>
-                <p id="loading-message" class="text-gray-400 mt-2 min-h-[20px]"></p>
+        <div id="loading-view" class="view w-full max-w-xl mx-auto py-6 px-4">
+             <div class="bg-gray-800/95 border border-gray-700/80 p-6 sm:p-8 rounded-2xl shadow-2xl text-center space-y-5 backdrop-blur-sm relative overflow-hidden">
+                <!-- Ambient Top Glow -->
+                <div class="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-32 bg-blue-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+                <!-- Animated AI Icon & Spinner -->
+                <div class="relative flex justify-center items-center">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600/30 to-indigo-600/30 border border-blue-500/40 flex items-center justify-center shadow-lg shadow-blue-500/10">
+                        <svg class="animate-spin h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Title & Status Message -->
+                <div>
+                    <h2 id="loading-title" class="text-2xl font-bold text-white tracking-tight">Generating Quiz with Nodal AI...</h2>
+                    <p id="loading-message" class="text-sm text-gray-300 mt-1 min-h-[22px]">Connecting to Gemini 2.5 Flash-Lite...</p>
+                </div>
+
+                <!-- Summary Badges -->
+                <div id="loading-summary-badges" class="flex flex-wrap justify-center gap-2 text-xs"></div>
+
+                <!-- Accurate Progress Bar & Timer Card -->
+                <div class="space-y-2.5 bg-gray-900/60 p-4 rounded-xl border border-gray-700/60 text-left shadow-inner">
+                    <div class="flex justify-between items-center text-xs font-semibold text-gray-300">
+                        <span id="loading-progress-stage-text">Processing reviewer material...</span>
+                        <span id="loading-progress-percent" class="font-mono text-blue-400 font-bold">0%</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-800 rounded-full overflow-hidden p-0.5 border border-gray-700/80 shadow-inner">
+                        <div id="loading-progress-bar" class="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-teal-400 rounded-full transition-all duration-200 ease-out" style="width: 0%;"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px] text-gray-400 pt-1 font-mono">
+                        <span id="loading-time-elapsed">Elapsed: 00:00</span>
+                        <span id="loading-time-estimated">Estimated: ~8s</span>
+                    </div>
+                </div>
+
+                <!-- 3-Minute Milestone Container (Hidden by default, shown when >= 180s) -->
+                <div id="loading-delay-container" class="hidden text-left bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-3">
+                    <div class="flex items-start gap-2.5">
+                        <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <div class="text-xs text-amber-200 leading-relaxed">
+                            <strong class="font-semibold text-amber-300 block">Taking longer than expected (3+ minutes)</strong>
+                            Google Gemini is taking longer than usual to respond. You can continue waiting, or cancel now and copy the prompt to use with another AI (ChatGPT, Claude, etc.).
+                        </div>
+                    </div>
+                    <button id="loading-cancel-copy-btn" type="button" class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2.5 px-3 rounded-lg text-xs transition shadow-md cursor-pointer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <span>Cancel & Copy Prompt to Other AI</span>
+                    </button>
+                </div>
+
+                <!-- Immediate Cancel Button -->
+                <div class="pt-1">
+                    <button id="loading-cancel-btn" type="button" class="text-xs text-gray-400 hover:text-gray-200 underline transition-colors cursor-pointer">
+                        Cancel Quiz Generation
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1114,6 +1169,10 @@
                                 <div>
                                     <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
                                     <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Google Gemini 2.5 Flash-Lite & AI Choice Workflow:</strong> One-click automated quiz generation powered by Gemini 2.5 Flash-Lite via secure Vercel serverless integration. Features an AI Choice selection menu (<code>#ai-choice</code>), organic progress bar with accurate time estimation, a 3-minute delayed "Cancel & Copy Prompt" safeguard, and a 10-minute auto-cancellation safety guard.</span>
+                                        </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
                                             <span><strong>Homepage Drag & Drop Document Upload:</strong> Seamlessly drag documents from your computer onto the homepage. An animated drop overlay (<code>#home-drag-overlay</code>) activates automatically upon hovering files; releasing them instantly extracts, analyzes, and opens the customization screen.</span>
@@ -1829,6 +1888,83 @@
         <button id="migration-error-close-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-xl transition cursor-pointer text-sm">
             Dismiss
         </button>
+    </div>
+</div>
+
+<!-- AI Choice Selection Modal -->
+<div id="ai-choice-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 transition-opacity duration-300">
+    <div class="bg-gray-800 w-full max-w-xl rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300 flex flex-col max-h-[92vh]">
+        
+        <!-- Header -->
+        <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/90 relative">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-gradient-to-tr from-blue-600/30 to-indigo-600/30 rounded-xl text-blue-400 border border-blue-500/30">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white leading-tight">Choose Quiz Generator</h3>
+                    <p class="text-xs text-gray-400">Select how you want your quiz generated</p>
+                </div>
+            </div>
+            <button id="close-ai-choice-modal-btn" class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-4">
+            <!-- Summary Badges -->
+            <div id="ai-choice-summary-badges" class="flex flex-wrap gap-2 text-xs"></div>
+
+            <p class="text-xs text-gray-300 font-medium">How would you like to generate this quiz?</p>
+
+            <div class="grid grid-cols-1 gap-3.5 pt-1">
+                <!-- Option 1: Nodal AI (Built-in) -->
+                <button id="ai-choice-nodal-btn" type="button" class="group text-left p-4 rounded-xl border border-blue-500/40 bg-gradient-to-r from-blue-950/40 to-indigo-950/30 hover:border-blue-400 hover:bg-blue-900/30 transition shadow-md hover:shadow-blue-500/10 cursor-pointer flex flex-col gap-2 relative">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 rounded-lg bg-blue-500/20 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Nodal AI (Built-in)</span>
+                                <span class="block text-[11px] text-gray-400">Powered by Google Gemini 2.5 Flash-Lite</span>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Automated</span>
+                    </div>
+                    <p class="text-xs text-gray-300 pl-1 leading-relaxed">
+                        Generates questions and automatically opens the quiz in one click. No copy-pasting required.
+                    </p>
+                </button>
+
+                <!-- Option 2: Other Provider (Copy Prompt) -->
+                <button id="ai-choice-other-btn" type="button" class="group text-left p-4 rounded-xl border border-gray-700 bg-gray-900/50 hover:border-gray-500 hover:bg-gray-800/80 transition shadow-sm cursor-pointer flex flex-col gap-2 relative">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 rounded-lg bg-purple-500/20 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">Other Provider (Copy Prompt)</span>
+                                <span class="block text-[11px] text-gray-400">ChatGPT, Claude, DeepSeek, Gemini Web</span>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">Manual</span>
+                    </div>
+                    <p class="text-xs text-gray-300 pl-1 leading-relaxed">
+                        Copy a tailored system prompt to paste into any AI model of your choice, then import the JSON file.
+                    </p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex justify-end">
+            <button id="close-ai-choice-footer-btn" type="button" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl transition-colors text-sm cursor-pointer">Cancel</button>
+        </div>
     </div>
 </div>
 

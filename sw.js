@@ -1,5 +1,5 @@
-// Incremented to v29 for comprehensive What's New September 8, 2026 release notes update
-const CACHE_NAME = 'nodal-ai-cache-v29';
+// Incremented to v30 for Google Gemini 2.5 Flash-Lite & Vercel integration
+const CACHE_NAME = 'nodal-ai-cache-v30';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -257,7 +257,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Bypass serverless API functions
-    if (requestUrl.pathname.startsWith('/.netlify/')) {
+    if (requestUrl.pathname.startsWith('/.netlify/') || requestUrl.pathname.startsWith('/api/generate-quiz')) {
         return;
     }
 

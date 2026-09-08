@@ -20,6 +20,8 @@ import {
     openAccountAsView,
     saveDisplayName,
     handleLogout,
+    openAiChoiceModal,
+    closeAiChoiceModal,
     openAiPromptModal,
     closeAiPromptModal,
     autoBalanceMixedCounts,
@@ -45,7 +47,10 @@ import {
 } from './quiz/fileHandling.js';
 
 import { 
-    handleQuizGeneration 
+    handleQuizGeneration,
+    startNodalAiGeneration,
+    cancelNodalAiGeneration,
+    cancelNodalAiGenerationAndCopyPrompt
 } from './quiz/quizGeneration.js';
 
 import { 
@@ -198,6 +203,25 @@ export function attachQuizEventListeners() {
         document.execCommand('copy');
         showToast('Link copied to clipboard!', 2000, 'success');
     };
+
+    // AI Choice Modal Event Listeners
+    elements.closeAiChoiceModalBtn?.addEventListener('click', () => closeAiChoiceModal());
+    elements.closeAiChoiceFooterBtn?.addEventListener('click', () => closeAiChoiceModal());
+    elements.aiChoiceNodalBtn?.addEventListener('click', () => {
+        startNodalAiGeneration(state.currentQuizConfig, state.currentFileName);
+    });
+    elements.aiChoiceOtherBtn?.addEventListener('click', () => {
+        closeAiChoiceModal();
+        openAiPromptModal(state.currentQuizConfig, state.currentFileName);
+    });
+
+    // Loading View Cancel Buttons
+    elements.loadingCancelCopyBtn?.addEventListener('click', () => {
+        cancelNodalAiGenerationAndCopyPrompt(state.currentQuizConfig, state.currentFileName);
+    });
+    elements.loadingCancelBtn?.addEventListener('click', () => {
+        cancelNodalAiGeneration();
+    });
 
     // AI Prompt Modal Event Listeners
     elements.closeAiPromptModalBtn?.addEventListener('click', closeAiPromptModal);
@@ -1040,6 +1064,9 @@ export {
     
     // Quiz generation
     handleQuizGeneration,
+    startNodalAiGeneration,
+    cancelNodalAiGeneration,
+    cancelNodalAiGenerationAndCopyPrompt,
     
     // Quiz execution
     startQuiz,

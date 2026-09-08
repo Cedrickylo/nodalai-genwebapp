@@ -1299,6 +1299,7 @@ export function hashToView(hash) {
 export const SUB_STATE_HASHES = [
     '#customize',
     '#edit',
+    '#ai-choice',
     '#ai-prompt',
     '#account-modal',
     '#share',
@@ -1345,6 +1346,9 @@ export function isSubStateAuthorized(hash) {
     }
     if (hash === '#edit') {
         return !!state.isCustomizingHistory && !!state.customizingQuizData;
+    }
+    if (hash === '#ai-choice') {
+        return elements.aiChoiceModal && !elements.aiChoiceModal.classList.contains('hidden');
     }
     if (hash === '#ai-prompt') {
         return elements.aiPromptModal && !elements.aiPromptModal.classList.contains('hidden');
@@ -1477,6 +1481,16 @@ export async function handlePopState(event) {
                 return;
             } else {
                 closeShareModal(true);
+            }
+        }
+
+        // 2c. AI Choice Modal Dismiss
+        if (elements.aiChoiceModal && !elements.aiChoiceModal.classList.contains('hidden')) {
+            if (targetHash !== '#ai-choice') {
+                closeAiChoiceModal(true);
+                if (targetHash === '#customize' || targetHash === '#edit') {
+                    return;
+                }
             }
         }
 
@@ -2371,6 +2385,43 @@ questions (Enumeration): Format each object as follows:
 "answer": An array of strings containing the correct list items.
 
 "explanation": A specific, factual explanation drawn directly from the text outlining why these items are grouped.${sourceSection}`;
+}
+
+export function openAiChoiceModal(config, fileName) {
+    if (elements.aiChoiceSummaryBadges) {
+        const mcCount = config.mc !== undefined ? config.mc : (config.mcCount !== undefined ? config.mcCount : 0);
+        const tfCount = config.tf !== undefined ? config.tf : (config.tfCount !== undefined ? config.tfCount : 0);
+        const idCount = config.id || 0;
+        const enCount = config.en || 0;
+        const timeBadge = config.isTimed ? formatTime(config.totalTime) : 'Untimed';
+        const attemptsBadge = config.isAttemptLimited ? `${config.maxAttempts} Attempts` : 'Unlimited Attempts';
+        const typeBadge = config.difficulty === 'custom' 
+            ? `Custom (${config.customTypeShort || 'MIX'})`
+            : `${(config.difficulty || 'Easy').charAt(0).toUpperCase() + (config.difficulty || 'Easy').slice(1)}`;
+        
+        elements.aiChoiceSummaryBadges.innerHTML = `
+            <span class="px-2.5 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg font-semibold">${config.count || 10} Questions</span>
+            <span class="px-2.5 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg font-medium">${typeBadge}</span>
+            <span class="px-2.5 py-1 bg-gray-700 text-gray-300 border border-gray-600 rounded-lg">${mcCount} MC • ${tfCount} T/F • ${idCount} ID • ${enCount} EN</span>
+            <span class="px-2.5 py-1 bg-gray-700 text-gray-300 border border-gray-600 rounded-lg">${timeBadge}</span>
+            <span class="px-2.5 py-1 bg-gray-700 text-gray-300 border border-gray-600 rounded-lg">${attemptsBadge}</span>
+            <span class="px-2.5 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg truncate max-w-[200px]" title="${fileName || 'Quiz'}">${fileName || 'Quiz'}</span>
+        `;
+    }
+
+    if (elements.aiChoiceModal) {
+        elements.aiChoiceModal.classList.remove('hidden');
+        pushSubState('#ai-choice');
+    }
+}
+
+export function closeAiChoiceModal(fromPopState = false) {
+    clearSubState('#ai-choice');
+    closeModalWithAnimation(elements.aiChoiceModal, () => {
+        if (!fromPopState && window.location.hash === '#ai-choice') {
+            window.history.back();
+        }
+    });
 }
 
 export function openAiPromptModal(config, fileName) {

@@ -1,204 +1,248 @@
-// aiService.js
-// Main function to generate quiz questions using AI
+// scripts/aiService.js
+// Secure Quiz Generation Service using Vercel Serverless Function & Google Gemini 2.5 Flash-Lite
 
-const AI_SERVICE = 'groq'; // Change to 'puter' if you want to switch back to Puter AI
+/**
+ * Sends prompt to the Vercel serverless function (/api/generate-quiz)
+ * The GEMINI_API_KEY is securely held on the Vercel server and never exposed to the client.
+ */
+export async function requestQuizFromVercel(systemPrompt, userPrompt = '', signal = null) {
+    const endpoints = ['/api/generate-quiz', '/.netlify/functions/generate-quiz'];
+    let lastError = null;
 
-export function isUsingPuterAI() {
-    return AI_SERVICE === 'puter';
+    for (const endpoint of endpoints) {
+        try {
+            const fetchOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    systemPrompt,
+                    userPrompt
+                })
+            };
+
+            if (signal) {
+                fetchOptions.signal = signal;
+            }
+
+            const response = await fetch(endpoint, fetchOptions);
+
+            // If 404 on /api/generate-quiz (e.g. running in netlify dev environment), try fallback
+            if (response.status === 404 && endpoint === endpoints[0]) {
+                continue;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const detailedError = errorData.error || errorData.message || `Server responded with status ${response.status}`;
+                throw new Error(detailedError);
+            }
+
+            const data = await response.json();
+            
+            // If the server returns rawText directly (from our Vercel function)
+            if (data && typeof data.rawText === 'string') {
+                return data.rawText;
+            }
+
+            return extractTextFromResponse(data);
+        } catch (error) {
+            // If user or timeout aborted the request, rethrow immediately
+            if (error.name === 'AbortError') {
+                throw error;
+            }
+            lastError = error;
+            // If not a 404 fallback, throw the error
+            if (endpoint === endpoints[endpoints.length - 1] || !error.message?.includes('404')) {
+                throw error;
+            }
+        }
+    }
+
+    throw lastError || new Error('Quiz generation service unavailable.');
 }
 
-export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
+/**
+ * Cleans and safely parses raw text from AI response into a valid quiz object.
+ * Normalizes question formats, options arrays, and answers for full engine compatibility.
+ */
+export function cleanAndParseQuizJson(rawText, fallbackFileName = 'Custom Quiz', currentConfig = {}) {
+    if (!rawText || typeof rawText !== 'string') {
+        throw new Error('Empty response received from AI.');
+    }
+
+    let cleaned = rawText.trim();
+
+    // Strip Markdown ```json ... ``` code blocks if present
+    if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/i, '');
+        cleaned = cleaned.replace(/\s*```$/, '');
+        cleaned = cleaned.trim();
+    }
+
+    // Try finding the first JSON object or array bounds
+    const firstBrace = cleaned.indexOf('{');
+    const firstBracket = cleaned.indexOf('[');
+    let startIndex = -1;
+
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+        startIndex = firstBrace;
+    } else if (firstBracket !== -1) {
+        startIndex = firstBracket;
+    }
+
+    if (startIndex !== -1) {
+        const lastBrace = cleaned.lastIndexOf('}');
+        const lastBracket = cleaned.lastIndexOf(']');
+        const endIndex = Math.max(lastBrace, lastBracket);
+        if (endIndex > startIndex) {
+            cleaned = cleaned.slice(startIndex, endIndex + 1);
+        }
+    }
+
+    let parsed;
     try {
-        if (AI_SERVICE === 'puter') {
-            const response = await puter.ai.chat(systemPrompt + "\n\n" + userPrompt);
-            return extractTextFromResponse(response);
+        parsed = JSON.parse(cleaned);
+    } catch (e) {
+        console.error('Failed to parse AI JSON:', cleaned);
+        throw new Error('AI returned an invalid JSON format. Please try again.');
+    }
+
+    // Extract questions array from common structures
+    let questions = [];
+    let config = { ...currentConfig };
+    let fileName = fallbackFileName;
+
+    if (Array.isArray(parsed)) {
+        questions = parsed;
+    } else if (parsed && typeof parsed === 'object') {
+        if (Array.isArray(parsed.questions)) {
+            questions = parsed.questions;
+        } else if (parsed.quiz && Array.isArray(parsed.quiz.questions)) {
+            questions = parsed.quiz.questions;
+        } else if (Array.isArray(parsed.items)) {
+            questions = parsed.items;
         }
 
-        // Call your new secure Netlify function
-        const response = await fetch('/.netlify/functions/generate-quiz', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            systemPrompt: systemPrompt,
-            userPrompt: userPrompt
-        })
+        if (parsed.config && typeof parsed.config === 'object') {
+            config = { ...config, ...parsed.config };
+        }
+        if (parsed.fileName && typeof parsed.fileName === 'string') {
+            fileName = parsed.fileName.trim();
+        }
+    }
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error('AI response did not contain any valid quiz questions.');
+    }
+
+    // Normalize each question
+    const normalizedQuestions = questions.map((q, index) => {
+        let questionText = q.question || q.prompt || q.text || `Question ${index + 1}`;
+        let rawAnswer = q.answer !== undefined ? q.answer : (q.correctAnswer !== undefined ? q.correctAnswer : '');
+        let type = (q.type || 'multiple-choice').toString().trim().toLowerCase();
+        let options = Array.isArray(q.options) ? [...q.options] : [];
+        let explanation = (q.explanation || '').toString().trim();
+
+        // Normalize boolean answers
+        if (typeof rawAnswer === 'boolean') {
+            rawAnswer = rawAnswer ? 'True' : 'False';
+        } else if (typeof rawAnswer === 'string') {
+            rawAnswer = rawAnswer.trim();
+        }
+
+        // True or False normalization
+        if (type === 'true-or-false' || (options.length === 2 && options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))) {
+            type = 'multiple-choice';
+            options = ['True', 'False'];
+            if (typeof rawAnswer === 'string') {
+                rawAnswer = rawAnswer.toLowerCase() === 'true' ? 'True' : 'False';
+            }
+        }
+
+        // Identification question normalization
+        if (type === 'identification') {
+            options = [];
+        }
+
+        // Enumeration question normalization
+        if (type === 'enumeration') {
+            options = [];
+            if (typeof rawAnswer === 'string') {
+                rawAnswer = rawAnswer.split(/[,|\n]/).map(s => s.trim()).filter(Boolean);
+            } else if (!Array.isArray(rawAnswer)) {
+                rawAnswer = [String(rawAnswer)];
+            }
+        }
+
+        return {
+            question: questionText,
+            type,
+            options,
+            answer: rawAnswer,
+            explanation
+        };
     });
 
-    if (!response.ok) {
-        // Attempt to extract our custom verbose error payload
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Detailed Server Error Payload:", errorData);
-        
-        throw new Error(errorData.error || `Netlify Function error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return extractTextFromResponse(data);   
-    } catch (error) {
-        console.error('AI Service Error:', error);
-        throw error;
-    }
+    return {
+        fileName,
+        config,
+        questions: normalizedQuestions
+    };
 }
 
-// ... keep your extractTextFromResponse function and the rest of the file exactly as is ...
+/**
+ * Legacy compatibility wrapper for generateQuestionsFromAI
+ */
+export async function generateQuestionsFromAI(systemPrompt, userPrompt = '', signal = null) {
+    return requestQuizFromVercel(systemPrompt, userPrompt, signal);
+}
 
-// Helper function to extract text from various AI response formats
-// This handles different response structures from different AI providers
-// export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
-//     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-//         method: "POST",
-//         headers: {
-//             "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`, // Secure this in production!
-//             "Content-Type": "application/json"
-//         },
-//         body: JSON.stringify({
-//             model: "gpt-4o-mini", // Use gpt-4o-mini for speed and cost-effectiveness
-//             messages: [
-//                 { role: "system", content: systemPrompt },
-//                 { role: "user", content: userPrompt }
-//             ],
-//             temperature: 0.2
-//         })
-//     });
+/**
+ * Helper to extract text from various AI response schemas
+ */
+export function extractTextFromResponse(response) {
+    if (!response) return '';
+    if (typeof response === 'string') return response;
 
-//     if (!response.ok) {
-//         const errorData = await response.json();
-//         throw new Error(`OpenAI API error: ${errorData.error.message}`);
-//     }
-
-//     const data = await response.json();
-//     return data.choices[0].message.content; // This returns the AI's actual text
-// }
-
-function extractTextFromResponse(response) {
-    if (!response) {
-        return '';
-    }
-    
-    // If response is already a string, return it
-    if (typeof response === 'string') {
-        return response;
-    }
-    
-    // If response is an object, try various common structures
     if (typeof response === 'object') {
-        // OpenRouter/ChatGPT-like format
-        if (response.message && response.message.content && Array.isArray(response.message.content) && 
-            response.message.content[0] && typeof response.message.content[0].text === 'string') {
-            return response.message.content[0].text;
+        // Direct text property
+        if (typeof response.rawText === 'string') return response.rawText;
+        if (typeof response.text === 'string') return response.text;
+        if (typeof response.content === 'string') return response.content;
+
+        // Gemini candidates structure
+        if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+            return response.candidates[0].content.parts[0].text;
         }
-        
-        // Simple content field
-        if (typeof response.content === 'string') {
-            return response.content;
-        }
-        
-        // Simple text field
-        if (typeof response.text === 'string') {
-            return response.text;
-        }
-        
-        // Message with content string
-        if (response.message && typeof response.message.content === 'string') {
-            return response.message.content;
-        }
-        
-        // Choices array format (OpenAI-like)
+
+        // OpenAI / Groq choices structure
         if (response.choices && response.choices[0]) {
             if (typeof response.choices[0].text === 'string') {
                 return response.choices[0].text;
             }
-            if (response.choices[0].message && typeof response.choices[0].message.content === 'string') {
+            if (response.choices[0].message?.content) {
                 return response.choices[0].message.content;
             }
         }
-        
-        // Groq response output_text
+
+        // Groq output structures
         if (typeof response.output_text === 'string') {
             return response.output_text;
         }
-        
-        // Groq output array structures
         if (response.output && Array.isArray(response.output)) {
-            const outputText = response.output
-                .map(item => {
-                    if (typeof item === 'string') return item;
-                    if (item.content && Array.isArray(item.content)) {
-                        return item.content.map(chunk => chunk.text || '').join('');
-                    }
-                    return '';
-                })
-                .join('')
-                .trim();
-            if (outputText) {
-                return outputText;
-            }
+            return response.output.map(item => {
+                if (typeof item === 'string') return item;
+                if (item.content && Array.isArray(item.content)) {
+                    return item.content.map(chunk => chunk.text || '').join('');
+                }
+                return '';
+            }).join('').trim();
         }
-        
-        // Groq-like response format
-        if (response.choices && Array.isArray(response.choices) && response.choices[0] && typeof response.choices[0].message?.content === 'string') {
-            return response.choices[0].message.content;
-        }
-        
-        // Fallback: stringify the entire response
+
         return JSON.stringify(response);
     }
-    
+
     return '';
 }
-
-// ===== TEMPLATE FOR OTHER AI SERVICES =====
-// Below are templates for swapping to different AI providers.
-// Replace generateQuestionsFromAI() with your chosen provider.
-
-// Example: OpenRouter (Uncomment and modify to use)
-/*
-export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${YOUR_API_KEY}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            "model": "google/gemini-2.0-flash-exp",
-            "messages": [
-                { "role": "system", "content": systemPrompt },
-                { "role": "user", "content": userPrompt }
-            ]
-        })
-    });
-    
-    if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return extractTextFromResponse(data);
-}
-*/
-
-// Example: Claude API (Uncomment and modify to use)
-/*
-export async function generateQuestionsFromAI(systemPrompt, userPrompt) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-            "x-api-key": YOUR_CLAUDE_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        },
-        body: JSON.stringify({
-            "model": "claude-3-opus-20240229",
-            "max_tokens": 2048,
-            "system": systemPrompt,
-            "messages": [{ "role": "user", "content": userPrompt }]
-        })
-    });
-    
-    const data = await response.json();
-    return extractTextFromResponse(data);
-}
-*/
