@@ -187,7 +187,7 @@
     </aside>
 
     <div class="w-full flex items-center justify-center" style="flex: 1;">
-        <div id="start-view" class="view active w-full max-w-xl mx-auto">
+        <div id="start-view" class="view w-full max-w-xl mx-auto">
              <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl relative pt-16 sm:pt-12 w-full max-w-full overflow-hidden">
                 <!-- Drag and Drop Overlay for Homepage Uploads -->
                 <div id="home-drag-overlay" class="hidden absolute inset-0 z-50 rounded-xl bg-gray-900/90 border-2 border-dashed border-blue-500 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center pointer-events-none transition-opacity duration-200">
@@ -1487,6 +1487,132 @@
             <span class="text-xs">Menu</span>
         </button>
     </div>
+
+    <!-- Synchronous 0ms Route Activator: Eliminates homepage flash / teleportation on refresh -->
+    <script>
+        (function() {
+            try {
+                // If website update is running, don't show any view (update screen takes priority)
+                var isUpdating = false;
+                try { isUpdating = sessionStorage.getItem('nodal_is_updating') === 'true'; } catch(e) {}
+                if (isUpdating) return;
+
+                var rawHash = window.location.hash || '';
+                var clean = rawHash.replace(/^#/, '').toLowerCase();
+
+                var targetViewId = 'start-view';
+                var targetNav = 'home';
+
+                if (clean === 'history' || clean === 'history-actions') {
+                    targetViewId = 'history-fullscreen-view';
+                    targetNav = 'history';
+                } else if (clean === 'downloads') {
+                    targetViewId = 'downloads-view';
+                    targetNav = 'downloads';
+                } else if (clean === 'statistics') {
+                    targetViewId = 'statistics-view';
+                    targetNav = 'history';
+                } else if (clean === 'review') {
+                    targetViewId = 'review-view';
+                    targetNav = 'history';
+                } else if (clean === 'help') {
+                    targetViewId = 'help-view';
+                    targetNav = 'help';
+                } else if (clean === 'about') {
+                    targetViewId = 'about-view';
+                    targetNav = 'about';
+                } else if (clean === 'whats-new') {
+                    targetViewId = 'whats-new-view';
+                    targetNav = 'help';
+                } else if (clean === 'account') {
+                    targetViewId = 'account-view';
+                    targetNav = 'account';
+                    var card = document.getElementById('account-card');
+                    var container = document.getElementById('account-view-container');
+                    var cardHeader = document.getElementById('account-card-header');
+                    if (card && container) {
+                        if (cardHeader) cardHeader.classList.add('hidden');
+                        container.appendChild(card);
+                    }
+                } else if (clean === 'quiz' || clean === 'results' || clean === 'loading') {
+                    targetViewId = clean + '-view';
+                    document.body.classList.add('quiz-active');
+                } else {
+                    targetViewId = 'start-view';
+                    targetNav = 'home';
+                }
+
+                // Activate the target view synchronously before the browser paints the first frame
+                var viewEl = document.getElementById(targetViewId);
+                if (viewEl) {
+                    viewEl.classList.add('active');
+                } else {
+                    var startView = document.getElementById('start-view');
+                    if (startView) startView.classList.add('active');
+                }
+
+                // Set initial desktop navbar highlights
+                var desktopMap = {
+                    home: document.getElementById('desktop-nav-home-btn'),
+                    history: document.getElementById('desktop-nav-history-btn'),
+                    downloads: document.getElementById('desktop-nav-downloads-btn'),
+                    help: document.getElementById('desktop-nav-help-btn'),
+                    about: document.getElementById('desktop-nav-about-btn'),
+                    account: document.getElementById('desktop-nav-account-btn')
+                };
+                for (var key in desktopMap) {
+                    var btn = desktopMap[key];
+                    if (btn) {
+                        if (key === targetNav) {
+                            btn.classList.add('text-white', 'bg-blue-600');
+                            btn.classList.remove('text-gray-300');
+                        } else {
+                            btn.classList.remove('text-white', 'bg-blue-600');
+                            btn.classList.add('text-gray-300');
+                        }
+                    }
+                }
+
+                // Set initial mobile navbar highlights
+                var mHome = document.getElementById('mobile-nav-home-btn');
+                var mHistory = document.getElementById('mobile-nav-history-btn');
+                var mMenu = document.getElementById('mobile-nav-menu-btn');
+                var isMenuPage = (targetNav === 'help' || targetNav === 'about' || targetNav === 'account' || targetNav === 'downloads');
+
+                if (mHome) {
+                    if (targetNav === 'home') {
+                        mHome.classList.add('text-white', 'bg-blue-600');
+                        mHome.classList.remove('text-gray-300');
+                    } else {
+                        mHome.classList.remove('text-white', 'bg-blue-600');
+                        mHome.classList.add('text-gray-300');
+                    }
+                }
+                if (mHistory) {
+                    if (targetNav === 'history') {
+                        mHistory.classList.add('text-white', 'bg-blue-600');
+                        mHistory.classList.remove('text-gray-300');
+                    } else {
+                        mHistory.classList.remove('text-white', 'bg-blue-600');
+                        mHistory.classList.add('text-gray-300');
+                    }
+                }
+                if (mMenu) {
+                    if (isMenuPage) {
+                        mMenu.classList.add('text-white', 'bg-blue-600');
+                        mMenu.classList.remove('text-gray-300');
+                    } else {
+                        mMenu.classList.remove('text-white', 'bg-blue-600');
+                        mMenu.classList.add('text-gray-300');
+                    }
+                }
+            } catch (err) {
+                console.warn('Early route activation error:', err);
+                var fallback = document.getElementById('start-view');
+                if (fallback) fallback.classList.add('active');
+            }
+        })();
+    </script>
 
     <div id="toast-notification" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg cursor-pointer select-none z-[200]"><span id="toast-message"></span></div>
 <div id="account-modal-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

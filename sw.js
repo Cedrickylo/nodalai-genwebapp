@@ -1,5 +1,5 @@
-// Incremented to v39 for website-wide granular back navigation, refresh persistence, and pre-update loading screen
-const CACHE_NAME = 'nodal-ai-cache-v39';
+// Incremented to v40 for zero-flash route refresh, elimination of homepage teleportation, and review state persistence
+const CACHE_NAME = 'nodal-ai-cache-v40';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

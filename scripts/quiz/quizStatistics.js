@@ -220,6 +220,9 @@ export function openTestReview(takeData, origin = 'statistics', pushHash = true)
     if (!takeData) return;
     state.currentReviewTake = takeData;
     state.reviewOrigin = origin;
+    try {
+        sessionStorage.setItem('nodal_last_review_take', JSON.stringify(takeData));
+    } catch (e) {}
 
     // Breadcrumb visibility rule:
     // If opened from results screen, hide breadcrumbs bar; if from stats, show breadcrumbs
@@ -496,6 +499,7 @@ export function initQuizStatisticsListeners() {
     }
 
     const handleReviewBackClick = () => {
+        try { sessionStorage.removeItem('nodal_last_review_take'); } catch (e) {}
         if (window.history.length > 1 && window.location.hash === '#review') {
             window.history.back();
         } else if (state.reviewOrigin === 'results') {

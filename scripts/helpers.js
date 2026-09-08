@@ -2080,14 +2080,24 @@ export async function restoreRouteFromHash(hash) {
         }
     } else if (clean === 'review') {
         const lastKey = state.currentStatsQuizKey || localStorage.getItem('nodal_last_stats_key');
-        if (state.currentReviewTake) {
+        let reviewTake = state.currentReviewTake;
+        if (!reviewTake) {
+            try {
+                const rawTake = sessionStorage.getItem('nodal_last_review_take');
+                if (rawTake) reviewTake = JSON.parse(rawTake);
+            } catch(e) {}
+        }
+        if (reviewTake) {
+            state.currentReviewTake = reviewTake;
             const { renderTestReview } = await import('./quiz/quizStatistics.js');
-            renderTestReview(state.currentReviewTake);
+            renderTestReview(reviewTake);
             showView('review', false);
+            updateNavHighlights('history');
         } else if (lastKey && state.quizHistory && state.quizHistory[lastKey]) {
             const { openQuizStatistics } = await import('./quiz/quizStatistics.js');
             openQuizStatistics(lastKey, false);
             window.history.replaceState({ view: 'statistics' }, '', '#statistics');
+            updateNavHighlights('history');
         } else {
             showView('start', false);
             window.history.replaceState({ view: 'start' }, '', '#home');
@@ -3052,8 +3062,6 @@ export function initializeAppState() {
     handleAttemptToggle();
     setReduceMotion(localStorage.getItem('nodal_reduce_motion') === 'true');
     updateResumeButtonVisibility();
-
-    updateNavHighlights('home');
 }
 
 /**
