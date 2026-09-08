@@ -20,8 +20,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
     // 1. CUSTOMIZATION CHECK FOR EXISTING QUIZ IN HISTORY
     if (state.isCustomizingHistory && state.customizingQuizData && !isRemedial) {
-        const { editQuizNameInput } = elements;
-        const newName = editQuizNameInput.value.trim() || state.customizingQuizData.fileName;
+        const newName = (editQuizNameInput.value.trim() || state.customizingQuizData.fileName || 'Custom Quiz').slice(0, 35);
         state.questions = state.customizingQuizData.questions;
         state.currentFileName = newName;
         state.currentQuizConfig = { ...state.customizingQuizData.config };
@@ -190,9 +189,9 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
     let quizName = 'Custom Quiz';
     if (isRemedial) {
-        quizName = elements.remedialQuizNameInput?.value.trim() || ((state.currentFileName || 'Quiz') + ' - Remedial');
+        quizName = (elements.remedialQuizNameInput?.value.trim() || ((state.currentFileName || 'Quiz') + ' - Remedial')).slice(0, 35);
     } else {
-        quizName = elements.editQuizNameInput?.value.trim() || state.currentFileName || 'Custom Quiz';
+        quizName = (elements.editQuizNameInput?.value.trim() || state.currentFileName || 'Custom Quiz').slice(0, 35);
     }
     state.currentFileName = quizName;
 

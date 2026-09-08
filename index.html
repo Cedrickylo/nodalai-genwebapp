@@ -27,6 +27,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://js.puter.com/v2/"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-900 text-white flex min-h-screen p-4">
@@ -128,8 +129,8 @@
     </aside>
 
     <div class="w-full flex items-center justify-center" style="flex: 1;">
-        <div id="start-view" class="view active">
-             <div class="bg-gray-800 p-8 rounded-xl shadow-2xl relative pt-16 sm:pt-12">
+        <div id="start-view" class="view active w-full max-w-xl mx-auto">
+             <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl relative pt-16 sm:pt-12 w-full max-w-full overflow-hidden">
                 <div class="absolute top-4 right-4 flex items-center gap-3">
                     <button id="puter-auth-btn" class="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition shadow-md flex items-center gap-1.5">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -142,8 +143,8 @@
                 <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
                 <p id="start-subtitle" class="text-gray-400 mb-8 text-center">Transform your documents into tailored assessments instantly.</p>
                 
-                <div id="file-actions" class="flex items-center gap-2 mb-6">
-                    <label for="file-upload-input" class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate">
+                <div id="file-actions" class="flex items-center gap-2 mb-6 w-full min-w-0">
+                    <label for="file-upload-input" class="flex-1 min-w-0 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate">
                         <span id="file-name">Select Documents</span>
                     </label>
                     <label for="import-quiz-input" class="w-12 h-12 flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition cursor-pointer flex-shrink-0" title="Import Quiz">
@@ -173,9 +174,9 @@
                         
                         <div id="rename-container" class="hidden">
                             <label for="edit-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Quiz Name</label>
-                            <input type="text" id="edit-quiz-name" autocomplete="off" data-1p-ignore data-bwignore class="w-full bg-gray-700 border border-blue-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter quiz name...">                        </div>
+                            <input type="text" id="edit-quiz-name" maxlength="35" autocomplete="off" data-1p-ignore data-bwignore class="w-full bg-gray-700 border border-blue-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter quiz name (max 35 chars)...">                        </div>
 
-                        <div id="selected-files-container" class="hidden p-4 bg-gray-700/30 border border-gray-600 rounded-lg">
+                        <div id="selected-files-container" class="hidden p-4 bg-gray-700/30 border border-gray-600 rounded-lg w-full min-w-0 overflow-hidden">
                             <div class="flex justify-between items-center mb-2">
                                 <h4 class="text-sm font-medium text-gray-300">Selected Documents</h4>
                                 <div class="flex gap-2">
@@ -184,7 +185,7 @@
                                     <input type="file" id="add-more-files-input" multiple class="hidden">
                                 </div>
                             </div>
-                            <ul id="selected-files-list" class="space-y-1 text-xs text-gray-400 max-h-32 overflow-y-auto pl-1"></ul>
+                            <ul id="selected-files-list" class="space-y-1.5 text-xs text-gray-400 max-h-36 overflow-y-auto overflow-x-hidden pl-1 w-full min-w-0"></ul>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -390,7 +391,7 @@
                 <button id="resume-quiz-btn" class="hidden w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg mb-4">Resume Previous Quiz</button>
                 <button id="generate-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Generate Quiz</button>
                 <button id="cancel-customize-btn" class="hidden w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Cancel</button>
-                <p id="status-message" class="text-center text-gray-400 mt-4 text-sm h-5"></p>
+                <p id="status-message" class="text-center text-gray-400 mt-4 text-sm h-5 break-words max-w-full"></p>
 
                 <div id="history-section" class="mt-8 hidden md:block">
                      <div class="flex justify-between items-center mb-4 border-t border-gray-700 pt-6">
@@ -871,7 +872,7 @@
 
                     <div id="remedial-rename-container" class="mb-6">
                         <label for="remedial-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Remedial Quiz Name</label>
-                        <input type="text" id="remedial-quiz-name" class="w-full bg-gray-700 border border-yellow-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Enter remedial quiz name...">
+                        <input type="text" id="remedial-quiz-name" maxlength="35" class="w-full bg-gray-700 border border-yellow-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Enter remedial quiz name (max 35 chars)...">
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

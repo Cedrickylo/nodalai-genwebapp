@@ -1724,9 +1724,10 @@ export function hasUnsavedChanges() {
 export function setupCustomizeView(config, name) {
     state.isCustomizingHistory = true;
     renameContainer.classList.remove('hidden');
-    editQuizNameInput.value = name || '';
+    const cleanName = (name || '').slice(0, 35);
+    editQuizNameInput.value = cleanName;
 
-    startSubtitle.textContent = `Customizing: "${name || 'quiz'}" (Options only)`;
+    startSubtitle.textContent = `Customizing: "${cleanName || 'quiz'}" (Options only)`;
     generateQuizBtn.textContent = 'Start Customized Quiz';
     cancelCustomizeBtn.classList.remove('hidden');
     deleteCustomizeBtn.classList.remove('hidden');

@@ -243,7 +243,7 @@ export function stopLoadingAnimation() {
 
 export function saveCurrentQuiz() {
     if (state.currentQuizKey && state.questions.length > 0) {
-        const fallbackName = state.currentFileName || state.quizHistory[state.currentQuizKey]?.fileName || 'Untitled Quiz';
+        const fallbackName = (state.currentFileName || state.quizHistory[state.currentQuizKey]?.fileName || 'Untitled Quiz').slice(0, 35);
         state.currentFileName = fallbackName;
         const saved = saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: fallbackName, config: state.currentQuizConfig });
         if (saved) {

@@ -51,14 +51,96 @@ if (clearFilesBtnLocal) {
     });
 }
 
-// Render the selected files list with delete buttons
+// Helper to extract text from modern PowerPoint (.pptx) files
+async function extractTextFromPPTX(arrayBuffer) {
+    if (typeof JSZip === 'undefined') {
+        throw new Error('PPTX parser (JSZip) is not available.');
+    }
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const slidePaths = Object.keys(zip.files).filter(name => /^ppt\/slides\/slide\d+\.xml$/i.test(name));
+    
+    if (slidePaths.length === 0) {
+        throw new Error('No presentation slides found in this .pptx file.');
+    }
+
+    // Sort slide paths numerically (slide1, slide2, slide10...)
+    slidePaths.sort((a, b) => {
+        const numA = parseInt(a.match(/slide(\d+)\.xml/i)[1], 10);
+        const numB = parseInt(b.match(/slide(\d+)\.xml/i)[1], 10);
+        return numA - numB;
+    });
+
+    const parser = new DOMParser();
+    const slidesText = [];
+
+    for (const path of slidePaths) {
+        const xmlText = await zip.files[path].async('text');
+        const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+        // In OpenXML presentations, text elements are <a:t>
+        const textNodes = xmlDoc.getElementsByTagName('a:t');
+        const slideStrings = [];
+        for (let i = 0; i < textNodes.length; i++) {
+            const val = textNodes[i].textContent?.trim();
+            if (val) slideStrings.push(val);
+        }
+        if (slideStrings.length > 0) {
+            const slideNum = path.match(/slide(\d+)\.xml/i)[1];
+            slidesText.push(`[Slide ${slideNum}]\n${slideStrings.join(' ')}`);
+        }
+    }
+
+    if (slidesText.length === 0) {
+        throw new Error('Could not extract readable text from presentation slides.');
+    }
+
+    return slidesText.join('\n\n');
+}
+
+// Fallback helper for legacy binary .ppt files
+async function extractTextFromPPTLegacy(file) {
+    const ab = await file.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+    let extracted = '';
+    let currentWord = '';
+    
+    for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        if ((b >= 32 && b <= 126) || b === 10 || b === 13 || b === 9) {
+            currentWord += String.fromCharCode(b);
+        } else {
+            if (currentWord.trim().length >= 4) {
+                extracted += currentWord.trim() + ' ';
+            }
+            currentWord = '';
+        }
+    }
+    if (currentWord.trim().length >= 4) {
+        extracted += currentWord.trim() + ' ';
+    }
+    
+    const cleanText = extracted.replace(/\s+/g, ' ').trim();
+    if (cleanText.length < 20) {
+        throw new Error('Legacy .ppt file contains insufficient readable text. For best results, please save your presentation as .pptx or export to PDF.');
+    }
+    return cleanText;
+}
+
+// Render the selected files list with delete buttons, 35-char limit, and single-line horizontal scroll
 export function renderSelectedFilesList() {
     if (!state.currentFiles || state.currentFiles.length === 0) {
         selectedFilesListLocal.innerHTML = '';
         return;
     }
     selectedFilesListLocal.innerHTML = state.currentFiles
-        .map((f, idx) => `<li class="flex items-center gap-2 group"><button class="delete-file-btn text-red-400 hover:text-red-300 font-bold text-lg transition flex-shrink-0" data-file-index="${idx}" title="Delete this file">×</button><span class="truncate">• ${f.name}</span></li>`)
+        .map((f, idx) => {
+            const displayName = f.name.length > 35 ? f.name.slice(0, 35) : f.name;
+            return `<li class="flex items-center gap-2 group w-full min-w-0 py-0.5">
+                <button class="delete-file-btn text-red-400 hover:text-red-300 font-bold text-lg transition flex-shrink-0 leading-none" data-file-index="${idx}" title="Delete this file">×</button>
+                <div class="min-w-0 flex-1 overflow-x-auto whitespace-nowrap scrollbar-thin py-0.5">
+                    <span class="inline-block text-gray-300 text-xs" title="${f.name}">• ${displayName}</span>
+                </div>
+            </li>`;
+        })
         .join('');
     
     // Attach delete handlers
@@ -118,6 +200,11 @@ async function handleDeleteFile(event) {
                     const tc = await page.getTextContent();
                     txt += tc.items.map(it => it.str).join(' ') + '\n';
                 }
+            } else if (ext === 'pptx') {
+                const ab = await file.arrayBuffer();
+                txt = await extractTextFromPPTX(ab);
+            } else if (ext === 'ppt') {
+                txt = await extractTextFromPPTLegacy(file);
             } else {
                 txt = await file.text();
             }
@@ -133,9 +220,10 @@ async function handleDeleteFile(event) {
         statusMessage.textContent = 'Documents ready!';
         statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
         
-        // Update the file name if needed
+        // Update the file name if needed (capped at 35 characters)
         if (state.currentFiles.length === 1) {
-            state.currentFileName = state.currentFiles[0].name;
+            const rawName = state.currentFiles[0].name;
+            state.currentFileName = rawName.length > 35 ? rawName.slice(0, 35) : rawName;
             editQuizNameInput.value = state.currentFileName;
         }
         validateAllInputs();
@@ -187,6 +275,11 @@ export async function handleFileSelect(event) {
                     const tc = await page.getTextContent();
                     txt += tc.items.map(it => it.str).join(' ') + '\n';
                 }
+            } else if (ext === 'pptx') {
+                const ab = await file.arrayBuffer();
+                txt = await extractTextFromPPTX(ab);
+            } else if (ext === 'ppt') {
+                txt = await extractTextFromPPTLegacy(file);
             } else {
                 txt = await file.text();
             }
@@ -200,10 +293,16 @@ export async function handleFileSelect(event) {
 
         state.fileContent = combinedText;
         state.fileHash = CryptoJS.SHA256(state.fileContent).toString();
-        state.currentFileName = files.length === 1 ? files[0].name : (files[0]?.name || 'Combined Quiz');
+        
+        // Enforce 35-character limit on file name
+        const rawFileName = files.length === 1 ? files[0].name : (files[0]?.name || 'Combined Quiz');
+        state.currentFileName = rawFileName.length > 35 ? rawFileName.slice(0, 35) : rawFileName;
 
         if (fileNameDisplay) {
-            fileNameDisplay.textContent = files.length === 1 ? files[0].name : `${files.length} Documents Selected`;
+            const displayHeaderName = files.length === 1 
+                ? (files[0].name.length > 35 ? files[0].name.slice(0, 35) : files[0].name)
+                : `${files.length} Documents Selected`;
+            fileNameDisplay.textContent = displayHeaderName;
         }
 
         if (selectedFilesContainerLocal) selectedFilesContainerLocal.classList.remove('hidden');
@@ -359,7 +458,8 @@ export function handleQuizImport(event) {
                 config.uiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
             }
             state.currentQuizConfig = config;
-            state.currentFileName = data.fileName || file.name;
+            const rawImportedName = data.fileName || file.name || 'Imported Quiz';
+            state.currentFileName = rawImportedName.length > 35 ? rawImportedName.slice(0, 35) : rawImportedName;
             state.currentQuizKey = importedId;
             state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
             state.totalQuizTime = state.currentQuizConfig.totalTime || 0;

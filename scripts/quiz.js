@@ -166,6 +166,16 @@ export function attachQuizEventListeners() {
         i.addEventListener('input', validateAllInputs);
         i.addEventListener('change', validateAllInputs);
     });
+    elements.editQuizNameInput?.addEventListener('input', (e) => {
+        if (e.target.value.length > 35) {
+            e.target.value = e.target.value.slice(0, 35);
+        }
+    });
+    elements.remedialQuizNameInput?.addEventListener('input', (e) => {
+        if (e.target.value.length > 35) {
+            e.target.value = e.target.value.slice(0, 35);
+        }
+    });
     prevQuestionBtn?.addEventListener('click', displayPreviousQuestion);
     nextQuestionBtn.addEventListener('click', displayNextQuestion);
     nextUnansweredBtn?.addEventListener('click', handleNextUnansweredOrSubmit);

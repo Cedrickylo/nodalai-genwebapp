@@ -54,6 +54,27 @@
         }
         .view { display: none; }
         .view.active { display: block; }
+        #start-view {
+            width: 100%;
+            max-width: 36rem;
+        }
+        #selected-files-list li {
+            min-width: 0;
+            max-width: 100%;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            height: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(107, 114, 128, 0.4);
+            border-radius: 9999px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.6);
+        }
         #file-upload-input, #import-quiz-input { display: none; }
         .correct { background-color: #10B981 !important; border-color: #059669 !important; color: white !important; }
         .incorrect { background-color: #EF4444 !important; border-color: #DC2626 !important; color: white !important; }

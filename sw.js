@@ -1,5 +1,5 @@
-// Incremented to v17 for Skipped Questions Review and Unskippable Navigation Enforcement
-const CACHE_NAME = 'nodal-ai-cache-v17';
+// Incremented to v18 for PPTX Upload Text Extraction, 35-Char Filename Cap and UI Layout Fixes
+const CACHE_NAME = 'nodal-ai-cache-v18';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
