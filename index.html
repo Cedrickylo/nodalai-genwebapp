@@ -1098,7 +1098,7 @@
                                             <h3 class="text-base sm:text-lg font-bold text-white">September 8, 2026</h3>
                                             <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-0.5">Encrypted Data Migration, Service Worker v21, Blocked Modem Resilience & Lazy Skeletons</p>
+                                        <p class="text-xs text-gray-400 mt-0.5">Comprehensive Update: Homepage Drag & Drop, Encrypted Data Migration, Site-Wide Animations, Reduce Motion, Offline Mode & Enhanced File Management</p>
                                     </div>
                                 </div>
                                 <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -1108,26 +1108,50 @@
                             <div id="changelog-sep-08-2026" class="whats-new-content p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
                                 <div>
                                     <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
-                                    <ul class="space-y-2 text-xs sm:text-sm text-gray-300">
+                                    <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
-                                            <span><strong>Encrypted Data Migration (.nodal):</strong> Fast domain-to-domain migration in an intuitive popup modal. Export all or selected quizzes, takes, and settings into an AES-256 encrypted proprietary <code>.nodal</code> file with lazy skeleton feedback. Restore with cryptographic signature validation.</span>
+                                            <span><strong>Homepage Drag & Drop Document Upload:</strong> Seamlessly drag documents from your computer onto the homepage. An animated drop overlay (<code>#home-drag-overlay</code>) activates automatically upon hovering files; releasing them instantly extracts, analyzes, and opens the customization screen.</span>
                                         </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
-                                            <span><strong>Service Worker v21 & Blocked Modem Resilience:</strong> Instant Cache-First loading (&lt; 5ms) with a 2.5-second timeout via AbortController. Fixes packet-drop and endless loading spinners on restricted router firewalls or spotty networks.</span>
+                                            <span><strong>Encrypted Data Migration (.nodal) & Complete Statistics:</strong> Migrate your entire quiz library, score records, and retake histories across domains via AES-256 encrypted proprietary <code>.nodal</code> bundles. Includes cryptographic signature verification and full take restoration.</span>
                                         </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
-                                            <span><strong>Conditional Update Loading Screen:</strong> The full-page app loader now only appears on the very first installation or while an active service worker update installs. Zero blocking on repeat visits.</span>
+                                            <span><strong>Multi-Document "Add More" & 0ms In-Memory Cache:</strong> The "Add More" button now seamlessly appends additional files without clearing previous documents. An in-memory <code>WeakMap</code> text cache ensures previously analyzed documents re-compile in 0ms without re-parsing.</span>
                                         </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
-                                            <span><strong>Lazy Skeleton Loading:</strong> Decoupled cloud authentication and background syncing from blocking the UI. The interface is interactive in 5ms, with animated skeleton placeholders for Quiz History and Data Migration.</span>
+                                            <span><strong>Full Document Name Multi-Line Wrapping & Card Scroll:</strong> Selected documents display complete filenames with clean multi-line wrapping (strictly preserving the 35-character limit on the Quiz Name only). Added smart mouse wheel scroll delegation and a persistent, non-auto-hiding scrollbar.</span>
                                         </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
-                                            <span><strong>Empty Quiz History Redesign:</strong> Enhanced empty history states across the Home screen and Full History view with helpful icons and direct actions.</span>
+                                            <span><strong>Popup Loading Overlay & Toast Notifications:</strong> Document extraction and removal now present a centralized blurred popup loading overlay with spinner instead of small status text below buttons. Document processing completion and removals now notify via sleek toasts.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Website-Wide 60fps GPU Animations & Exit Transitions:</strong> Silky-smooth opening and closing animations across all popup modals, drawers, submenus, and toast notifications using purely <code>transform</code> and <code>opacity</code> with zero layout reflows. Supports quick click-to-dismiss on toasts.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Account "Reduce Motion" Accessibility Setting:</strong> Dedicated toggle in the Account page (for both logged-in and guest users) that instantly disables all animations and transitions website-wide, respecting user preference and OS settings.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>1-Week Retention Offline Mode & Downloads View:</strong> Save quizzes and historical scores for complete offline use with an automated 1-week retention and renewal policy. Dedicated Downloads view allows managing offline storage seamlessly.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Auto-Validate, Audio Synth (Tone.js) & Score Counters:</strong> Full customization of question validation: toggle instant verification, interactive Tone.js audio feedback, live check/x score badges, and permission to modify answers after revealing solutions.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Topmost Navigation Scroll Reset & Neutral Cancel Toasts:</strong> Navigating to any view immediately resets page scroll to <code>top: 0</code>. Cancelling quiz generation now displays a neutral dark-gray badge rather than success green.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Service Worker v29 & Blocked Modem Resilience:</strong> Ultra-fast Cache-First loading (&lt; 5ms) with 2.5s network timeout protection against restricted modems, firewall drops, and spotty connections. Conditional update loading screen only appears during actual version updates.</span>
                                         </li>
                                     </ul>
                                 </div>
@@ -1139,22 +1163,28 @@
                                             <strong class="text-white">📄 PowerPoint PPT & PPTX:</strong> Native slide text extraction with JSZip.
                                         </div>
                                         <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
-                                            <strong class="text-white">📏 35-Char Filename Limit:</strong> Single-line horizontal scroll without clipping.
+                                            <strong class="text-white">📥 Homepage Drag & Drop:</strong> Drag any document straight into the app.
                                         </div>
                                         <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
-                                            <strong class="text-white">🎯 Custom AI Quizzes:</strong> Multiple Choice, Identification, Enumeration, and Mixed questions.
+                                            <strong class="text-white">🎯 Custom AI Quizzes:</strong> Multiple Choice, Identification, Enumeration, and Mixed.
                                         </div>
                                         <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
                                             <strong class="text-white">🔄 Remedial Quizzes:</strong> Automatic practice sets generated from missed questions.
                                         </div>
                                         <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
-                                            <strong class="text-white">📊 Quiz Statistics & Review:</strong> Historical test score tracking and answer review keys.
+                                            <strong class="text-white">📊 Quiz Statistics & Review:</strong> Retake tracking, accuracy rates, and answer keys.
                                         </div>
                                         <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
-                                            <strong class="text-white">💾 1-Week Offline Mode:</strong> Local device caching and storage management.
+                                            <strong class="text-white">💾 1-Week Offline Mode:</strong> Local device caching with storage management.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">📦 Encrypted Data Migration:</strong> AES-256 domain-to-domain <code>.nodal</code> backup & restore.
                                         </div>
                                         <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
                                             <strong class="text-white">☁️ Puter Cloud Sync:</strong> Seamless multi-device library and retake synchronization.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">⚡ 60fps GPU Animations:</strong> Fluid enter/exit animations with Reduce Motion toggle.
                                         </div>
                                         <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
                                             <strong class="text-white">📱 Installable PWA:</strong> Fully standalone responsive desktop and mobile web app.

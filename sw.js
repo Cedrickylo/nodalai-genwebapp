@@ -1,5 +1,5 @@
-// Incremented to v28 for Homepage Drag & Drop, Selected Docs scroll/scrollbar, popup loading overlay, and neutral cancel toast
-const CACHE_NAME = 'nodal-ai-cache-v28';
+// Incremented to v29 for comprehensive What's New September 8, 2026 release notes update
+const CACHE_NAME = 'nodal-ai-cache-v29';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
