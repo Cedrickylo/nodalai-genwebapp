@@ -2,6 +2,14 @@
 // Secure Quiz Generation Service using Vercel Serverless Function & Google Gemini 2.5 Flash-Lite
 
 /**
+ * Indicates whether Puter AI is being used for question generation.
+ * False because generation is handled by Google Gemini 2.5 Flash-Lite via Vercel.
+ */
+export function isUsingPuterAI() {
+    return false;
+}
+
+/**
  * Sends prompt to the Vercel serverless function (/api/generate-quiz)
  * The GEMINI_API_KEY is securely held on the Vercel server and never exposed to the client.
  */

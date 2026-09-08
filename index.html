@@ -55,6 +55,11 @@
             var initLoader = document.getElementById('app-init-loader');
             if (initLoader) {
                 initLoader.classList.remove('hidden');
+                // Defensive safety net: guarantee the loader fades out after max 2.5s
+                setTimeout(function() {
+                    initLoader.classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(function() { initLoader.classList.add('hidden'); }, 300);
+                }, 2500);
             }
         }
     </script>
