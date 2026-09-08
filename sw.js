@@ -1,5 +1,5 @@
-// Incremented to v30 for Google Gemini 2.5 Flash-Lite & Vercel integration
-const CACHE_NAME = 'nodal-ai-cache-v30';
+// Incremented to v31 for pure Vercel /api/generate-quiz deployment
+const CACHE_NAME = 'nodal-ai-cache-v31';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -256,8 +256,8 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Bypass serverless API functions
-    if (requestUrl.pathname.startsWith('/.netlify/') || requestUrl.pathname.startsWith('/api/generate-quiz')) {
+    // Bypass Vercel serverless API functions
+    if (requestUrl.pathname.startsWith('/api/generate-quiz')) {
         return;
     }
 

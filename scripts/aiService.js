@@ -10,65 +10,43 @@ export function isUsingPuterAI() {
 }
 
 /**
- * Sends prompt to the Vercel serverless function (/api/generate-quiz)
+ * Sends prompt exclusively to the Vercel serverless function (/api/generate-quiz)
  * The GEMINI_API_KEY is securely held on the Vercel server and never exposed to the client.
  */
 export async function requestQuizFromVercel(systemPrompt, userPrompt = '', signal = null) {
-    const endpoints = ['/api/generate-quiz', '/.netlify/functions/generate-quiz'];
-    let lastError = null;
+    const endpoint = '/api/generate-quiz';
 
-    for (const endpoint of endpoints) {
-        try {
-            const fetchOptions = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    systemPrompt,
-                    userPrompt
-                })
-            };
+    const fetchOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            systemPrompt,
+            userPrompt
+        })
+    };
 
-            if (signal) {
-                fetchOptions.signal = signal;
-            }
-
-            const response = await fetch(endpoint, fetchOptions);
-
-            // If 404 on /api/generate-quiz (e.g. running in netlify dev environment), try fallback
-            if (response.status === 404 && endpoint === endpoints[0]) {
-                continue;
-            }
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const detailedError = errorData.error || errorData.message || `Server responded with status ${response.status}`;
-                throw new Error(detailedError);
-            }
-
-            const data = await response.json();
-            
-            // If the server returns rawText directly (from our Vercel function)
-            if (data && typeof data.rawText === 'string') {
-                return data.rawText;
-            }
-
-            return extractTextFromResponse(data);
-        } catch (error) {
-            // If user or timeout aborted the request, rethrow immediately
-            if (error.name === 'AbortError') {
-                throw error;
-            }
-            lastError = error;
-            // If not a 404 fallback, throw the error
-            if (endpoint === endpoints[endpoints.length - 1] || !error.message?.includes('404')) {
-                throw error;
-            }
-        }
+    if (signal) {
+        fetchOptions.signal = signal;
     }
 
-    throw lastError || new Error('Quiz generation service unavailable.');
+    const response = await fetch(endpoint, fetchOptions);
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const detailedError = errorData.error || errorData.message || `Server responded with status ${response.status}`;
+        throw new Error(detailedError);
+    }
+
+    const data = await response.json();
+    
+    // If the server returns rawText directly (from our Vercel function)
+    if (data && typeof data.rawText === 'string') {
+        return data.rawText;
+    }
+
+    return extractTextFromResponse(data);
 }
 
 /**
