@@ -402,8 +402,12 @@ export function attachQuizEventListeners() {
     });
     // Full-screen history back button
     elements.historyFullscreenBackBtn?.addEventListener('click', () => {
-        state.historyOrigin = 'nav';
-        showView('start');
+        if (window.history.length > 1 && window.location.hash === '#history') {
+            window.history.back();
+        } else {
+            state.historyOrigin = 'nav';
+            showView('start');
+        }
     });
     // Mobile bottom nav
     elements.mobileNavHomeBtn?.addEventListener('click', () => {
@@ -563,8 +567,12 @@ export function attachQuizEventListeners() {
 
             // Downloads Back button
             elements.downloadsBackBtn?.addEventListener('click', () => {
-                setDesktopNavActive('home'); setMobileNavActive('home');
-                showView('start');
+                if (window.history.length > 1 && window.location.hash === '#downloads') {
+                    window.history.back();
+                } else {
+                    setDesktopNavActive('home'); setMobileNavActive('home');
+                    showView('start');
+                }
             });
 
             // What's New Page listeners
@@ -572,10 +580,18 @@ export function attachQuizEventListeners() {
                 showView('whats-new');
             });
             elements.whatsNewBackBtn?.addEventListener('click', () => {
-                showView('help');
+                if (window.history.length > 1 && window.location.hash === '#whats-new') {
+                    window.history.back();
+                } else {
+                    showView('help');
+                }
             });
             elements.whatsNewCrumbHelp?.addEventListener('click', () => {
-                showView('help');
+                if (window.history.length > 1 && window.location.hash === '#whats-new') {
+                    window.history.back();
+                } else {
+                    showView('help');
+                }
             });
             document.querySelectorAll('.whats-new-toggle').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -889,8 +905,11 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuOfflineBtn) {
         elements.historySubmenuOfflineBtn.addEventListener('click', async () => {
             const key = state.activeHistoryMenuKey;
-            closeHistoryActionsModal(false, false);
+            if (elements.historyActionsModal) {
+                elements.historyActionsModal.classList.add('hidden');
+            }
             if (key) {
+                state.lastHistoryMenuKey = key;
                 const { openOfflineModal } = await import('./quiz/quizOffline.js');
                 openOfflineModal(key);
             }
@@ -906,8 +925,11 @@ export function attachQuizEventListeners() {
                 : (state.historyMenuOriginHash === '#downloads' || activeV === 'downloads')
                 ? 'downloads'
                 : 'history';
-            closeHistoryActionsModal(false, false);
+            if (elements.historyActionsModal) {
+                elements.historyActionsModal.classList.add('hidden');
+            }
             if (key) {
+                state.lastHistoryMenuKey = key;
                 const { openQuizStatistics } = await import('./quiz/quizStatistics.js');
                 openQuizStatistics(key, true, origin);
             }
@@ -916,8 +938,11 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuShareBtn) {
         elements.historySubmenuShareBtn.addEventListener('click', () => {
             const key = state.activeHistoryMenuKey;
-            closeHistoryActionsModal(false, false);
+            if (elements.historyActionsModal) {
+                elements.historyActionsModal.classList.add('hidden');
+            }
             if (key) {
+                state.lastHistoryMenuKey = key;
                 handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'share' } }) } });
             }
         });
@@ -925,8 +950,11 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuEditBtn) {
         elements.historySubmenuEditBtn.addEventListener('click', () => {
             const key = state.activeHistoryMenuKey;
-            closeHistoryActionsModal(false, false);
+            if (elements.historyActionsModal) {
+                elements.historyActionsModal.classList.add('hidden');
+            }
             if (key) {
+                state.lastHistoryMenuKey = key;
                 handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'customize' } }) } });
             }
         });

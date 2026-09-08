@@ -95,26 +95,31 @@ async function initApp() {
         initRouter();
         initNetlifyMigrationBannerAndNotice();
 
-        // Dismiss the first-time setup loader overlay if it was shown
-        hideAppLoader();
-
-        // Safety fallback: ensure loader is always dismissed after 3.5s on initial load
-        setTimeout(() => {
+        // Dismiss setup loader overlay only if an update is not currently in progress
+        const isCurrentlyUpdating = (sessionStorage.getItem('nodal_is_updating') === 'true');
+        if (!isCurrentlyUpdating) {
             hideAppLoader();
-        }, 3500);
+            setTimeout(() => {
+                hideAppLoader();
+            }, 3500);
+        }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v19)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v39)
         // ==================================================================
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', async () => {
+            const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW v19] ServiceWorker registered with scope:', reg.scope);
-                    
+                    console.log('[SW v39] ServiceWorker registered with scope:', reg.scope);
+
+                    // Proactively check for updates immediately
+                    reg.update().catch(() => {});
+
                     // Check if an update is already waiting to activate
                     if (reg.waiting && navigator.serviceWorker.controller) {
-                        console.log('[SW v19] Existing waiting worker found, activating...');
+                        console.log('[SW v39] Existing waiting worker found, activating...');
+                        sessionStorage.setItem('nodal_is_updating', 'true');
                         showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
                         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
                     }
@@ -122,44 +127,47 @@ async function initApp() {
                     // Listen for newly discovered updates
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
-                        if (newWorker) {
-                            // Only show update loader if an active controller already exists (this is an update, not first-time install)
-                            if (navigator.serviceWorker.controller) {
-                                console.log('[SW v19] Service worker update found, displaying update loader...');
-                                showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
-                            }
+                        if (newWorker && navigator.serviceWorker.controller) {
+                            console.log('[SW v39] Service worker update found, displaying update loader...');
+                            sessionStorage.setItem('nodal_is_updating', 'true');
+                            showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
 
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed') {
-                                    if (navigator.serviceWorker.controller) {
-                                        console.log('[SW v19] New version installed, triggering skipWaiting...');
-                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                    } else {
-                                        // First install finished
-                                        hideAppLoader();
-                                    }
+                                    console.log('[SW v39] New version installed, triggering skipWaiting...');
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
                                 } else if (newWorker.state === 'redundant') {
+                                    sessionStorage.removeItem('nodal_is_updating');
                                     hideAppLoader();
                                 }
                             });
                         }
                     });
                 } catch (swErr) {
-                    console.warn('[SW v19] ServiceWorker registration failed:', swErr);
+                    console.warn('[SW v39] ServiceWorker registration failed:', swErr);
+                    sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
-            });
+            };
 
-            // When new SW takes controller claim or sends SW_ACTIVATED
+            initServiceWorker();
+
+            // When new SW takes controller claim
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('[SW v19] Controller changed - new version active');
-                hideAppLoader();
-                showToast('Nodal AI updated to the latest version!');
+                console.log('[SW v39] Controller changed - new version active');
+                if (sessionStorage.getItem('nodal_is_updating') === 'true') {
+                    // Reload so new code boots cleanly with the pre-update loader active
+                    window.location.reload();
+                } else {
+                    hideAppLoader();
+                    showToast('Nodal AI updated to the latest version!');
+                }
             });
 
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'SW_ACTIVATED') {
-                    console.log('[SW v19] Active version:', event.data.version);
+                    console.log('[SW v39] Active version:', event.data.version);
+                    sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
             });

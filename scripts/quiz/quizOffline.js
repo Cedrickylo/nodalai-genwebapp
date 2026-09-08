@@ -291,10 +291,11 @@ export async function renewQuizOfflineAccess(quizKey) {
  * Opens the Offline Download & Management Modal for a quiz.
  * @param {string} quizKey
  */
-export function openOfflineModal(quizKey) {
+export function openOfflineModal(quizKey, pushHash = true) {
     if (!quizKey || !elements.offlineModal) return;
 
     state.activeOfflineModalKey = quizKey;
+    state.lastHistoryMenuKey = quizKey;
     const quiz = (state.quizHistory && state.quizHistory[quizKey]) || {};
     const title = quiz.fileName || 'Quiz Details';
 
@@ -318,7 +319,13 @@ export function openOfflineModal(quizKey) {
     refreshOfflineModalContent(quizKey);
 
     elements.offlineModal.classList.remove('hidden');
-    pushSubState('#offline-modal');
+    if (pushHash) {
+        pushSubState('#offline-modal', { quizKey, view: getActiveViewId() });
+    } else {
+        state.activeSubState = '#offline-modal';
+        state.authorizedSubStates = state.authorizedSubStates || new Set();
+        state.authorizedSubStates.add('#offline-modal');
+    }
 }
 
 /**

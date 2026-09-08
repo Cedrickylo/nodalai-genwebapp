@@ -1,5 +1,5 @@
-// Incremented to v38 for September 9 changelog, native PWA browser frame controls (minimal-ui), and 30/60/90/120Hz adaptive transitions
-const CACHE_NAME = 'nodal-ai-cache-v38';
+// Incremented to v39 for website-wide granular back navigation, refresh persistence, and pre-update loading screen
+const CACHE_NAME = 'nodal-ai-cache-v39';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

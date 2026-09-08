@@ -49,18 +49,46 @@
         </div>
     </div>
     <script>
-        // Show initial loading screen ONLY on first website load (when no Service Worker is controlling the page yet)
-        if ('serviceWorker' in navigator && !navigator.serviceWorker.controller) {
-            var initLoader = document.getElementById('app-init-loader');
-            if (initLoader) {
-                initLoader.classList.remove('hidden');
-                // Defensive safety net: guarantee the loader fades out after max 2.5s
-                setTimeout(function() {
-                    initLoader.classList.add('opacity-0', 'pointer-events-none');
-                    setTimeout(function() { initLoader.classList.add('hidden'); }, 300);
-                }, 2500);
+        // Startup & Update Screen: Display immediately at 0ms on first load or when a website update is in progress
+        (function() {
+            var isUpdating = false;
+            try { isUpdating = sessionStorage.getItem('nodal_is_updating') === 'true'; } catch(e) {}
+            var isFirstLoad = ('serviceWorker' in navigator && !navigator.serviceWorker.controller);
+
+            if (isUpdating || isFirstLoad) {
+                var initLoader = document.getElementById('app-init-loader');
+                var titleEl = document.getElementById('app-init-loader-title');
+                var descEl = document.getElementById('app-init-loader-desc');
+                if (initLoader) {
+                    if (isUpdating) {
+                        if (titleEl) titleEl.textContent = 'Updating Nodal AI';
+                        if (descEl) descEl.textContent = 'Applying the latest updates...';
+                    }
+                    initLoader.classList.remove('hidden');
+                    // Defensive safety net: guarantee the loader fades out after max 4.5s
+                    setTimeout(function() {
+                        initLoader.classList.add('opacity-0', 'pointer-events-none');
+                        setTimeout(function() { initLoader.classList.add('hidden'); }, 300);
+                    }, 4500);
+                }
             }
-        }
+
+            // Early check for waiting service worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(function(reg) {
+                    if (reg && (reg.waiting || (reg.installing && navigator.serviceWorker.controller))) {
+                        var initLoader = document.getElementById('app-init-loader');
+                        var titleEl = document.getElementById('app-init-loader-title');
+                        var descEl = document.getElementById('app-init-loader-desc');
+                        if (initLoader) {
+                            if (titleEl) titleEl.textContent = 'Updating Nodal AI';
+                            if (descEl) descEl.textContent = 'Applying the latest updates...';
+                            initLoader.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+                        }
+                    }
+                }).catch(function() {});
+            }
+        })();
     </script>
 
     <!-- Netlify to Vercel Migration Banner (Shown ONLY on cedrickylo-nodal.netlify.app) -->

@@ -10,6 +10,9 @@ import { updateStatisticsOfflineBar } from './quizOffline.js';
 export function openQuizStatistics(quizKey, pushHash = true, origin = null) {
     if (!quizKey) return;
     state.currentStatsQuizKey = quizKey;
+    try {
+        localStorage.setItem('nodal_last_stats_key', quizKey);
+    } catch (e) {}
     if (origin) {
         state.statisticsOrigin = origin;
         state.navRootOrigin = origin;
@@ -17,7 +20,19 @@ export function openQuizStatistics(quizKey, pushHash = true, origin = null) {
         state.statisticsOrigin = state.navRootOrigin || 'history';
     }
     renderQuizStatistics(quizKey);
-    showView('statistics', pushHash);
+    if (pushHash) {
+        if (window.location.hash !== '#statistics') {
+            window.history.pushState({ 
+                view: 'statistics', 
+                quizKey: quizKey, 
+                origin: state.statisticsOrigin, 
+                fromApp: true 
+            }, '', '#statistics');
+        }
+        showView('statistics', false);
+    } else {
+        showView('statistics', false);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -217,7 +232,20 @@ export function openTestReview(takeData, origin = 'statistics', pushHash = true)
     }
 
     renderTestReview(takeData);
-    showView('review', pushHash);
+    if (pushHash) {
+        if (window.location.hash !== '#review') {
+            window.history.pushState({ 
+                view: 'review', 
+                quizKey: state.currentStatsQuizKey, 
+                takeData: takeData, 
+                origin: origin, 
+                fromApp: true 
+            }, '', '#review');
+        }
+        showView('review', false);
+    } else {
+        showView('review', false);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -449,36 +477,52 @@ export function initQuizStatisticsListeners() {
         }
     };
 
+    const handleStatsBackClick = () => {
+        if (window.history.length > 1 && window.location.hash === '#statistics') {
+            window.history.back();
+        } else {
+            handleStatsBack();
+        }
+    };
+
     // Statistics Back Button -> returns to origin (Home, Downloads, or History)
     if (elements.statisticsBackBtn) {
-        elements.statisticsBackBtn.addEventListener('click', handleStatsBack);
+        elements.statisticsBackBtn.addEventListener('click', handleStatsBackClick);
     }
 
     // Statistics Crumb History -> returns to origin
     if (elements.statsCrumbHistory) {
-        elements.statsCrumbHistory.addEventListener('click', handleStatsBack);
+        elements.statsCrumbHistory.addEventListener('click', handleStatsBackClick);
     }
+
+    const handleReviewBackClick = () => {
+        if (window.history.length > 1 && window.location.hash === '#review') {
+            window.history.back();
+        } else if (state.reviewOrigin === 'results') {
+            showView('results');
+        } else {
+            openQuizStatistics(state.currentStatsQuizKey, false, state.statisticsOrigin);
+        }
+    };
 
     // Review Back Button -> returns to Statistics or Results depending on origin
     if (elements.reviewBackBtn) {
-        elements.reviewBackBtn.addEventListener('click', async () => {
-            if (state.reviewOrigin === 'results') {
-                showView('results');
-            } else {
-                openQuizStatistics(state.currentStatsQuizKey, true, state.statisticsOrigin);
-            }
-        });
+        elements.reviewBackBtn.addEventListener('click', handleReviewBackClick);
     }
 
     // Review Breadcrumbs: History crumb -> returns to origin
     if (elements.reviewCrumbHistory) {
-        elements.reviewCrumbHistory.addEventListener('click', handleStatsBack);
+        elements.reviewCrumbHistory.addEventListener('click', () => {
+            if (window.history.length > 2 && window.location.hash === '#review') {
+                window.history.go(-2);
+            } else {
+                handleStatsBack();
+            }
+        });
     }
 
     // Review Breadcrumbs: Statistics crumb -> returns to Statistics
     if (elements.reviewCrumbStats) {
-        elements.reviewCrumbStats.addEventListener('click', () => {
-            openQuizStatistics(state.currentStatsQuizKey, true, state.statisticsOrigin);
-        });
+        elements.reviewCrumbStats.addEventListener('click', handleReviewBackClick);
     }
 }
