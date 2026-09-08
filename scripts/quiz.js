@@ -122,6 +122,7 @@ export function attachQuizEventListeners() {
         summaryOnlyToggle,
         timerModeSelect,
         saveQuizBtn,
+        muteSoundBtn,
         historyList,
         showAllHistoryBtn,
         syncCloudBtn,
@@ -130,6 +131,7 @@ export function attachQuizEventListeners() {
         customTimeLimitInput,
         attemptLimitToggle,
         attemptLimitInput,
+        saveCustomizeBtn,
         cancelCustomizeBtn,
         deleteCustomizeBtn,
         createRemedialBtn,
@@ -159,6 +161,7 @@ export function attachQuizEventListeners() {
     addMoreFilesInput.addEventListener('change', handleFileSelect);
     importQuizInput.addEventListener('change', handleQuizImport);
     generateQuizBtn.addEventListener('click', () => handleQuizGeneration(false, false));
+    saveCustomizeBtn?.addEventListener('click', () => handleQuizGeneration(false, true));
     difficultyRadios.forEach(r => r.addEventListener('change', handleDifficultyChange));
     questionCountInput.addEventListener('input', validateAllInputs);
     customQuestionTypeSelect.addEventListener('change', handleCustomTypeChange);
@@ -317,17 +320,45 @@ export function attachQuizEventListeners() {
     });
     
     saveQuizBtn.addEventListener('click', saveCurrentQuiz);
+
+    function updateMuteButtonUI() {
+        const btn = elements.muteSoundBtn || document.getElementById('mute-sound-btn');
+        if (!btn) return;
+        const unmutedIcon = btn.querySelector('.mute-icon-unmuted');
+        const mutedIcon = btn.querySelector('.mute-icon-muted');
+        if (unmutedIcon) unmutedIcon.classList.toggle('hidden', !!state.isMuted);
+        if (mutedIcon) mutedIcon.classList.toggle('hidden', !state.isMuted);
+        btn.title = state.isMuted ? 'Unmute Sound Effects' : 'Mute Sound Effects';
+        btn.setAttribute('aria-pressed', state.isMuted ? 'true' : 'false');
+    }
+
+    elements.muteSoundBtn?.addEventListener('click', () => {
+        state.isMuted = !state.isMuted;
+        localStorage.setItem('nodal_quiz_muted', state.isMuted ? 'true' : 'false');
+        updateMuteButtonUI();
+        showToast(state.isMuted ? 'Sound effects muted' : 'Sound effects unmuted', 2000, 'info');
+    });
+
+    updateMuteButtonUI();
     historyList.addEventListener('click', handleHistoryClick);
-    showAllHistoryBtn?.addEventListener('click', () => showAllHistoryFullScreen());
+    showAllHistoryBtn?.addEventListener('click', () => {
+        state.historyOrigin = 'home-card';
+        showAllHistoryFullScreen();
+    });
     // Full-screen history back button
-    elements.historyFullscreenBackBtn?.addEventListener('click', () => showView('start'));
+    elements.historyFullscreenBackBtn?.addEventListener('click', () => {
+        state.historyOrigin = 'nav';
+        showView('start');
+    });
     // Mobile bottom nav
     elements.mobileNavHomeBtn?.addEventListener('click', () => {
+        state.historyOrigin = 'nav';
         showView('start');
         // ensure we scroll to top when returning home on mobile
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
     elements.mobileNavHistoryBtn?.addEventListener('click', () => {
+        state.historyOrigin = 'nav';
         showAllHistoryFullScreen();
     });
     // Target both Sync buttons to trigger cloud sync
@@ -371,6 +402,18 @@ export function attachQuizEventListeners() {
         });
     }
 
+    // Dynamic validation listeners for customize/edit fields (enables conditional Save Changes button)
+    elements.editQuizNameInput?.addEventListener('input', validateAllInputs);
+    elements.customTimeLimitInput?.addEventListener('input', validateAllInputs);
+    elements.attemptLimitInput?.addEventListener('input', validateAllInputs);
+    elements.questionTimeInput?.addEventListener('input', validateAllInputs);
+    elements.secondChanceToggle?.addEventListener('change', validateAllInputs);
+    elements.maxChancesInput?.addEventListener('change', validateAllInputs);
+    elements.shuffleQuestionsToggle?.addEventListener('change', validateAllInputs);
+    elements.shuffleChoicesToggle?.addEventListener('change', validateAllInputs);
+    elements.allowchangetoggle?.addEventListener('change', validateAllInputs);
+    document.querySelectorAll('input[name="ui_mode"]').forEach(r => r.addEventListener('change', validateAllInputs));
+
             // Mobile nav active state helper
             function setMobileNavActive(key) {
                 const homeBtn = elements.mobileNavHomeBtn;
@@ -391,6 +434,7 @@ export function attachQuizEventListeners() {
 
             // Desktop nav active state helper
             function setDesktopNavActive(key) {
+                const effectiveKey = key === 'whats-new' ? 'help' : key;
                 const map = {
                     home: elements.desktopNavHomeBtn,
                     history: elements.desktopNavHistoryBtn,
@@ -402,10 +446,10 @@ export function attachQuizEventListeners() {
                 Object.keys(map).forEach(k => {
                     const btn = map[k];
                     if (!btn) return;
-                    btn.classList.toggle('text-white', k === key);
-                    btn.classList.toggle('bg-blue-600', k === key);
-                    btn.classList.toggle('text-gray-300', k !== key);
-                    btn.setAttribute('aria-current', k === key ? 'true' : 'false');
+                    btn.classList.toggle('text-white', k === effectiveKey);
+                    btn.classList.toggle('bg-blue-600', k === effectiveKey);
+                    btn.classList.toggle('text-gray-300', k !== effectiveKey);
+                    btn.setAttribute('aria-current', k === effectiveKey ? 'true' : 'false');
                 });
             }
 
@@ -438,8 +482,8 @@ export function attachQuizEventListeners() {
             elements.mobileMenuAccountBtn?.addEventListener('click', async () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); await openAccountAsView(); });
 
             // Desktop nav handlers
-            elements.desktopNavHomeBtn?.addEventListener('click', () => { setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
-            elements.desktopNavHistoryBtn?.addEventListener('click', () => { setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
+            elements.desktopNavHomeBtn?.addEventListener('click', () => { state.historyOrigin = 'nav'; setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
+            elements.desktopNavHistoryBtn?.addEventListener('click', () => { state.historyOrigin = 'nav'; setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
             elements.desktopNavDownloadsBtn?.addEventListener('click', async () => {
                 setDesktopNavActive('downloads');
                 const { renderDownloadsView } = await import('./quiz/quizOffline.js');
@@ -453,6 +497,135 @@ export function attachQuizEventListeners() {
             elements.downloadsBackBtn?.addEventListener('click', () => {
                 setDesktopNavActive('home'); setMobileNavActive('home');
                 showView('start');
+            });
+
+            // What's New Page listeners
+            elements.openWhatsNewBtn?.addEventListener('click', () => {
+                showView('whats-new');
+            });
+            elements.whatsNewBackBtn?.addEventListener('click', () => {
+                showView('help');
+            });
+            elements.whatsNewCrumbHelp?.addEventListener('click', () => {
+                showView('help');
+            });
+            document.querySelectorAll('.whats-new-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetId = btn.dataset.target;
+                    const targetEl = document.getElementById(targetId);
+                    const chevron = btn.querySelector('.chevron-icon');
+                    if (targetEl) {
+                        const isExpanded = !targetEl.classList.contains('hidden');
+                        if (isExpanded) {
+                            targetEl.classList.add('hidden');
+                            if (chevron) chevron.classList.remove('rotate-180');
+                        } else {
+                            targetEl.classList.remove('hidden');
+                            if (chevron) chevron.classList.add('rotate-180');
+                        }
+                    }
+                });
+            });
+
+            // Unified Data Migration Popup Modal listeners
+            const handleOpenMigration = async () => {
+                const { openMigrationModal } = await import('./quiz/quizMigration.js');
+                openMigrationModal('choice', true);
+            };
+            elements.openMigrationBtn?.addEventListener('click', handleOpenMigration);
+            elements.openMigrationLoggedOutBtn?.addEventListener('click', handleOpenMigration);
+
+            // Modal Header Controls (Back and Close)
+            document.getElementById('migration-modal-back-btn')?.addEventListener('click', async () => {
+                const { navigateToMigrationStep } = await import('./quiz/quizMigration.js');
+                navigateToMigrationStep('choice');
+            });
+
+            document.getElementById('close-migration-modal-btn')?.addEventListener('click', async () => {
+                const { closeMigrationModal } = await import('./quiz/quizMigration.js');
+                closeMigrationModal();
+            });
+
+            // Step 1 (Choice) Navigation
+            document.getElementById('migration-choice-export-btn')?.addEventListener('click', async () => {
+                const { navigateToMigrationStep } = await import('./quiz/quizMigration.js');
+                navigateToMigrationStep('export');
+            });
+
+            document.getElementById('migration-choice-import-btn')?.addEventListener('click', async () => {
+                const { navigateToMigrationStep } = await import('./quiz/quizMigration.js');
+                navigateToMigrationStep('import');
+            });
+
+            // Step 2 (Export) Controls
+            document.getElementById('export-select-all-btn')?.addEventListener('click', () => {
+                document.querySelectorAll('.export-checkbox').forEach(cb => { cb.checked = true; });
+            });
+            document.getElementById('export-clear-all-btn')?.addEventListener('click', () => {
+                document.querySelectorAll('.export-checkbox').forEach(cb => { cb.checked = false; });
+            });
+            document.getElementById('start-export-btn')?.addEventListener('click', async () => {
+                const { executeExport } = await import('./quiz/quizMigration.js');
+                executeExport();
+            });
+
+            // Step 3 (Import) Controls
+            const migrationFileInput = document.getElementById('migration-file-input');
+            const selectImportFileBtn = document.getElementById('select-import-file-btn');
+            const migrationDropZone = document.getElementById('migration-drop-zone');
+
+            selectImportFileBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                migrationFileInput?.click();
+            });
+            migrationDropZone?.addEventListener('click', () => {
+                migrationFileInput?.click();
+            });
+            migrationDropZone?.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                migrationDropZone.classList.add('border-blue-500', 'bg-gray-900/60');
+            });
+            migrationDropZone?.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                migrationDropZone.classList.remove('border-blue-500', 'bg-gray-900/60');
+            });
+            migrationDropZone?.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                migrationDropZone.classList.remove('border-blue-500', 'bg-gray-900/60');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    const { handleFileSelectionForImport } = await import('./quiz/quizMigration.js');
+                    handleFileSelectionForImport(e.dataTransfer.files[0]);
+                }
+            });
+            migrationFileInput?.addEventListener('change', async (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const { handleFileSelectionForImport } = await import('./quiz/quizMigration.js');
+                    handleFileSelectionForImport(e.target.files[0]);
+                }
+            });
+            document.getElementById('import-pick-different-btn')?.addEventListener('click', async () => {
+                const { resetImportStaging } = await import('./quiz/quizMigration.js');
+                resetImportStaging();
+                migrationFileInput?.click();
+            });
+            document.getElementById('start-import-btn')?.addEventListener('click', async () => {
+                const { executeImport } = await import('./quiz/quizMigration.js');
+                executeImport();
+            });
+
+            // Step 4 (Progress) & Error Modal Handlers
+            document.getElementById('migration-progress-done-btn')?.addEventListener('click', async () => {
+                const { closeMigrationModal } = await import('./quiz/quizMigration.js');
+                closeMigrationModal();
+                const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
+                showAllHistoryFullScreen(true);
+            });
+            document.getElementById('migration-error-close-btn')?.addEventListener('click', async () => {
+                const { closeMigrationErrorModal } = await import('./quiz/quizMigration.js');
+                closeMigrationErrorModal();
             });
     
     cancelCustomizeBtn.addEventListener('click', async () => {
@@ -545,8 +718,10 @@ export function attachQuizEventListeners() {
         const content = document.getElementById('customize-content');
         content.classList.toggle('hidden');
         document.getElementById('customize-toggle-icon').classList.toggle('rotate-180');
+        const isContentOpen = !content.classList.contains('hidden');
+        document.getElementById('start-view')?.classList.toggle('customize-expanded', isContentOpen);
 
-        if (!content.classList.contains('hidden')) {
+        if (isContentOpen) {
             resumeQuizBtn.classList.add('hidden');
             setHistoryVisibility(false);
             if (!state.isCustomizingHistory) {

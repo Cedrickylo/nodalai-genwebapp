@@ -149,7 +149,9 @@ export function resetStartViewUI(preserveFileName = false) {
     document.getElementById('customize-section')?.classList.add('hidden');
     document.getElementById('customize-content')?.classList.add('hidden');
     document.getElementById('customize-toggle-icon')?.classList.remove('rotate-180');
+    document.getElementById('start-view')?.classList.remove('customize-expanded');
     deleteCustomizeBtn?.classList.add('hidden');
+    elements.saveCustomizeBtn?.classList.add('hidden');
     fileActionsDiv?.classList.remove('hidden');
     cancelCustomizeBtn?.classList.add('hidden');
     setHistoryVisibility(true);

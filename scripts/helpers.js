@@ -158,11 +158,13 @@ export function handleTimeToggle() {
         document.getElementById('quiz-time-presets-container')?.classList.remove('hidden');
         document.getElementById('question-time-container')?.classList.add('hidden');
     }
+    validateAllInputs();
 }
 
 export function handleAttemptToggle() {
     // Show/hide the attempt limit container based on checkbox state
     attemptLimitOptions.classList.toggle('hidden', !attemptLimitToggle.checked);
+    validateAllInputs();
 }
 
 export function handleDifficultyChange() {
@@ -217,16 +219,32 @@ export async function clearHistory() {
 }
 
 export function setSyncing(status) {
-    // Determine if the user is completely offline/logged out OR system reports offline status
-    const isOffline = !navigator.onLine || !window.puter || !puter.auth.isSignedIn();
-    const finalStatus = isOffline ? 'offline' : status;
+    // Determine if user is physically offline vs. unauthenticated
+    const isOffline = !navigator.onLine;
+    const isLoggedOut = !window.puter || !puter.auth || !puter.auth.isSignedIn();
+    const isUnsynced = isOffline || isLoggedOut;
+    const finalStatus = isUnsynced ? 'offline' : status;
 
-    // 1. Target Global Sync Buttons (Using Class to hit both Home and Full views)
+    const offlineText = isOffline ? 'Offline' : (isLoggedOut ? 'Logged out' : "Can't sync");
+    const offlineTitle = isOffline ? 'Offline - Unable to sync' : (isLoggedOut ? 'Logged out - Sign in to sync' : 'Sync unavailable');
+
+    // 1. Target Global Sync Buttons (Using Class to hit Home, History, and Statistics views)
     const globalSyncBtns = document.querySelectorAll('.global-sync-btn');
     globalSyncBtns.forEach(btn => {
         const done = btn.querySelector('.sync-icon-done');
         const load = btn.querySelector('.sync-icon-loading');
         const offline = btn.querySelector('.sync-icon-offline');
+        const offlineTextSpan = btn.querySelector('.sync-text-offline');
+
+        if (offlineTextSpan) offlineTextSpan.textContent = offlineText;
+
+        if (finalStatus === 'offline') {
+            btn.title = offlineTitle;
+        } else if (finalStatus === 'synced') {
+            btn.title = 'Synced with cloud';
+        } else if (finalStatus === 'syncing') {
+            btn.title = 'Syncing with cloud...';
+        }
 
         if (done) done.classList.toggle('hidden', finalStatus !== 'synced');
         if (load) load.classList.toggle('hidden', finalStatus !== 'syncing');
@@ -234,9 +252,23 @@ export function setSyncing(status) {
     });
 
     // 2. Target Quiz View Sync Indicator
+    const quizIndicator = document.getElementById('quiz-sync-indicator');
     const quizDone = document.querySelector('#quiz-sync-indicator .sync-icon-done');
     const quizLoad = document.querySelector('#quiz-sync-indicator .sync-icon-loading');
     const quizOffline = document.querySelector('#quiz-sync-indicator .sync-icon-offline');
+    const quizOfflineTextSpan = document.querySelector('#quiz-sync-indicator .sync-text-offline');
+
+    if (quizOfflineTextSpan) quizOfflineTextSpan.textContent = offlineText;
+
+    if (quizIndicator) {
+        if (finalStatus === 'offline') {
+            quizIndicator.title = offlineTitle;
+        } else if (finalStatus === 'synced') {
+            quizIndicator.title = 'Synced';
+        } else if (finalStatus === 'syncing') {
+            quizIndicator.title = 'Syncing...';
+        }
+    }
 
     if (quizDone) quizDone.classList.toggle('hidden', finalStatus !== 'synced');
     if (quizLoad) quizLoad.classList.toggle('hidden', finalStatus !== 'syncing');
@@ -1013,7 +1045,7 @@ export function hideLoadingOverlay() {
 export function updateNavHighlights(activeKey) {
     const effectiveKey = (activeKey === 'statistics' || activeKey === 'review')
         ? (state.navRootOrigin || 'history')
-        : activeKey;
+        : (activeKey === 'whats-new' ? 'help' : activeKey);
 
     // 1. Update Mobile Nav
     if (elements.mobileNavHomeBtn) {
@@ -1028,7 +1060,7 @@ export function updateNavHighlights(activeKey) {
     }
 
     // --- NEW: Track if current layout is nested inside the Mobile Menu overlay drawer ---
-    const isMenuPage = ['help', 'about', 'account', 'downloads'].includes(effectiveKey);
+    const isMenuPage = ['help', 'about', 'account', 'downloads', 'whats-new'].includes(effectiveKey);
     if (elements.mobileNavMenuBtn) {
         elements.mobileNavMenuBtn.classList.toggle('text-white', isMenuPage);
         elements.mobileNavMenuBtn.classList.toggle('bg-blue-600', isMenuPage);
@@ -1113,6 +1145,10 @@ export function setupScrollReactiveHeader(viewId) {
         downloads: {
             headerSelector: '#downloads-view .scroll-reactive-header',
             sentinelId: 'downloads-header-sentinel'
+        },
+        'whats-new': {
+            headerSelector: '#whats-new-view .scroll-reactive-header',
+            sentinelId: 'whats-new-header-sentinel'
         }
     };
 
@@ -1149,6 +1185,7 @@ export function viewToHash(viewId) {
         case 'loading': return '#loading';
         case 'statistics': return '#statistics';
         case 'review': return '#review';
+        case 'whats-new': return '#whats-new';
         default: return '#home';
     }
 }
@@ -1168,6 +1205,7 @@ export function hashToView(hash) {
         case 'loading': return 'loading';
         case 'statistics': return 'statistics';
         case 'review': return 'review';
+        case 'whats-new': return 'whats-new';
         default: return 'start';
     }
 }
@@ -1185,7 +1223,11 @@ export const SUB_STATE_HASHES = [
     '#shared-quiz',
     '#statistics',
     '#review',
-    '#offline-modal'
+    '#offline-modal',
+    '#migration-modal',
+    '#migration-choice',
+    '#migration-progress',
+    '#migration-error'
 ];
 
 export function pushSubState(hash) {
@@ -1243,6 +1285,10 @@ export function isSubStateAuthorized(hash) {
     if (hash === '#offline-modal') {
         return elements.offlineModal && !elements.offlineModal.classList.contains('hidden');
     }
+    if (hash === '#migration-modal') {
+        const migrationModal = document.getElementById('migration-modal');
+        return migrationModal && !migrationModal.classList.contains('hidden');
+    }
     return true;
 }
 
@@ -1269,6 +1315,7 @@ export function showView(id, pushHash = true) {
     let navKey = id;
     if (id === 'start') navKey = 'home';
     if (id === 'history-fullscreen') navKey = 'history';
+    if (id === 'whats-new') navKey = 'help';
     if (id === 'statistics' || id === 'review') {
         navKey = state.navRootOrigin || 'history';
     }
@@ -1386,6 +1433,24 @@ export async function handlePopState(event) {
             }
         }
 
+        // 5d. Migration Modal Dismiss
+        const migrationModal = document.getElementById('migration-modal');
+        if (migrationModal && !migrationModal.classList.contains('hidden')) {
+            if (targetHash !== '#migration-modal' && targetHash !== '#migration-choice' && targetHash !== '#migration-progress') {
+                const { closeMigrationModal } = await import('./quiz/quizMigration.js');
+                closeMigrationModal(true);
+            }
+        }
+
+        // 5e. Migration Error Modal Dismiss
+        const migrationErrorModal = document.getElementById('migration-error-modal');
+        if (migrationErrorModal && !migrationErrorModal.classList.contains('hidden')) {
+            if (targetHash !== '#migration-error') {
+                const { closeMigrationErrorModal } = await import('./quiz/quizMigration.js');
+                closeMigrationErrorModal(true);
+            }
+        }
+
         // 6. Active Quiz (#quiz) - Prompt before leaving
         if (currentViewId === 'quiz') {
             window.history.pushState({ view: 'quiz' }, '', '#quiz');
@@ -1464,6 +1529,7 @@ export async function handlePopState(event) {
             refreshHistory();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (targetViewId === 'history-fullscreen') {
+            state.historyOrigin = 'nav';
             const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
             showAllHistoryFullScreen(false);
         } else if (targetViewId === 'account') {
@@ -1489,6 +1555,8 @@ export async function handlePopState(event) {
             } else {
                 showView('start', false);
             }
+        } else if (targetViewId === 'whats-new') {
+            showView('whats-new', false);
         }
 
     } finally {
@@ -1587,9 +1655,32 @@ export function refreshHistory() {
     
     // Handle empty state
     if (sorted.length === 0) {
-        const noQuizzesHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
-        if (elements.historyList) elements.historyList.innerHTML = noQuizzesHTML;
-        if (fullContainer) fullContainer.innerHTML = noQuizzesHTML;
+        const homeEmptyHTML = `
+            <div class="text-center py-6 sm:py-8 px-4 space-y-2.5">
+                <div class="p-3 bg-blue-500/10 text-blue-400 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                        <path d="M6 6h10M6 10h10"/>
+                    </svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-200">No Saved Quizzes</h3>
+                <p class="text-xs text-gray-400 max-w-sm mx-auto">You haven't generated or saved any quizzes yet. Upload a document above to create your first practice quiz.</p>
+            </div>
+        `;
+        const fullEmptyHTML = `
+            <div class="text-center py-12 px-4 space-y-3">
+                <div class="p-3 bg-blue-500/10 text-blue-400 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                        <path d="M6 6h10M6 10h10"/>
+                    </svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-200">No Saved Quizzes</h3>
+                <p class="text-xs text-gray-400 max-w-sm mx-auto">You haven't generated or saved any quizzes yet. Upload a document on the home page or import your history from another device.</p>
+            </div>
+        `;
+        if (elements.historyList) elements.historyList.innerHTML = homeEmptyHTML;
+        if (fullContainer) fullContainer.innerHTML = fullEmptyHTML;
         elements.showAllHistoryBtn?.classList.add('hidden');
         return;
     }
@@ -1609,13 +1700,13 @@ export function refreshHistory() {
         const config = data.config || {};
         const tInfo = formatTime(config.totalTime);
         
-        let diffTxt = config.difficulty ? `(${config.difficulty}` : '(';
+        let diffTxt = '';
         if (config.difficulty === 'custom' && config.customTypeShort) {
-            diffTxt += `: ${config.customTypeShort})`;
+            diffTxt = `(${config.difficulty}: ${config.customTypeShort})`;
         } else if (config.difficulty) {
-            diffTxt += ')';
+            diffTxt = `(${config.difficulty})`;
         } else {
-            diffTxt += `${config.type || 'mixed'})`;
+            diffTxt = `(${config.type || 'mixed'})`;
         }
         
         const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
@@ -1714,7 +1805,6 @@ export function getCustomizeState() {
         questionTime: elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30,
         enableSecondChance: elements.secondChanceToggle ? elements.secondChanceToggle.checked : false,
         maxChances: elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1,
-        manualReveal: elements.manualRevealToggle ? elements.manualRevealToggle.checked : false,
         randomizeQuestions: elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true,
         randomizeChoices: elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true,
         allowChangeSelection: elements.allowChangeToggle ? elements.allowChangeToggle.checked : false
@@ -1724,14 +1814,22 @@ export function getCustomizeState() {
 export function hasUnsavedChanges() {
     if (!state.isCustomizingHistory) return false;
     const current = getCustomizeState();
-    return current.name !== state.initialCustomizeState.name ||
-        current.timeLimit !== state.initialCustomizeState.timeLimit ||
-        current.timePreset !== state.initialCustomizeState.timePreset ||
-        current.customTime !== state.initialCustomizeState.customTime ||
-        current.attemptLimit !== state.initialCustomizeState.attemptLimit ||
-        current.attempts !== state.initialCustomizeState.attempts ||
-        current.summaryOnly !== state.initialCustomizeState.summaryOnly ||
-        current.uiMode !== state.initialCustomizeState.uiMode;
+    const initial = state.initialCustomizeState || {};
+    return current.name !== initial.name ||
+        current.timeLimit !== initial.timeLimit ||
+        current.timePreset !== initial.timePreset ||
+        current.customTime !== initial.customTime ||
+        current.timerMode !== initial.timerMode ||
+        current.questionTime !== initial.questionTime ||
+        current.attemptLimit !== initial.attemptLimit ||
+        current.attempts !== initial.attempts ||
+        current.summaryOnly !== initial.summaryOnly ||
+        current.uiMode !== initial.uiMode ||
+        current.enableSecondChance !== initial.enableSecondChance ||
+        current.maxChances !== initial.maxChances ||
+        current.randomizeQuestions !== initial.randomizeQuestions ||
+        current.randomizeChoices !== initial.randomizeChoices ||
+        current.allowChangeSelection !== initial.allowChangeSelection;
 }
 
 export function setupCustomizeView(config, name) {
@@ -1742,6 +1840,7 @@ export function setupCustomizeView(config, name) {
 
     startSubtitle.textContent = `Customizing: "${cleanName || 'quiz'}" (Options only)`;
     generateQuizBtn.textContent = 'Start Customized Quiz';
+    elements.saveCustomizeBtn?.classList.add('hidden');
     cancelCustomizeBtn.classList.remove('hidden');
     deleteCustomizeBtn.classList.remove('hidden');
     fileActionsDiv.classList.add('hidden');
@@ -1751,6 +1850,9 @@ export function setupCustomizeView(config, name) {
     customizeSection.classList.remove('hidden');
     customizeContent.classList.remove('hidden');
     customizeToggleIcon.classList.add('rotate-180');
+
+    // Horizontally expand start-view on desktop
+    document.getElementById('start-view')?.classList.add('customize-expanded');
 
     // Hide history section while customization is open
     setHistoryVisibility(false);
@@ -1883,9 +1985,6 @@ export function setupCustomizeView(config, name) {
     }
     if (elements.maxChancesInput) elements.maxChancesInput.value = config.maxChances || 1;
     
-    if (elements.manualRevealToggle) {
-        elements.manualRevealToggle.checked = config.manualReveal || false;
-    }
     if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = config.randomizeQuestions !== false;
     if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = config.randomizeChoices !== false;
 
@@ -1893,15 +1992,14 @@ export function setupCustomizeView(config, name) {
         elements.allowChangeToggle.checked = config.allowChangeSelection || false;
     }
 
-    validateAllInputs();
     state.initialCustomizeState = getCustomizeState();
+    validateAllInputs();
 }
 
-
-
 export function handleTimePresetChange() {
-    const sel = document.querySelector('input[name="time_preset"]:checked').value;
+    const sel = document.querySelector('input[name="time_preset"]:checked')?.value || '10';
     customTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
+    validateAllInputs();
 }
 
 
@@ -1995,28 +2093,13 @@ export function validateAllInputs() {
         enabled = enabled && maxAttempts > 0;
     }
 
-    // --- NESTED NEIGHBOR DEPENDENCY AND CLEARANCE CONTROLLERS ---
-    
-    // 1. Manage Parental Layout Rules for Summary Only vs Manual Reveal Toggles
-    const manualRevealContainer = document.getElementById('manual-reveal-container');
-    if (summaryOnlyToggle.checked) {
-        if (manualRevealContainer) manualRevealContainer.classList.remove('hidden');
-        if (elements.manualRevealToggle) elements.manualRevealToggle.disabled = false;
-    } else {
-        if (manualRevealContainer) manualRevealContainer.classList.add('hidden');
-        if (elements.manualRevealToggle) {
-            elements.manualRevealToggle.checked = false;
-            elements.manualRevealToggle.disabled = true;
-        }
-    }
-
-    // 2. Choice-Swapping settings panel (Always unlocked and enabled)
+    // 1. Choice-Swapping settings panel (Always unlocked and enabled)
     const allowChangeToggleEl = document.getElementById('allow-change-toggle');
     const allowChangeContainer = document.getElementById('allow-change-container');
     if (allowChangeToggleEl) allowChangeToggleEl.disabled = false;
     if (allowChangeContainer) allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
 
-    // 3. Evaluate Verification Bounds on Timed Quiz Variations
+    // 2. Evaluate Verification Bounds on Timed Quiz Variations
     if (timeLimitToggle.checked && elements.timerModeSelect) {
         if (elements.timerModeSelect.value === 'question') {
             const qTime = elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 0 : 0;
@@ -2031,6 +2114,15 @@ export function validateAllInputs() {
     }
 
     generateQuizBtn.disabled = !enabled;
+    if (elements.saveCustomizeBtn) {
+        if (state.isCustomizingHistory) {
+            const hasChanges = hasUnsavedChanges();
+            elements.saveCustomizeBtn.classList.toggle('hidden', !hasChanges);
+            elements.saveCustomizeBtn.disabled = !enabled;
+        } else {
+            elements.saveCustomizeBtn.classList.add('hidden');
+        }
+    }
 }
 
 // ==========================================

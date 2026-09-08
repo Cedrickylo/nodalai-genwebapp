@@ -1,5 +1,5 @@
-// Incremented to v19 for Resilient Offline Stale-While-Revalidate with Fast Timeout & Conditional Update Loader
-const CACHE_NAME = 'nodal-ai-cache-v19';
+// Incremented to v24 for Desktop Customize Width, Edit In-Progress Prompts, Unified Summary-Only, Mute Visibility & Back Button Refinements
+const CACHE_NAME = 'nodal-ai-cache-v24';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -21,6 +21,7 @@ const LOCAL_ASSETS_TO_CACHE = [
     '/scripts/quiz/quizUtils.js',
     '/scripts/quiz/quizStatistics.js',
     '/scripts/quiz/quizOffline.js',
+    '/scripts/quiz/quizMigration.js',
     '/icons/icon.svg',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
@@ -40,14 +41,14 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v19] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v22] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             for (const asset of LOCAL_ASSETS_TO_CACHE) {
                 try {
                     await cache.add(asset);
                 } catch (err) {
-                    console.warn(`[Service Worker v19] Failed to pre-cache ${asset}:`, err);
+                    console.warn(`[Service Worker v22] Failed to pre-cache ${asset}:`, err);
                 }
             }
         }).then(() => self.skipWaiting())
@@ -56,13 +57,13 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v19] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v22] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME && cache !== OFFLINE_QUIZ_CACHE) {
-                        console.log('[Service Worker v19] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v22] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -75,7 +76,7 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v19] Notification warning during activate:', err);
+                console.warn('[Service Worker v22] Notification warning during activate:', err);
             }
         })
     );
@@ -133,7 +134,7 @@ self.addEventListener('message', (event) => {
 });
 
 // ==================================================================
-// RESILIENT NETWORK & CACHING HELPERS (v19)
+// RESILIENT NETWORK & CACHING HELPERS (v22)
 // ==================================================================
 
 /**

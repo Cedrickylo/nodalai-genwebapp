@@ -533,6 +533,10 @@ export async function resumeQuiz(savedData) {
     state.isReviewingUnanswered = savedData.isReviewingUnanswered || false;
     
     showView('quiz');
+    const isSummaryOnly = !!state.currentQuizConfig?.showAnswersInSummaryOnly;
+    if (elements.muteSoundBtn) {
+        elements.muteSoundBtn.classList.toggle('hidden', isSummaryOnly);
+    }
     const { updateAttemptDisplay, displayNextQuestion, displayCurrentQuestion, startQuizTimer, stopQuizTimer } = await import('./quizExecution.js');
     updateAttemptDisplay();
     if (state.currentQuizConfig?.uiMode !== 'classic') {

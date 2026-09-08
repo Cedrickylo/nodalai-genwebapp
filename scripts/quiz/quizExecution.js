@@ -318,6 +318,10 @@ export function startQuiz() {
     persistQuizProgress();
 
     showView('quiz');
+    const isSummaryOnly = !!state.currentQuizConfig?.showAnswersInSummaryOnly;
+    if (elements.muteSoundBtn) {
+        elements.muteSoundBtn.classList.toggle('hidden', isSummaryOnly);
+    }
     updateAttemptDisplay();
     
     const isModern = (state.currentQuizConfig?.uiMode || 'modern') !== 'classic';
@@ -1086,13 +1090,13 @@ export function checkAnswer(userAnswer) {
     const qData = state.questions[currOrigIdx];
     const isCorrect = evaluateAnswer(qData, userAnswer);
 
-    const isManualReveal = state.currentQuizConfig && state.currentQuizConfig.manualReveal;
+    const isManualReveal = isSummaryOnly || (state.currentQuizConfig && state.currentQuizConfig.manualReveal);
 
     // Second chance check
     if (!isCorrect && state.currentQuizConfig.enableSecondChance && state.currentQuestionChancesLeft > 0 && !isManualReveal && userAnswer !== "Time Out") {
         state.currentQuestionChancesLeft--;
-        // FIXED: Sound effects muted when showAnswersInSummaryOnly is enabled
-        if (!isSummaryOnly && state.incorrectSound) {
+        // FIXED: Sound effects muted when showAnswersInSummaryOnly is enabled or state.isMuted
+        if (!isSummaryOnly && !state.isMuted && state.incorrectSound) {
             try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
         }
         showToast(`Incorrect response! Attempts remaining: ${state.currentQuestionChancesLeft + 1}`, 3000, 'warning');
@@ -1151,14 +1155,16 @@ export function checkAnswer(userAnswer) {
                 if (txtInput) txtInput.classList.add(isCorrect ? 'correct' : 'incorrect');
             }
 
-            // FIXED: Only trigger audio feedback if showAnswersInSummaryOnly is NOT enabled
-            if (isCorrect) {
-                if (state.correctSound) {
-                    try { state.correctSound.triggerAttackRelease('C4', '8n', Tone.now()); } catch (e) {}
-                }
-            } else {
-                if (state.incorrectSound) {
-                    try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
+            // FIXED: Only trigger audio feedback if showAnswersInSummaryOnly is NOT enabled and NOT muted
+            if (!state.isMuted) {
+                if (isCorrect) {
+                    if (state.correctSound) {
+                        try { state.correctSound.triggerAttackRelease('C4', '8n', Tone.now()); } catch (e) {}
+                    }
+                } else {
+                    if (state.incorrectSound) {
+                        try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
+                    }
                 }
             }
         }

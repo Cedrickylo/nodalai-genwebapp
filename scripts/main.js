@@ -244,6 +244,7 @@ async function initApp() {
 
         window.addEventListener('offline', () => {
             showToast('Connection lost. Running in Offline Mode (Quiz Generation disabled).', 4000, 'warning');
+            setSyncing('offline');
             validateAllInputs();
         });
 

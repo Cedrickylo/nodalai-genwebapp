@@ -30,7 +30,8 @@
             #history-fullscreen-view,
             #statistics-view,
             #review-view,
-            #downloads-view {
+            #downloads-view,
+            #whats-new-view {
                 width: 100%;
                 max-width: none;
             }
@@ -38,7 +39,8 @@
             #history-fullscreen-view > div,
             #statistics-view > div,
             #review-view > div,
-            #downloads-view > div {
+            #downloads-view > div,
+            #whats-new-view > div {
                 min-height: calc(100dvh - 9rem);
                 display: flex;
                 flex-direction: column;
@@ -62,18 +64,45 @@
             min-width: 0;
             max-width: 100%;
         }
-        .scrollbar-thin::-webkit-scrollbar {
-            height: 4px;
+        /* ==================================================================
+           UNIFIED CROSS-BROWSER CUSTOM SCROLLBAR
+           Dark-themed slim pill design applied globally to all browsers & OSes
+           ================================================================== */
+        /* Firefox & Standards-compliant engines */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(107, 114, 128, 0.45) transparent;
         }
-        .scrollbar-thin::-webkit-scrollbar-track {
+
+        /* Chromium, WebKit, Edge, Chrome, Safari, iOS, Android */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
             background: transparent;
         }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-            background: rgba(107, 114, 128, 0.4);
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(107, 114, 128, 0.45);
             border-radius: 9999px;
+            border: 1px solid transparent;
+            background-clip: padding-box;
         }
-        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-            background: rgba(156, 163, 175, 0.6);
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.75);
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:active {
+            background: rgba(59, 130, 246, 0.85);
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: transparent;
         }
         #file-upload-input, #import-quiz-input { display: none; }
         .correct { background-color: #10B981 !important; border-color: #059669 !important; color: white !important; }
@@ -89,10 +118,6 @@
         
         /* Sidebar Layout Styles */
         aside { max-height: calc(100vh - 2rem); overflow-y: auto; }
-        aside::-webkit-scrollbar { width: 6px; }
-        aside::-webkit-scrollbar-track { background: transparent; }
-        aside::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 3px; }
-        aside::-webkit-scrollbar-thumb:hover { background: #6B7280; }
         
         /* Toast and Modal positioning to avoid navbar overlap */
         #toast-notification { bottom: 120px; z-index: 9999; }
@@ -512,5 +537,90 @@
     border: 1px solid rgba(6, 182, 212, 0.35);
     color: #67e8f9;
 }
+
+/* ==================================================================
+   RESPONSIVE QUIZ STATUS HEADER LAYOUT
+   Mobile (< 640px): 2-row layout (Row 1: Question left, Points right;
+                                    Row 2: Sync left, Actions right)
+   Desktop (>= 640px): Clean single-row header
+   ================================================================== */
+.quiz-status-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "meta stats"
+        "sync actions";
+    row-gap: 0.625rem;
+    column-gap: 0.75rem;
+    align-items: center;
+    width: 100%;
+}
+
+.quiz-header-right-cluster {
+    display: contents;
+}
+
+.quiz-header-meta {
+    grid-area: meta;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.quiz-header-stats {
+    grid-area: stats;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.quiz-header-sync {
+    grid-area: sync;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.quiz-header-actions {
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+    .quiz-status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .quiz-header-right-cluster {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .quiz-header-stats {
+        gap: 0.75rem;
+    }
+}
+
+/* Responsive Horizontally Expanding Customize / Edit View on Desktop */
+#start-view {
+    transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 768px) {
+    #start-view:has(#customize-content:not(.hidden)),
+    #start-view.customize-expanded {
+        max-width: 56rem !important;
+    }
+}
+
+
 
 

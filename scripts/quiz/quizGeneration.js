@@ -13,14 +13,32 @@ const {
     timeLimitToggle,
     attemptLimitToggle,
     attemptLimitInput,
-    summaryOnlyToggle
+    summaryOnlyToggle,
+    editQuizNameInput
 } = elements;
 
 export async function handleQuizGeneration(isRemedial = false, skipStart = false) {
 
     // 1. CUSTOMIZATION CHECK FOR EXISTING QUIZ IN HISTORY
     if (state.isCustomizingHistory && state.customizingQuizData && !isRemedial) {
-        const newName = (editQuizNameInput.value.trim() || state.customizingQuizData.fileName || 'Custom Quiz').slice(0, 35);
+        const quizKey = state.customizingQuizData.key;
+        const inProgress = state.savedProgress;
+        const hasInProgressForThisQuiz = inProgress && (inProgress.key === quizKey);
+        if (hasInProgressForThisQuiz) {
+            const { customConfirm, clearInProgressQuiz } = await import('../helpers.js');
+            const msg = !skipStart
+                ? 'This quiz has a saved session in progress. Do you want to clear the in-progress quiz and start over?'
+                : 'This quiz has a saved session in progress. Do you want to terminate the current in-progress quiz?';
+            const title = !skipStart ? 'Clear In-Progress Quiz?' : 'Terminate In-Progress Quiz?';
+            const btnText = !skipStart ? 'Clear & Start Over' : 'Terminate & Save';
+            const confirmed = await customConfirm(msg, title, btnText, 'Cancel', true);
+            if (!confirmed) {
+                return;
+            }
+            clearInProgressQuiz();
+        }
+
+        const newName = (editQuizNameInput?.value?.trim() || state.customizingQuizData.fileName || 'Custom Quiz').slice(0, 35);
         state.questions = state.customizingQuizData.questions;
         state.currentFileName = newName;
         state.currentQuizConfig = { ...state.customizingQuizData.config };
@@ -61,7 +79,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         if (elements.questionTimeInput) state.currentQuizConfig.questionTime = parseInt(elements.questionTimeInput.value, 10) || 30;
         if (elements.secondChanceToggle) state.currentQuizConfig.enableSecondChance = elements.secondChanceToggle.checked;
         if (elements.maxChancesInput) state.currentQuizConfig.maxChances = parseInt(elements.maxChancesInput.value, 10) || 1;
-        if (elements.manualRevealToggle) state.currentQuizConfig.manualReveal = elements.manualRevealToggle.checked;
         if (elements.shuffleQuestionsToggle) state.currentQuizConfig.randomizeQuestions = elements.shuffleQuestionsToggle.checked;
         if (elements.shuffleChoicesToggle) state.currentQuizConfig.randomizeChoices = elements.shuffleChoicesToggle.checked;
         
@@ -75,17 +92,28 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
         const { resetStartViewUI } = await import('./quizUtils.js');
         const { startQuiz } = await import('./quizExecution.js');
+        const { clearSubState } = await import('../helpers.js');
+        clearSubState('#edit');
         resetStartViewUI();
+
+        if (typeof puter !== 'undefined' && window.puter?.auth?.isSignedIn() && navigator.onLine) {
+            const { syncHistoryWithCloud } = await import('../helpers.js');
+            syncHistoryWithCloud(false).catch(e => console.warn('Edit sync error:', e));
+        }
+
         if (!skipStart) {
             state.currentFileName = newName;
             startQuiz();
         } else {
-            showToast('Changes saved successfully!');
+            showToast('Changes saved successfully!', 3000, 'success');
             refreshHistory();
             if (state.editOriginView === 'history-fullscreen') {
                 const { showAllHistoryFullScreen } = await import('./quizHistory.js');
                 window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
                 showAllHistoryFullScreen();
+            } else {
+                window.history.replaceState({ view: 'start' }, '', '#home');
+                showView('start', false);
             }
         }
         return;

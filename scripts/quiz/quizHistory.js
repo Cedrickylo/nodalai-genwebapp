@@ -266,11 +266,32 @@ export function showAllHistoryFullScreen(pushHash = true) {
     const container = elements.historyFullList || document.getElementById('history-full-list');
     if (!container) return;
     container.innerHTML = '';
-
     showView('history-fullscreen', pushHash);
 
+    if (elements.historyFullscreenBackBtn) {
+        if (state.historyOrigin === 'home-card') {
+            elements.historyFullscreenBackBtn.classList.remove('hidden');
+            elements.historyFullscreenBackBtn.classList.add('inline-flex');
+        } else {
+            elements.historyFullscreenBackBtn.classList.add('hidden');
+            elements.historyFullscreenBackBtn.classList.remove('inline-flex');
+        }
+    }
+
     if (sorted.length === 0) {
-        container.innerHTML = `<p class="text-sm text-gray-500 text-center">No saved quizzes.</p>`;
+        container.innerHTML = `
+            <div class="text-center py-12 px-4 space-y-3">
+                <div class="p-3 bg-blue-500/10 text-blue-400 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                        <path d="M6 6h10M6 10h10"/>
+                    </svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-200">No Saved Quizzes</h3>
+                <p class="text-xs text-gray-400 max-w-sm mx-auto">You haven't generated or saved any quizzes yet. Upload a document on the home page or import your history from another device.</p>
+            </div>
+        `;
+        setupScrollReactiveHeader('history-fullscreen');
         return;
     }
 
@@ -282,13 +303,13 @@ export function showAllHistoryFullScreen(pushHash = true) {
         const config = data.config || {};
         
         const tInfo = formatTime(config.totalTime);
-        let diffTxt = config.difficulty ? `(${config.difficulty}` : '(';
+        let diffTxt = '';
         if (config.difficulty === 'custom' && config.customTypeShort) {
-            diffTxt += `: ${config.customTypeShort})`;
+            diffTxt = `(${config.difficulty}: ${config.customTypeShort})`;
         } else if (config.difficulty) {
-            diffTxt += ')';
+            diffTxt = `(${config.difficulty})`;
         } else {
-            diffTxt += `${config.type || 'mixed'})`;
+            diffTxt = `(${config.type || 'mixed'})`;
         }
 
         const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';

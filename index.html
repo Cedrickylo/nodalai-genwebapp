@@ -323,22 +323,11 @@
                         </div>
 
                         <!-- Summary and Validation Options Component Row -->
-                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-4">
+                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-2">
                             <div class="flex items-center gap-2">
                                 <input type="checkbox" id="summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
-                                <label for="summary-only-toggle" class="font-medium text-gray-300 cursor-pointer">Show Answers in Summary Only</label>
-                                <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">If checked, immediate feedback is hidden during active quiz play. All answers populate strictly on the final results page.</span></span>
-                            </div>
-
-                            <!-- Nested Child Option: Manual Evaluation Toggle Block -->
-                            <div id="manual-reveal-container" class="hidden pl-7 pt-2 border-t border-gray-600/20 space-y-2 transition-all duration-200 animate-fade-in">
-                                <div class="flex items-center gap-2">
-                                    <input type="checkbox" id="manual-reveal-toggle" class="h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-500 focus:ring-blue-600 cursor-pointer">
-                                    <div class="flex flex-col">
-                                        <label for="manual-reveal-toggle" class="text-sm font-medium text-gray-300 cursor-pointer">Don't auto-validate answers (Manual Reveal)</label>
-                                        <span class="text-[11px] text-gray-400 leading-tight">Lets you click options and proceed forward instantly without checking correctness until the final screen.</span>
-                                    </div>
-                                </div>
+                                <label for="summary-only-toggle" class="font-medium text-gray-300 cursor-pointer">Don't auto-validate answers (Show in Summary Only)</label>
+                                <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">If checked, immediate correctness and audio feedback are hidden during the quiz. All answers and explanations appear only on the final results summary.</span></span>
                             </div>
                         </div>
                         <!-- Advanced Quiz Configurations Block Row -->
@@ -398,6 +387,7 @@
                 </div>
                 
                 <button id="resume-quiz-btn" class="hidden w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg mb-4">Resume Previous Quiz</button>
+                <button id="save-customize-btn" class="hidden w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg mb-3">Save Changes</button>
                 <button id="generate-quiz-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Generate Quiz</button>
                 <button id="cancel-customize-btn" class="hidden w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Cancel</button>
                 <p id="status-message" class="text-center text-gray-400 mt-4 text-sm h-5 break-words max-w-full"></p>
@@ -417,7 +407,7 @@
                                 </span>
                                 <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1 hover:text-red-300">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                    Can't sync
+                                    <span class="sync-text-offline">Logged out</span>
                                 </span>
                             </button>
                             
@@ -458,7 +448,7 @@
                 <div class="relative z-10 pt-0 sm:pt-0">
                     <div id="history-header-sentinel" class="h-px" aria-hidden="true"></div>
                     <div class="page-sticky-header scroll-reactive-header mb-4 sm:mb-5">
-                    <button id="history-fullscreen-back-btn" class="hidden md:inline-flex items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">
+                    <button id="history-fullscreen-back-btn" class="hidden items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1 rounded transition-colors duration-200">
                         <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>
@@ -476,7 +466,7 @@
                             </span>
                             <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1 hover:text-red-300">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                Can't sync
+                                <span class="sync-text-offline">Logged out</span>
                             </span>
                         </button>
                     </div>
@@ -498,7 +488,7 @@
                 <div class="relative z-10 pt-0 sm:pt-0">
                     <div id="downloads-header-sentinel" class="h-px" aria-hidden="true"></div>
                     <div class="page-sticky-header scroll-reactive-header mb-4 sm:mb-5">
-                        <button id="downloads-back-btn" class="inline-flex items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer" title="Back to Home">
+                        <button id="downloads-back-btn" class="inline-flex md:hidden items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer" title="Back to Home">
                             <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
@@ -543,7 +533,7 @@
                             </span>
                             <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1 hover:text-red-300">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                Can't sync
+                                <span class="sync-text-offline">Logged out</span>
                             </span>
                         </button>
                     </div>
@@ -646,8 +636,27 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Frequently Asked Questions</h2>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Help</h2>
                         <span class="header-spacer md:hidden" aria-hidden="true"></span>
+                    </div>
+
+                    <!-- What's New Callout Banner & Action Button -->
+                    <div class="mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 text-blue-400 font-semibold text-base">
+                                <svg class="w-5 h-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>
+                                <span>Discover Recent Updates</span>
+                            </div>
+                            <p class="text-xs text-gray-300">Explore our changelog, latest features, performance improvements, and bug fixes.</p>
+                        </div>
+                        <button id="open-whats-new-btn" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all shadow-md flex-shrink-0 cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span>What's New!</span>
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <h3 class="text-lg font-bold text-gray-200">Frequently Asked Questions</h3>
                     </div>
 
                     <div class="info-grid grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -678,7 +687,7 @@
 
                         <section class="info-card">
                             <h3>Contact Information & Support</h3>
-                            <p>For feedback, bug reports, or feature requests, feel free to reach out to the project maintainers via the repository issues section or contact support at <span class="text-blue-400 font-medium">support@nodalai.example.com</span>.</p>
+                            <p>For feedback, bug reports, or feature requests, feel free to reach out to the project maintainers via the repository issues section or contact support at <a href="mailto:jc.siason08@gmail.com" class="text-blue-400 font-medium hover:underline">jc.siason08@gmail.com</a>.</p>
                         </section>
                     </div>
                 </div>
@@ -709,8 +718,8 @@
                         </section>
 
                         <section class="info-card">
-                            <h3>Creator</h3>
-                            <p>Created by the Nodal AI team (or contributor). For inquiries, contact the project owner listed in the repository.</p>
+                            <h3>Developer & Creator</h3>
+                            <p>Developed and created by <strong class="text-white">John Cedrick Siason</strong> (<a href="https://github.com/cedrickylo" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">@cedrickylo</a>). Designed for learners and educators to easily convert learning materials into practice quizzes and study aids.</p>
                         </section>
 
                         <section class="info-card">
@@ -786,61 +795,79 @@
                     <div id="visual-timer-bar" class="h-2 bg-blue-500 transition-colors duration-300" style="width: 100%;"></div>
                 </div>
                 
-                <div class="flex justify-between items-center mb-6 flex-wrap gap-y-2 flex-shrink-0"> 
-                    <!-- Classic Progress Container -->
-                    <div id="classic-progress-container" class="flex items-center">
-                        <div id="progress" class="text-sm font-medium text-gray-300"></div>
-                    </div>
-                    <!-- Modern Meta Container: Readable Question Number & Type Badge -->
-                    <div id="modern-meta-container" class="hidden flex items-center gap-2.5 flex-wrap">
-                        <span id="modern-question-number" class="text-sm sm:text-base font-bold text-blue-300 bg-blue-950/70 border border-blue-600/40 px-3 py-1 rounded-lg shadow-sm">
-                            Question 1 of 10
-                        </span>
-                        <span id="modern-question-type-badge" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50">
-                            Multiple Choice
-                        </span>
-                    </div>
-
-                    <div class="flex items-center gap-x-3 sm:gap-x-4"> 
-                        <div id="quiz-sync-indicator" class="flex items-center text-xs font-medium" title="Cloud Status">
-                            <span class="sync-icon-done hidden text-green-500 flex items-center gap-1">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><polyline points="7 12 10 15 17 8"/></svg>
-                                Synced
+                <div id="quiz-status-header" class="quiz-status-header mb-6 flex-shrink-0"> 
+                    <!-- Left / Row 1 Left: Question Progress / Number -->
+                    <div class="quiz-header-meta">
+                        <!-- Classic Progress Container -->
+                        <div id="classic-progress-container" class="flex items-center">
+                            <div id="progress" class="text-sm font-medium text-gray-300"></div>
+                        </div>
+                        <!-- Modern Meta Container: Readable Question Number & Type Badge -->
+                        <div id="modern-meta-container" class="hidden flex items-center gap-2.5 flex-wrap">
+                            <span id="modern-question-number" class="text-sm sm:text-base font-bold text-blue-300 bg-blue-950/70 border border-blue-600/40 px-3 py-1 rounded-lg shadow-sm">
+                                Question 1 of 10
                             </span>
-                            <span class="sync-icon-loading hidden text-blue-400 flex items-center gap-1">
-                                <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.21-8.58"/><path d="M15 2v5h5"/></svg>
-                                Syncing
-                            </span>
-                            <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                Can't sync
+                            <span id="modern-question-type-badge" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50">
+                                Multiple Choice
                             </span>
                         </div>
-                        <div id="attempt-display" class="hidden text-sm font-medium bg-yellow-600 text-white px-3 py-1 rounded-full"></div>
-                        <div id="timer-display" class="hidden text-sm font-medium bg-gray-700 text-white px-3 py-1 rounded-full transition-colors"></div>
-                        
-                        <!-- Classic Score Badge -->
-                        <div id="score" class="text-sm font-medium bg-blue-500 text-white px-3 py-1 rounded-full"></div>
-                        
-                        <!-- Modern Right/Wrong Counters -->
-                        <div id="modern-score-stats" class="hidden flex items-center gap-2">
-                            <span id="modern-stat-correct" class="text-xs font-bold bg-green-900/70 text-green-300 border border-green-600/50 px-2.5 py-1 rounded-full flex items-center gap-1" title="Correct Questions">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                <span id="modern-stat-correct-count">0</span>
-                            </span>
-                            <span id="modern-stat-wrong" class="text-xs font-bold bg-red-900/70 text-red-300 border border-red-600/50 px-2.5 py-1 rounded-full flex items-center gap-1" title="Incorrect Questions">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                <span id="modern-stat-wrong-count">0</span>
-                            </span>
+                    </div>
+
+                    <!-- Right Cluster: Contains Stats, Sync, and Action Buttons -->
+                    <div class="quiz-header-right-cluster">
+                        <!-- Row 1 Right (Mobile): Points, Timer, Score, Check/Exes -->
+                        <div class="quiz-header-stats">
+                            <div id="attempt-display" class="hidden text-sm font-medium bg-yellow-600 text-white px-3 py-1 rounded-full"></div>
+                            <div id="timer-display" class="hidden text-sm font-medium bg-gray-700 text-white px-3 py-1 rounded-full transition-colors"></div>
+                            
+                            <!-- Classic Score Badge -->
+                            <div id="score" class="text-sm font-medium bg-blue-500 text-white px-3 py-1 rounded-full"></div>
+                            
+                            <!-- Modern Right/Wrong Counters -->
+                            <div id="modern-score-stats" class="hidden flex items-center gap-2">
+                                <span id="modern-stat-correct" class="text-xs font-bold bg-green-900/70 text-green-300 border border-green-600/50 px-2.5 py-1 rounded-full flex items-center gap-1" title="Correct Questions">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <span id="modern-stat-correct-count">0</span>
+                                </span>
+                                <span id="modern-stat-wrong" class="text-xs font-bold bg-red-900/70 text-red-300 border border-red-600/50 px-2.5 py-1 rounded-full flex items-center gap-1" title="Incorrect Questions">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    <span id="modern-stat-wrong-count">0</span>
+                                </span>
+                            </div>
                         </div>
 
-                        <div class="flex gap-x-3">
-                             <button id="save-quiz-btn" title="Save and Sync" class="text-gray-400 hover:text-white transition-colors">
+                        <!-- Row 2 Left (Mobile): Cloud Sync Indicator -->
+                        <div class="quiz-header-sync">
+                            <div id="quiz-sync-indicator" class="flex items-center text-xs font-medium" title="Cloud Status">
+                                <span class="sync-icon-done hidden text-green-500 flex items-center gap-1">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><polyline points="7 12 10 15 17 8"/></svg>
+                                    Synced
+                                </span>
+                                <span class="sync-icon-loading hidden text-blue-400 flex items-center gap-1">
+                                    <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.21-8.58"/><path d="M15 2v5h5"/></svg>
+                                    Syncing
+                                </span>
+                                <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                    <span class="sync-text-offline">Logged out</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Row 2 Right (Mobile): Action Buttons (Mute, Save, Home) -->
+                        <div class="quiz-header-actions flex items-center gap-x-3">
+                            <button id="mute-sound-btn" title="Mute Sound Effects" class="text-gray-400 hover:text-white transition-colors cursor-pointer outline-none" aria-label="Toggle Sound">
+                                <!-- Sound Unmuted (Speaker with Waves) -->
+                                <svg class="mute-icon-unmuted w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                                <!-- Sound Muted (Speaker with Slash) -->
+                                <svg class="mute-icon-muted hidden w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                            </button>
+                            <button id="save-quiz-btn" title="Save and Sync" class="text-gray-400 hover:text-white transition-colors cursor-pointer">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                             </button>
-                             <button id="home-btn" title="Save and Go Home" class="text-gray-400 hover:text-white transition-colors">
+                            </button>
+                            <button id="home-btn" title="Save and Go Home" class="text-gray-400 hover:text-white transition-colors cursor-pointer">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                             </button>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1003,8 +1030,172 @@
                         <span class="header-spacer md:hidden" aria-hidden="true"></span>
                     </div>
 
-                    <div id="account-view-container" class="w-full flex justify-center items-center mt-6">
+                    <div id="account-view-container" class="w-full flex justify-center items-center mt-6"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- What's New View -->
+        <div id="whats-new-view" class="view w-full max-w-5xl self-start">
+            <div class="page-shell bg-gray-800/90 border border-gray-700/80 w-full p-5 sm:p-8 rounded-2xl shadow-2xl relative min-h-[60vh]">
+                <div class="page-shell-glow page-shell-glow-left"></div>
+                <div class="page-shell-glow page-shell-glow-right"></div>
+                
+                <div class="relative z-10 pt-0 sm:pt-0">
+                    <div id="whats-new-header-sentinel" class="h-px" aria-hidden="true"></div>
+                    
+                    <div class="page-sticky-header scroll-reactive-header mb-4 sm:mb-5">
+                        <button id="whats-new-back-btn" class="inline-flex items-center gap-1.5 w-fit text-sm text-gray-300 bg-gray-700/30 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer" title="Back to Help">
+                            <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            <span>Back</span>
+                        </button>
+                        <h2 class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">New to the website</h2>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 justify-self-end whitespace-nowrap">Changelog</span>
+                    </div>
+
+                    <!-- Breadcrumbs Bar: Help / What's New -->
+                    <nav id="whats-new-breadcrumbs" class="breadcrumb-nav mb-5 pb-2.5 border-b border-gray-700/50 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+                        <button type="button" id="whats-new-crumb-help" class="text-blue-400 hover:text-blue-300 hover:underline transition-colors flex items-center gap-1 font-medium bg-transparent border-0 p-0 cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span>Help</span>
+                        </button>
+                        <span class="text-gray-500 font-semibold">/</span>
+                        <span class="text-gray-200 font-semibold">What's New</span>
+                    </nav>
+
+                    <div class="bg-gray-900/40 border border-gray-700/50 rounded-xl p-3 sm:p-4 mb-6 text-xs sm:text-sm text-gray-300 flex items-center gap-3">
+                        <svg class="w-5 h-5 text-yellow-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>
+                        <span>Stay up to date with the latest features, improvements, and fixes in Nodal AI. Click on any date below to expand its release notes.</span>
+                    </div>
+
+                    <!-- Accordion Container -->
+                    <div id="whats-new-accordion-container" class="space-y-4">
+                        
+                        <!-- Release: September 8, 2026 (EXPANDED BY DEFAULT) -->
+                        <div class="whats-new-item bg-gray-900/60 border border-blue-500/40 rounded-2xl overflow-hidden shadow-lg transition-all">
+                            <button type="button" class="whats-new-toggle w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-800/60 transition cursor-pointer" data-target="changelog-sep-08-2026">
+                                <div class="flex items-center gap-3">
+                                    <span class="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </span>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="text-base sm:text-lg font-bold text-white">September 8, 2026</h3>
+                                            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-0.5">Encrypted Data Migration, Service Worker v21, Blocked Modem Resilience & Lazy Skeletons</p>
+                                    </div>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+
+                            <!-- Dropdown for Today: Expanded by default (no hidden class) -->
+                            <div id="changelog-sep-08-2026" class="whats-new-content p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
+                                <div>
+                                    <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
+                                    <ul class="space-y-2 text-xs sm:text-sm text-gray-300">
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Encrypted Data Migration (.nodal):</strong> Fast domain-to-domain migration in an intuitive popup modal. Export all or selected quizzes, takes, and settings into an AES-256 encrypted proprietary <code>.nodal</code> file with lazy skeleton feedback. Restore with cryptographic signature validation.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Service Worker v21 & Blocked Modem Resilience:</strong> Instant Cache-First loading (&lt; 5ms) with a 2.5-second timeout via AbortController. Fixes packet-drop and endless loading spinners on restricted router firewalls or spotty networks.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Conditional Update Loading Screen:</strong> The full-page app loader now only appears on the very first installation or while an active service worker update installs. Zero blocking on repeat visits.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Lazy Skeleton Loading:</strong> Decoupled cloud authentication and background syncing from blocking the UI. The interface is interactive in 5ms, with animated skeleton placeholders for Quiz History and Data Migration.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Empty Quiz History Redesign:</strong> Enhanced empty history states across the Home screen and Full History view with helpful icons and direct actions.</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div class="pt-2 border-t border-gray-800">
+                                    <h4 class="text-xs font-bold uppercase tracking-wider text-green-400 mb-2.5">⚡ Complete System Capabilities & Features</h4>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">📄 PowerPoint PPT & PPTX:</strong> Native slide text extraction with JSZip.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">📏 35-Char Filename Limit:</strong> Single-line horizontal scroll without clipping.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">🎯 Custom AI Quizzes:</strong> Multiple Choice, Identification, Enumeration, and Mixed questions.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">🔄 Remedial Quizzes:</strong> Automatic practice sets generated from missed questions.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">📊 Quiz Statistics & Review:</strong> Historical test score tracking and answer review keys.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">💾 1-Week Offline Mode:</strong> Local device caching and storage management.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">☁️ Puter Cloud Sync:</strong> Seamless multi-device library and retake synchronization.
+                                        </div>
+                                        <div class="p-2.5 bg-gray-800/60 rounded-lg border border-gray-700/50">
+                                            <strong class="text-white">📱 Installable PWA:</strong> Fully standalone responsive desktop and mobile web app.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Release: September 6, 2026 -->
+                        <div class="whats-new-item bg-gray-900/60 border border-gray-700/60 rounded-2xl overflow-hidden shadow-lg transition-all">
+                            <button type="button" class="whats-new-toggle w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-800/60 transition cursor-pointer" data-target="changelog-sep-06-2026">
+                                <div class="flex items-center gap-3">
+                                    <span class="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+                                    </span>
+                                    <div>
+                                        <h3 class="text-base sm:text-lg font-bold text-white">September 6, 2026</h3>
+                                        <p class="text-xs text-gray-400 mt-0.5">PowerPoint Text Extraction & Filename Wrapping Controls</p>
+                                    </div>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+
+                            <div id="changelog-sep-06-2026" class="whats-new-content hidden p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-2 text-xs sm:text-sm text-gray-300">
+                                <p>• Integrated JSZip to parse presentation slide XML for PowerPoint (.pptx and .ppt legacy).</p>
+                                <p>• Enforced 35-character maximum filename limit with single-line horizontal scrolling to avoid UI clipping.</p>
+                                <p>• Constrained upload start-view max width for improved readability on ultrawide displays.</p>
+                            </div>
+                        </div>
+
+                        <!-- Release: September 4, 2026 -->
+                        <div class="whats-new-item bg-gray-900/60 border border-gray-700/60 rounded-2xl overflow-hidden shadow-lg transition-all">
+                            <button type="button" class="whats-new-toggle w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-800/60 transition cursor-pointer" data-target="changelog-sep-04-2026">
+                                <div class="flex items-center gap-3">
+                                    <span class="p-2 rounded-xl bg-green-500/20 text-green-400">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                    </span>
+                                    <div>
+                                        <h3 class="text-base sm:text-lg font-bold text-white">September 4, 2026</h3>
+                                        <p class="text-xs text-gray-400 mt-0.5">Quiz Statistics & 1-Week Offline Downloads Manager</p>
+                                    </div>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+
+                            <div id="changelog-sep-04-2026" class="whats-new-content hidden p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-2 text-xs sm:text-sm text-gray-300">
+                                <p>• Launched full Quiz Statistics view with average score curves, best scores, and retake counters.</p>
+                                <p>• Added Past Test Review with full inspection of submitted vs correct answers and AI explanations.</p>
+                                <p>• Implemented 1-Week Offline Downloads manager with automatic cache expiration and manual renewal.</p>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
@@ -1147,7 +1338,11 @@
             </div>
         </div>
 
-        <div class="lg:col-span-2 w-full pt-2">
+        <div class="lg:col-span-2 w-full pt-2 space-y-2.5">
+            <button id="open-migration-btn" class="w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer">
+                <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="9"/><polyline points="17 14 12 9 7 14"/></svg>
+                <span>Migrate Data (Import / Export)</span>
+            </button>
             <button id="logout-btn" class="w-full bg-red-600/10 hover:bg-red-600/30 text-red-400 hover:text-white border border-red-500/20 hover:border-transparent font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">                <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
@@ -1164,7 +1359,13 @@
             <h4 class="text-lg font-bold text-white">Login Required</h4>
             <p class="text-sm text-gray-400">Sign in to view your account details, sync history across devices, and manage your generation limits.</p>
         </div>
-        <button id="account-login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg">Log In / Sign Up</button>
+        <div class="space-y-3">
+            <button id="account-login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg">Log In / Sign Up</button>
+            <button id="open-migration-logged-out-btn" class="w-full bg-gray-700/60 hover:bg-gray-700 text-gray-200 border border-gray-600/60 font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm cursor-pointer">
+                <svg class="w-4 h-4 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Migrate Data (Import / Export)</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -1264,6 +1465,300 @@
             </div>
 
         </div>
+    </div>
+</div>
+
+<!-- Unified Data Migration Popup Modal -->
+<div id="migration-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 transition-opacity duration-300">
+    <div class="bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300 flex flex-col max-h-[90vh]">
+        
+        <!-- Modal Header (Dynamic Title & Centered Header with Absolute Left/Right Controls) -->
+        <div class="p-4 sm:p-5 border-b border-gray-700 relative bg-gray-800/95 flex items-center justify-center min-h-[64px]">
+            <!-- Back Button (pinned left, absolute) -->
+            <button id="migration-modal-back-btn" type="button" class="hidden absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer z-10" title="Back">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                <span class="hidden sm:inline">Back</span>
+            </button>
+
+            <!-- Perfectly Centered Title & Dynamic Icon -->
+            <div class="flex items-center justify-center gap-2.5 text-center w-full px-12" id="migration-header-text">
+                <div class="p-2 rounded-xl bg-blue-500/20 text-blue-400 flex-shrink-0" id="migration-header-icon">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"/></svg>
+                </div>
+                <div class="text-left">
+                    <h3 id="migration-modal-title" class="text-base sm:text-lg font-bold text-white leading-tight">Migrate Data</h3>
+                    <p id="migration-modal-subtitle" class="text-xs text-gray-400">Fast domain-to-domain migration</p>
+                </div>
+            </div>
+
+            <!-- Close 'X' Button (pinned right, absolute) -->
+            <button id="close-migration-modal-btn" type="button" class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer absolute right-4 top-1/2 -translate-y-1/2 z-10" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <!-- Scrollable Modal Body Container -->
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-4">
+            
+            <!-- STEP 1: CHOICE SCREEN -->
+            <div id="migration-step-choice" class="space-y-3.5">
+                <p class="text-xs sm:text-sm text-gray-300 leading-relaxed text-center">
+                    Transfer your quizzes, test history, and settings between website domains or devices using encrypted <strong class="text-blue-400">.nodal</strong> archives.
+                </p>
+
+                <!-- Export Card -->
+                <button id="migration-choice-export-btn" type="button" class="w-full flex items-start gap-4 p-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl transition border border-gray-600/70 hover:border-blue-500 group text-left cursor-pointer">
+                    <div class="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-colors mt-0.5">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Export Data</h4>
+                            <svg class="w-4 h-4 text-gray-400 group-hover:text-white transform group-hover:translate-x-1 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Package quizzes, retakes, and settings into an encrypted .nodal file to download.</p>
+                    </div>
+                </button>
+
+                <!-- Import Card -->
+                <button id="migration-choice-import-btn" type="button" class="w-full flex items-start gap-4 p-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl transition border border-gray-600/70 hover:border-green-500 group text-left cursor-pointer">
+                    <div class="p-2.5 rounded-xl bg-green-500/20 text-green-400 group-hover:bg-green-600 group-hover:text-white transition-colors mt-0.5">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white group-hover:text-green-300 transition-colors">Import Data</h4>
+                            <svg class="w-4 h-4 text-gray-400 group-hover:text-white transform group-hover:translate-x-1 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Restore quizzes, history, and preferences from an existing .nodal backup file.</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- STEP 2: EXPORT SCREEN -->
+            <div id="migration-step-export" class="hidden space-y-4">
+                <div class="bg-gray-900/40 border border-gray-700/50 rounded-xl p-3 text-xs text-gray-300 flex items-start gap-2.5">
+                    <svg class="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Select which datasets to include in the encrypted <strong class="text-blue-400">.nodal</strong> backup.</span>
+                </div>
+
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Datasets to Export</span>
+                    <div class="flex items-center gap-2 text-xs">
+                        <button type="button" id="export-select-all-btn" class="text-blue-400 hover:text-blue-300 font-medium cursor-pointer">Select All</button>
+                        <span class="text-gray-600">|</span>
+                        <button type="button" id="export-clear-all-btn" class="text-gray-400 hover:text-gray-300 font-medium cursor-pointer">Clear</button>
+                    </div>
+                </div>
+
+                <div class="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                    <!-- Quizzes -->
+                    <label class="flex items-center justify-between p-3 bg-gray-900/60 hover:bg-gray-900/80 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="export-cb-quizzes" class="export-checkbox h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" checked>
+                            <div>
+                                <span class="text-sm font-semibold text-white">Quiz Library</span>
+                                <p class="text-[11px] text-gray-400">All questions, answers, and settings</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <span id="export-skeleton-quizzes" class="inline-block h-4 w-14 bg-gray-700/70 rounded animate-pulse"></span>
+                            <span id="export-count-quizzes" class="hidden text-xs font-medium px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">0 quizzes</span>
+                        </div>
+                    </label>
+
+                    <!-- Takes -->
+                    <label class="flex items-center justify-between p-3 bg-gray-900/60 hover:bg-gray-900/80 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="export-cb-takes" class="export-checkbox h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" checked>
+                            <div>
+                                <span class="text-sm font-semibold text-white">Quiz Takes & Retakes</span>
+                                <p class="text-[11px] text-gray-400">Timestamps, scores, and answer logs</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <span id="export-skeleton-takes" class="inline-block h-4 w-14 bg-gray-700/70 rounded animate-pulse"></span>
+                            <span id="export-count-takes" class="hidden text-xs font-medium px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">0 takes</span>
+                        </div>
+                    </label>
+
+                    <!-- Offline -->
+                    <label class="flex items-center justify-between p-3 bg-gray-900/60 hover:bg-gray-900/80 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="export-cb-offline" class="export-checkbox h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" checked>
+                            <div>
+                                <span class="text-sm font-semibold text-white">Offline Downloads</span>
+                                <p class="text-[11px] text-gray-400">Device offline registry</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <span id="export-skeleton-offline" class="inline-block h-4 w-14 bg-gray-700/70 rounded animate-pulse"></span>
+                            <span id="export-count-offline" class="hidden text-xs font-medium px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">0 items</span>
+                        </div>
+                    </label>
+
+                    <!-- Preferences -->
+                    <label class="flex items-center justify-between p-3 bg-gray-900/60 hover:bg-gray-900/80 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="export-cb-settings" class="export-checkbox h-4 w-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" checked>
+                            <div>
+                                <span class="text-sm font-semibold text-white">Preferences</span>
+                                <p class="text-[11px] text-gray-400">Display name and options</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Profile</span>
+                    </label>
+                </div>
+
+                <button id="start-export-btn" type="button" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer text-sm">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Download .nodal Backup</span>
+                </button>
+            </div>
+
+            <!-- STEP 3: IMPORT SCREEN -->
+            <div id="migration-step-import" class="hidden space-y-4">
+                <input type="file" id="migration-file-input" accept=".nodal" class="hidden">
+
+                <!-- Dropzone / Selector -->
+                <div id="migration-drop-zone" class="border-2 border-dashed border-gray-600 hover:border-green-500 bg-gray-900/40 hover:bg-gray-900/60 rounded-xl p-6 text-center transition-all cursor-pointer">
+                    <div class="space-y-2 pointer-events-none max-w-xs mx-auto">
+                        <div class="w-10 h-10 rounded-full bg-green-500/10 text-green-400 mx-auto flex items-center justify-center">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                        <p class="text-xs sm:text-sm font-semibold text-white">Select or drop your .nodal file</p>
+                        <p class="text-[11px] text-gray-400">Only encrypted .nodal backups from Nodal AI</p>
+                        <button type="button" id="select-import-file-btn" class="pointer-events-auto inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition shadow-md mt-1 cursor-pointer">
+                            <span>Browse .nodal File</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Skeleton Loading Card for Import (shown while analyzing & decrypting) -->
+                <div id="migration-import-skeleton" class="hidden space-y-3 bg-gray-900/50 border border-blue-500/30 rounded-xl p-4 animate-pulse">
+                    <div class="flex items-center justify-between pb-2.5 border-b border-gray-700/60">
+                        <div class="space-y-1.5">
+                            <div class="h-3 w-28 bg-blue-500/30 rounded"></div>
+                            <div class="h-4 w-40 bg-gray-700 rounded"></div>
+                        </div>
+                        <div class="h-3 w-20 bg-gray-700 rounded"></div>
+                    </div>
+                    <div class="space-y-2 pt-1">
+                        <div class="h-10 bg-gray-800/80 rounded-lg"></div>
+                        <div class="h-10 bg-gray-800/80 rounded-lg"></div>
+                        <div class="h-10 bg-gray-800/80 rounded-lg"></div>
+                        <div class="h-10 bg-gray-800/80 rounded-lg"></div>
+                    </div>
+                    <p class="text-xs text-blue-400 text-center font-medium pt-1 flex items-center justify-center gap-2">
+                        <svg class="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        <span>Decrypting & verifying .nodal archive...</span>
+                    </p>
+                </div>
+
+                <!-- Verified Summary Card (hidden until file validated) -->
+                <div id="migration-import-summary" class="hidden space-y-3 bg-gray-900/50 border border-green-500/30 rounded-xl p-4">
+                    <div class="flex justify-between items-center pb-2.5 border-b border-gray-700/60">
+                        <div>
+                            <span class="text-[11px] font-semibold text-green-400 uppercase tracking-wider flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                Valid .nodal Archive
+                            </span>
+                            <p id="import-summary-filename" class="text-xs sm:text-sm font-bold text-white mt-0.5 break-all">backup.nodal</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[11px] text-gray-400">Exported: </span>
+                            <span id="import-summary-date" class="text-[11px] font-medium text-gray-300">--</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Select Categories to Restore</span>
+                        <!-- Quizzes -->
+                        <label class="flex items-center justify-between p-2.5 bg-gray-800/80 rounded-lg border border-gray-700/50 cursor-pointer">
+                            <div class="flex items-center gap-2.5">
+                                <input type="checkbox" id="import-cb-quizzes" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-green-600 focus:ring-green-500 cursor-pointer" checked>
+                                <span class="text-xs font-medium text-white">Quizzes</span>
+                            </div>
+                            <span id="import-summary-quizzes-count" class="text-xs font-semibold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">0 quizzes</span>
+                        </label>
+                        <!-- Takes -->
+                        <label class="flex items-center justify-between p-2.5 bg-gray-800/80 rounded-lg border border-gray-700/50 cursor-pointer">
+                            <div class="flex items-center gap-2.5">
+                                <input type="checkbox" id="import-cb-takes" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-green-600 focus:ring-green-500 cursor-pointer" checked>
+                                <span class="text-xs font-medium text-white">Quiz Takes & History</span>
+                            </div>
+                            <span id="import-summary-takes-count" class="text-xs font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">0 takes</span>
+                        </label>
+                        <!-- Offline -->
+                        <label class="flex items-center justify-between p-2.5 bg-gray-800/80 rounded-lg border border-gray-700/50 cursor-pointer">
+                            <div class="flex items-center gap-2.5">
+                                <input type="checkbox" id="import-cb-offline" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-green-600 focus:ring-green-500 cursor-pointer" checked>
+                                <span class="text-xs font-medium text-white">Offline Downloads</span>
+                            </div>
+                            <span id="import-summary-offline-count" class="text-xs font-semibold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded">0 items</span>
+                        </label>
+                        <!-- Settings -->
+                        <label class="flex items-center justify-between p-2.5 bg-gray-800/80 rounded-lg border border-gray-700/50 cursor-pointer">
+                            <div class="flex items-center gap-2.5">
+                                <input type="checkbox" id="import-cb-settings" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-green-600 focus:ring-green-500 cursor-pointer" checked>
+                                <span class="text-xs font-medium text-white">Preferences & Profile</span>
+                            </div>
+                            <span class="text-xs font-semibold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded">Profile</span>
+                        </label>
+                    </div>
+
+                    <div class="pt-1 flex justify-end">
+                        <button type="button" id="import-pick-different-btn" class="text-xs text-gray-400 hover:text-white underline cursor-pointer">Select a different file</button>
+                    </div>
+                </div>
+
+                <button id="start-import-btn" type="button" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-sm" disabled>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span>Restore Selected Data</span>
+                </button>
+            </div>
+
+            <!-- STEP 4: PROGRESS OVERLAY / SCREEN -->
+            <div id="migration-step-progress" class="hidden py-6 text-center space-y-4">
+                <div id="migration-progress-spinner" class="w-12 h-12 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin mx-auto"></div>
+                <div>
+                    <h4 id="migration-progress-title" class="text-base sm:text-lg font-bold text-white">Transferring Data...</h4>
+                    <p id="migration-progress-status" class="text-xs text-gray-300 mt-1 min-h-[18px]">Preparing data...</p>
+                </div>
+                <div class="w-full space-y-1.5">
+                    <div class="w-full bg-gray-900/80 rounded-full h-2.5 border border-gray-700 overflow-hidden p-0.5">
+                        <div id="migration-progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-200" style="width: 0%;"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-400 px-1">
+                        <span>Progress</span>
+                        <span id="migration-progress-percent" class="font-bold text-blue-400">0%</span>
+                    </div>
+                </div>
+                <button id="migration-progress-done-btn" type="button" class="hidden w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg text-sm cursor-pointer">
+                    Done
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Data Migration: Error Modal -->
+<div id="migration-error-modal" class="hidden fixed inset-0 z-[220] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 transition-opacity duration-300">
+    <div class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-red-500/40 p-6 flex flex-col items-center text-center space-y-4">
+        <div class="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="space-y-1">
+            <h3 class="text-lg font-bold text-white">Migration Error</h3>
+            <p class="text-xs text-gray-400">The backup file could not be processed</p>
+        </div>
+        <div id="migration-error-message" class="text-xs text-gray-300 leading-relaxed bg-gray-900/70 border border-gray-700/60 p-3.5 rounded-xl text-left w-full max-h-48 overflow-y-auto break-words">
+            An error occurred.
+        </div>
+        <button id="migration-error-close-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-xl transition cursor-pointer text-sm">
+            Dismiss
+        </button>
     </div>
 </div>
 
