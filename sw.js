@@ -1,5 +1,5 @@
-// Incremented to v35 for generation hardening, 2-per-3m cooldown, and Puter account updates
-const CACHE_NAME = 'nodal-ai-cache-v35';
+// Incremented to v36 for account modal scrolling and mobile sticky header resizing enhancements
+const CACHE_NAME = 'nodal-ai-cache-v36';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

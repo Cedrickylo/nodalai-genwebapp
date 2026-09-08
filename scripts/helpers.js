@@ -1067,6 +1067,13 @@ export async function openAccountAsModal() {
     if (cardHeader) cardHeader.classList.remove('hidden');
 
     elements.accountModalOverlay.appendChild(elements.accountCard);
+
+    // Reset scroll position to top when opening modal
+    const loggedIn = document.getElementById('account-logged-in-content');
+    const loggedOut = document.getElementById('account-logged-out-content');
+    if (loggedIn) loggedIn.scrollTop = 0;
+    if (loggedOut) loggedOut.scrollTop = 0;
+
     elements.accountModalOverlay.classList.remove('hidden');
     pushSubState('#account-modal');
     await populateAccountData();

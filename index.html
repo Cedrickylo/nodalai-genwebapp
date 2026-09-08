@@ -560,15 +560,15 @@
                         <button id="statistics-sync-btn" class="global-sync-btn flex items-center justify-end text-xs font-medium transition-colors cursor-pointer outline-none justify-self-end" title="Click to sync with cloud">
                             <span class="sync-icon-done hidden text-green-500 flex items-center gap-1 hover:text-green-400">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><path d="M3 15a9 9 0 0 1 17.1-4.2"/><polyline points="7 12 10 15 17 8"/></svg>
-                                Synced
+                                <span class="sync-text-label">Synced</span>
                             </span>
                             <span class="sync-icon-loading hidden text-blue-400 flex items-center gap-1">
                                 <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.21-8.58"/><path d="M15 2v5h5"/><path d="M21 12a9 9 0 0 1-15 6.6L3 12"/><path d="M3 12a9 9 0 0 1 15-6.6L21 12"/></svg>
-                                Syncing...
+                                <span class="sync-text-label">Syncing...</span>
                             </span>
                             <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1 hover:text-red-300">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                <span class="sync-text-offline">Logged out</span>
+                                <span class="sync-text-label sync-text-offline">Logged out</span>
                             </span>
                         </button>
                     </div>
@@ -1405,16 +1405,16 @@
     <div id="toast-notification" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg cursor-pointer select-none z-[200]"><span id="toast-message"></span></div>
 <div id="account-modal-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
     
-<div id="account-card" class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden relative">
+<div id="account-card" class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden relative flex flex-col max-h-[90vh] sm:max-h-[85vh]">
     
-    <div id="account-card-header" class="p-6 border-b border-gray-700 flex justify-between items-center">
-        <h3 class="text-xl font-bold text-blue-400">Puter Account</h3>
-        <button id="close-account-btn" class="text-gray-400 hover:text-white transition-colors">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <div id="account-card-header" class="sticky top-0 z-10 bg-gray-800 px-5 py-3 sm:px-6 sm:py-3.5 border-b border-gray-700 flex justify-between items-center shrink-0">
+        <h3 class="text-lg sm:text-xl font-bold text-blue-400 leading-tight">Puter Account</h3>
+        <button id="close-account-btn" class="text-gray-400 hover:text-white transition-colors p-1.5 -mr-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" title="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
     </div>
     
-    <div id="account-logged-in-content" class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div id="account-logged-in-content" class="p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start overflow-y-auto flex-1">
         
         <div class="space-y-5 w-full">
             <div class="space-y-1">
@@ -1502,7 +1502,7 @@
         </div>
     </div>
 
-    <div id="account-logged-out-content" class="hidden p-8 text-center space-y-6">
+    <div id="account-logged-out-content" class="hidden p-6 sm:p-8 text-center space-y-6 overflow-y-auto flex-1">
         <svg class="mx-auto w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
         <div class="space-y-2">
             <h4 class="text-lg font-bold text-white">Login Required</h4>
