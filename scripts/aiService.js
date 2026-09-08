@@ -1,9 +1,9 @@
 // scripts/aiService.js
-// Secure Quiz Generation Service using Vercel Serverless Function & Google Gemini 2.5 Flash-Lite
+// Secure Quiz Generation Service using Vercel Serverless Function & Google Gemini AI (3.5 Flash-Lite)
 
 /**
  * Indicates whether Puter AI is being used for question generation.
- * False because generation is handled by Google Gemini 2.5 Flash-Lite via Vercel.
+ * False because generation is handled by Google Gemini AI via Vercel.
  */
 export function isUsingPuterAI() {
     return false;
@@ -35,7 +35,11 @@ export async function requestQuizFromVercel(systemPrompt, userPrompt = '', signa
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const detailedError = errorData.error || errorData.message || `Server responded with status ${response.status}`;
+        const detailedError = errorData.error 
+            || errorData.details?.error?.message 
+            || errorData.message 
+            || (typeof errorData.details === 'string' ? errorData.details : null)
+            || `Server responded with status ${response.status}`;
         throw new Error(detailedError);
     }
 

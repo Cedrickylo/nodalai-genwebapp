@@ -1,5 +1,5 @@
-// Incremented to v31 for pure Vercel /api/generate-quiz deployment
-const CACHE_NAME = 'nodal-ai-cache-v31';
+// Incremented to v32 for Gemini 3.5 Flash-Lite model upgrade & resilient fallback
+const CACHE_NAME = 'nodal-ai-cache-v32';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
