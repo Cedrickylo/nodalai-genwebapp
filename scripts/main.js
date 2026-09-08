@@ -20,6 +20,41 @@ window.addEventListener('unhandledrejection', (event) => {
     }
 });
 
+// ==================================================================
+// CONDITIONAL APP LOADER CONTROLLER
+// Only displayed on first-time setup or during active service worker updates.
+// ==================================================================
+let updateLoaderTimeout = null;
+
+export function showAppLoader(title = 'Nodal AI', desc = 'Loading...') {
+    const loader = document.getElementById('app-init-loader');
+    if (!loader) return;
+    const titleEl = document.getElementById('app-init-loader-title');
+    const descEl = document.getElementById('app-init-loader-desc');
+    if (titleEl) titleEl.textContent = title;
+    if (descEl) descEl.textContent = desc;
+    loader.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+
+    // Never trap the user: auto-dismiss after 5s max under any condition
+    if (updateLoaderTimeout) clearTimeout(updateLoaderTimeout);
+    updateLoaderTimeout = setTimeout(() => {
+        hideAppLoader();
+    }, 5000);
+}
+
+export function hideAppLoader() {
+    if (updateLoaderTimeout) {
+        clearTimeout(updateLoaderTimeout);
+        updateLoaderTimeout = null;
+    }
+    const loader = document.getElementById('app-init-loader');
+    if (!loader || loader.classList.contains('hidden')) return;
+    loader.classList.add('opacity-0', 'pointer-events-none');
+    setTimeout(() => {
+        loader.classList.add('hidden');
+    }, 300);
+}
+
 async function initApp() {
     if (window.puter) puter.quiet = true;
     try {
@@ -45,59 +80,85 @@ async function initApp() {
         attachQuizEventListeners();
 
         // ==================================================================
-        // ISOLATED INITIALIZATION BLOCK
-        // Prevents spotty or offline credentials checks from throwing global 
-        // exceptions that trigger the "App Failed" crash layout screen.
+        // NON-BLOCKING BACKGROUND AUTHENTICATION & CLOUD INITIALIZATION
+        // Prevents spotty networks, blocked modems, or slow connections from
+        // delaying user interactivity. Runs in parallel while DOM is ready.
         // ==================================================================
-        try {
-            await updateAuthUI();
-        } catch (authError) {
+        updateAuthUI().catch((authError) => {
             console.warn('Non-fatal authentication UI initialization failure (handled gracefully offline):', authError);
             setSyncing('offline');
-        }
+        });
 
         prepareSavedProgress();
         initWelcomeModal();
         initRouter();
 
-        // Smoothly dismiss the initial startup loader overlay
-        const appInitLoader = document.getElementById('app-init-loader');
-        if (appInitLoader) {
-            appInitLoader.classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => {
-                appInitLoader.classList.add('hidden');
-            }, 300);
-        }
+        // Dismiss the first-time setup loader overlay if it was shown
+        hideAppLoader();
+
+        // Safety fallback: ensure loader is always dismissed after 3.5s on initial load
+        setTimeout(() => {
+            hideAppLoader();
+        }, 3500);
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v13)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v19)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW] ServiceWorker registered with scope:', reg.scope);
+                    console.log('[SW v19] ServiceWorker registered with scope:', reg.scope);
                     
-                    // Listen for updates
+                    // Check if an update is already waiting to activate
+                    if (reg.waiting && navigator.serviceWorker.controller) {
+                        console.log('[SW v19] Existing waiting worker found, activating...');
+                        showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
+                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+
+                    // Listen for newly discovered updates
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         if (newWorker) {
+                            // Only show update loader if an active controller already exists (this is an update, not first-time install)
+                            if (navigator.serviceWorker.controller) {
+                                console.log('[SW v19] Service worker update found, displaying update loader...');
+                                showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
+                            }
+
                             newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    console.log('[SW] New version available, triggering activation...');
-                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                if (newWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        console.log('[SW v19] New version installed, triggering skipWaiting...');
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                    } else {
+                                        // First install finished
+                                        hideAppLoader();
+                                    }
+                                } else if (newWorker.state === 'redundant') {
+                                    hideAppLoader();
                                 }
                             });
                         }
                     });
                 } catch (swErr) {
-                    console.warn('[SW] ServiceWorker registration failed:', swErr);
+                    console.warn('[SW v19] ServiceWorker registration failed:', swErr);
+                    hideAppLoader();
                 }
+            });
+
+            // When new SW takes controller claim or sends SW_ACTIVATED
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('[SW v19] Controller changed - new version active');
+                hideAppLoader();
+                showToast('Nodal AI updated to the latest version!');
             });
 
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'SW_ACTIVATED') {
-                    console.log('[SW] Active version:', event.data.version);
+                    console.log('[SW v19] Active version:', event.data.version);
+                    hideAppLoader();
                 }
             });
         }

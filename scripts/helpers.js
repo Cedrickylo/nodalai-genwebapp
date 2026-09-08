@@ -311,6 +311,13 @@ export async function syncHistoryWithCloud(manual = false) {
     if (manual) showToast('Started syncing...');
     setSyncing('syncing'); 
 
+    // If local history is empty, display skeleton placeholder during sync
+    const skeleton = elements.historySkeleton || document.getElementById('history-skeleton');
+    if (skeleton && (!state.quizHistory || Object.keys(state.quizHistory).length === 0)) {
+        skeleton.classList.remove('hidden');
+        elements.historyList?.classList.add('hidden');
+    }
+
     try {
         let combinedCloudItems = {};
         let combinedCloudTakes = {};
@@ -519,6 +526,7 @@ export async function syncHistoryWithCloud(manual = false) {
         console.error('Core Cloud Sync Stack Breakdown:', e);
         setSyncing('offline');
         showToast('Sync failed. Please check your network connection.', 4000, 'error');
+        refreshHistory();
     }
 }
 
@@ -1562,6 +1570,11 @@ export function refreshHistory() {
     } else {
         setHistoryVisibility(true);
     }
+
+    // Hide lazy skeleton and reveal history list
+    const skeleton = elements.historySkeleton || document.getElementById('history-skeleton');
+    if (skeleton) skeleton.classList.add('hidden');
+    if (elements.historyList) elements.historyList.classList.remove('hidden');
 
     const db = state.quizHistory;
     const sorted = Object.entries(db).sort(([, a], [, b]) => b.timestamp - a.timestamp);

@@ -75,6 +75,7 @@ export const elements = {
     answerAreaEl: document.getElementById('answer-area'),
     explanationAreaEl: document.getElementById('explanation-area'),
     historyList: document.getElementById('history-list'),
+    historySkeleton: document.getElementById('history-skeleton'),
     showAllHistoryBtn: document.getElementById('show-all-history-btn'),
     historyFullscreenView: document.getElementById('history-fullscreen-view'),
     historyFullscreenBackBtn: document.getElementById('history-fullscreen-back-btn'),

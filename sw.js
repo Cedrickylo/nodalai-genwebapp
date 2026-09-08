@@ -1,5 +1,5 @@
-// Incremented to v18 for PPTX Upload Text Extraction, 35-Char Filename Cap and UI Layout Fixes
-const CACHE_NAME = 'nodal-ai-cache-v18';
+// Incremented to v19 for Resilient Offline Stale-While-Revalidate with Fast Timeout & Conditional Update Loader
+const CACHE_NAME = 'nodal-ai-cache-v19';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -40,14 +40,14 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v15] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v19] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             for (const asset of LOCAL_ASSETS_TO_CACHE) {
                 try {
                     await cache.add(asset);
                 } catch (err) {
-                    console.warn(`[Service Worker v15] Failed to pre-cache ${asset}:`, err);
+                    console.warn(`[Service Worker v19] Failed to pre-cache ${asset}:`, err);
                 }
             }
         }).then(() => self.skipWaiting())
@@ -56,13 +56,13 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v15] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v19] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME && cache !== OFFLINE_QUIZ_CACHE) {
-                        console.log('[Service Worker v15] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v19] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -75,7 +75,7 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v15] Notification warning during activate:', err);
+                console.warn('[Service Worker v19] Notification warning during activate:', err);
             }
         })
     );
@@ -132,7 +132,117 @@ self.addEventListener('message', (event) => {
     }
 });
 
-// 3. Fetch Event: Network-First for local assets (ensures fresh server updates), dynamic cache for CDNs
+// ==================================================================
+// RESILIENT NETWORK & CACHING HELPERS (v19)
+// ==================================================================
+
+/**
+ * Executes a network fetch with an AbortController timeout guard.
+ * Prevents hanging infinitely when internet modems/routers or firewalls drop packets.
+ * @param {Request|string} request 
+ * @param {number} timeoutMs 
+ * @returns {Promise<Response>}
+ */
+async function fetchWithTimeout(request, timeoutMs = 2500) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(request, { signal: controller.signal });
+        clearTimeout(timer);
+        return response;
+    } catch (err) {
+        clearTimeout(timer);
+        throw err;
+    }
+}
+
+/**
+ * Handles local assets (HTML, CSS, JS, icons).
+ * Strategy: Cache-First / Stale-While-Revalidate with Fast Timeout.
+ * - If cached on device: returns offline copy immediately (< 5ms).
+ * - Background revalidates with a 2.5s timeout. If modem is blocked or offline, silently aborts.
+ * - If not yet cached: attempts network with 4s timeout guard, falling back to /index.html.
+ * @param {Request} request 
+ * @param {FetchEvent} event 
+ * @returns {Promise<Response>}
+ */
+async function handleLocalRequest(request, event) {
+    // 1. Check local cache first
+    const cachedResponse = await caches.match(request);
+
+    // If navigation request, check for exact match or cached /index.html / /
+    const fallbackCached = (request.mode === 'navigate')
+        ? (cachedResponse || await caches.match('/index.html') || await caches.match('/'))
+        : cachedResponse;
+
+    if (fallbackCached) {
+        // Cached copy exists: return immediately to prevent infinite loading or hanging on blocked modems
+        if (event && event.waitUntil) {
+            event.waitUntil((async () => {
+                try {
+                    const networkResponse = await fetchWithTimeout(request, 2500);
+                    if (networkResponse && networkResponse.status === 200) {
+                        const cache = await caches.open(CACHE_NAME);
+                        await cache.put(request, networkResponse);
+                    }
+                } catch (e) {
+                    // Slow network, modem blocked, or offline: ignore background update silently
+                }
+            })());
+        }
+        return fallbackCached;
+    }
+
+    // 2. Not cached yet (e.g. first visit before install completes)
+    try {
+        const networkResponse = await fetchWithTimeout(request, 4000);
+        if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, responseToCache).catch(() => {});
+        }
+        return networkResponse;
+    } catch (netErr) {
+        if (request.mode === 'navigate') {
+            const indexFallback = await caches.match('/index.html') || await caches.match('/');
+            if (indexFallback) return indexFallback;
+        }
+        return new Response('Offline resource unavailable.', {
+            status: 503,
+            statusText: 'Service Unavailable'
+        });
+    }
+}
+
+/**
+ * Handles allowed CDN assets (Tailwind, Fonts, Cloudflare CDN libraries).
+ * Strategy: Cache-First with Timeout Fallback.
+ * @param {Request} request 
+ * @returns {Promise<Response>}
+ */
+async function handleCDNRequest(request) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+
+    try {
+        const networkResponse = await fetchWithTimeout(request, 4000);
+        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+            const responseToCache = networkResponse.clone();
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, responseToCache).catch(() => {});
+        }
+        return networkResponse;
+    } catch (err) {
+        return cachedResponse || new Response('CDN resource unavailable offline.', {
+            status: 503,
+            statusText: 'Service Unavailable'
+        });
+    }
+}
+
+// 3. Fetch Event: Instant Cache-First with 2.5s Background Revalidation for Local Assets
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') {
         return;
@@ -145,58 +255,31 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    const isLocal = requestUrl.origin === self.location.origin;
-    const isAllowedCDN = ALLOWED_CDN_ORIGINS.some(origin => requestUrl.hostname === origin);
+    // Bypass serverless API functions
+    if (requestUrl.pathname.startsWith('/.netlify/')) {
+        return;
+    }
 
-    // Local files (HTML, CSS, JS): Network-First strategy
-    // Fetches newest version from server when online, falls back to cache when offline
-    if (isLocal) {
+    // Offline Quiz API requests
+    if (requestUrl.pathname.startsWith('/api/offline-quiz/') || requestUrl.pathname.startsWith('/api/offline-takes/')) {
         event.respondWith(
-            fetch(event.request)
-                .then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        const responseToCache = networkResponse.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(event.request, responseToCache);
-                        });
-                    }
-                    return networkResponse;
-                })
-                .catch(() => {
-                    return caches.match(event.request).then((cachedResponse) => {
-                        if (cachedResponse) {
-                            return cachedResponse;
-                        }
-                        if (event.request.mode === 'navigate') {
-                            return caches.match('/index.html') || caches.match('/');
-                        }
-                        return new Response('Offline resource unavailable.', {
-                            status: 503,
-                            statusText: 'Service Unavailable'
-                        });
-                    });
-                })
+            caches.open(OFFLINE_QUIZ_CACHE).then((cache) => cache.match(event.request))
         );
         return;
     }
 
-    // Allowed CDN assets: Cache-First / Stale-While-Revalidate
-    if (isAllowedCDN) {
-        event.respondWith(
-            caches.match(event.request).then((cachedResponse) => {
-                const fetchPromise = fetch(event.request).then((networkResponse) => {
-                    if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
-                        const responseToCache = networkResponse.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(event.request, responseToCache);
-                        });
-                    }
-                    return networkResponse;
-                }).catch(() => cachedResponse);
+    const isLocal = requestUrl.origin === self.location.origin;
+    const isAllowedCDN = ALLOWED_CDN_ORIGINS.some(origin => requestUrl.hostname === origin);
 
-                return cachedResponse || fetchPromise;
-            })
-        );
+    // Local files: Stale-While-Revalidate with Fast Timeout (instant load, never hang if blocked by modem)
+    if (isLocal) {
+        event.respondWith(handleLocalRequest(event.request, event));
+        return;
+    }
+
+    // Allowed CDN assets: Cache-First with timeout protection
+    if (isAllowedCDN) {
+        event.respondWith(handleCDNRequest(event.request));
         return;
     }
 });
