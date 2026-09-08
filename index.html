@@ -717,7 +717,7 @@
 
                         <section class="info-card">
                             <h3>Is there a daily quiz generation limit?</h3>
-                            <p>To ensure fair usage, there is a sliding rate limit of 5 quizzes every 3 hours per user session. You can monitor your current cooldown status inside your Account tab.</p>
+                            <p>To ensure fair usage, you can generate up to 2 quizzes every 3 minutes, with a total limit of 10 quizzes every 3 hours per user session. You can monitor your current cooldown status inside your Account tab.</p>
                         </section>
 
                         <section class="info-card">
@@ -1419,7 +1419,15 @@
         <div class="space-y-5 w-full">
             <div class="space-y-1">
                 <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Puter Username</label>
-                <p id="modal-username" class="text-lg font-medium text-white truncate">---</p>
+                <div class="flex items-center gap-2">
+                    <p id="modal-username" class="text-lg font-medium text-white truncate">---</p>
+                    <a href="https://puter.com/#account" target="_blank" rel="noopener noreferrer" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700/60 rounded-lg transition-colors inline-flex items-center justify-center cursor-pointer" title="Edit Puter username on Puter.com">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </a>
+                </div>
             </div>
             <div class="space-y-1">
                 <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Account ID</label>
@@ -1454,8 +1462,9 @@
             <div id="modal-storage-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 shadow-inner">
                 <div class="flex justify-between items-end">
                     <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Puter Storage</label>
-                    <span id="modal-storage-label" class="text-sm font-bold text-green-400">Free</span>
+                    <span id="modal-storage-label" class="text-sm font-bold text-green-400">Loading...</span>
                 </div>
+                <p id="modal-storage-detail" class="text-[10px] text-gray-400 mt-1 italic leading-relaxed">Calculating storage used in Puter Cloud...</p>
             </div>
             
             <div id="modal-cooldown-panel" class="hidden bg-gray-900/50 p-4 rounded-xl border border-gray-700 shadow-inner">

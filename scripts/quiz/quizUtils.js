@@ -12,7 +12,8 @@ import {
     handleTimeToggle,
     handleAttemptToggle,
     validateAllInputs,
-    clearSubState
+    clearSubState,
+    updateResumeButtonVisibility
 } from '../helpers.js';
 
 const {
@@ -225,6 +226,7 @@ export function resetStartViewUI(preserveFileName = false) {
         customQuestionTypeSelect.disabled = false;
         customQuestionTypeSelect.classList.remove('locked-input');
     }
+    updateResumeButtonVisibility();
 }
 
 export function startLoadingAnimation() {

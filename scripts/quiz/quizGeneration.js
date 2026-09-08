@@ -257,6 +257,14 @@ export async function startNodalAiGeneration(config, fileName) {
         return;
     }
 
+    // Cooldown Guard: Enforce 2 per 3 min and 10 per 3 hr rate limits
+    const { getGenerationCooldownWarning } = await import('../helpers.js');
+    const cooldownWarning = getGenerationCooldownWarning();
+    if (cooldownWarning) {
+        showToast(cooldownWarning, 5000, 'warning');
+        return;
+    }
+
     const { buildQuizSystemPrompt } = await import('../helpers.js');
     const systemPrompt = buildQuizSystemPrompt(config, fileName, state.fileContent);
 
@@ -383,9 +391,128 @@ export async function startNodalAiGeneration(config, fileName) {
 
     try {
         const { requestQuizFromVercel, cleanAndParseQuizJson } = await import('../aiService.js');
-        const rawResponseText = await requestQuizFromVercel(systemPrompt, '', state.aiGenerationAbortController.signal);
+        const targetCount = config.count || 10;
 
-        // Success: smoothly snap to 100%
+        let parsedQuiz = null;
+        let currentPrompt = systemPrompt;
+        let jsonAttempt = 0;
+        const maxJsonAttempts = 2; // Up to 2 retries (total 3 attempts)
+
+        // --- STAGE 1: REQUEST & PARSE WITH AUTOMATED RETRY FOR INVALID JSON ---
+        while (jsonAttempt <= maxJsonAttempts) {
+            try {
+                const rawResponseText = await requestQuizFromVercel(currentPrompt, '', state.aiGenerationAbortController.signal);
+                parsedQuiz = cleanAndParseQuizJson(rawResponseText, fileName, config);
+                break; // Successfully parsed!
+            } catch (err) {
+                // If user aborted or model is deprecated, do not retry
+                if (err.name === 'AbortError' || err.isDeprecated) {
+                    throw err;
+                }
+
+                jsonAttempt++;
+                if (jsonAttempt > maxJsonAttempts) {
+                    throw err; // Retries exhausted, bubble up to main error handler
+                }
+
+                console.warn(`Attempt ${jsonAttempt} failed to return valid JSON. Retrying generation...`, err);
+                if (elements.loadingProgressStageText) {
+                    elements.loadingProgressStageText.textContent = `AI returned an invalid format. Asking AI to regenerate valid quiz format (Attempt ${jsonAttempt + 1} of ${maxJsonAttempts + 1})...`;
+                }
+                showToast('AI response was malformed. Asking AI to regenerate valid quiz format...', 4000, 'warning');
+
+                // Strengthen prompt with explicit instruction for retry
+                currentPrompt = systemPrompt + "\n\nCRITICAL RETRY INSTRUCTION: Your previous response was invalid JSON and failed parsing. You MUST respond with ONLY a single raw valid JSON object matching the schema. Do NOT include markdown code blocks, backticks, comments, or any preambles.";
+            }
+        }
+
+        if (!parsedQuiz || !Array.isArray(parsedQuiz.questions) || parsedQuiz.questions.length === 0) {
+            throw new Error('AI response did not contain any valid quiz questions.');
+        }
+
+        // --- STAGE 2: HANDLE EXTRA QUESTIONS (TRIM TO STRICT USER INPUT) ---
+        if (parsedQuiz.questions.length > targetCount) {
+            console.log(`Trimming extra questions: AI returned ${parsedQuiz.questions.length}, trimming to requested ${targetCount}`);
+            if (elements.loadingProgressStageText) {
+                elements.loadingProgressStageText.textContent = `Adjusting questions to match exact requested count (${targetCount})...`;
+            }
+            parsedQuiz.questions = parsedQuiz.questions.slice(0, targetCount);
+        }
+
+        // --- STAGE 3: HANDLE MISSING QUESTIONS (ASK AI TO GENERATE REMAINING) ---
+        let missingAttempt = 0;
+        const maxMissingAttempts = 2;
+
+        while (parsedQuiz.questions.length < targetCount && missingAttempt < maxMissingAttempts) {
+            missingAttempt++;
+            const missingCount = targetCount - parsedQuiz.questions.length;
+            console.log(`Quiz has ${parsedQuiz.questions.length}/${targetCount} questions. Requesting ${missingCount} missing questions...`);
+
+            if (elements.loadingTitle) {
+                elements.loadingTitle.textContent = 'Generating Missing Questions...';
+            }
+            if (elements.loadingProgressStageText) {
+                elements.loadingProgressStageText.textContent = `AI generated ${parsedQuiz.questions.length} of ${targetCount} questions. Asking AI for ${missingCount} more unique questions (Attempt ${missingAttempt})...`;
+            }
+            showToast(`AI generated ${parsedQuiz.questions.length}/${targetCount} questions. Asking AI for ${missingCount} more unique questions...`, 5000, 'info');
+
+            // Build non-duplication prompt containing the full list of existing questions
+            const existingQuestionsList = parsedQuiz.questions.map((q, idx) => `${idx + 1}. ${q.question}`).join('\n');
+            const missingPrompt = `System Prompt: Additional Quiz Questions Generator
+
+Role & Task:
+You previously generated ${parsedQuiz.questions.length} questions for a quiz, but the user requested ${targetCount} questions.
+You must now generate EXACTLY ${missingCount} MORE unique questions to complete the quiz based on the source text reviewer below.
+
+CRITICAL NON-DUPLICATION REQUIREMENT:
+The following questions have ALREADY been generated. DO NOT duplicate, rephrase, or create questions similar to any of these:
+${existingQuestionsList}
+
+Difficulty Level: ${config.difficulty || 'Easy'}
+Items Needed: EXACTLY ${missingCount} unique questions.
+
+Follow the exact same JSON schema:
+{
+  "questions": [
+    ...
+  ]
+}
+Output ONLY 100% valid JSON.
+
+----------------------------------------
+Source Text / Reviewer:
+${state.fileContent || ''}`;
+
+            try {
+                const rawMissingResponse = await requestQuizFromVercel(missingPrompt, '', state.aiGenerationAbortController.signal);
+                const parsedMissing = cleanAndParseQuizJson(rawMissingResponse, fileName, config);
+
+                if (parsedMissing.questions && parsedMissing.questions.length > 0) {
+                    const existingNormTexts = new Set(parsedQuiz.questions.map(q => (q.question || '').trim().toLowerCase()));
+                    const newUnique = parsedMissing.questions.filter(q => {
+                        const norm = (q.question || '').trim().toLowerCase();
+                        return norm.length > 0 && !existingNormTexts.has(norm);
+                    });
+
+                    if (newUnique.length > 0) {
+                        parsedQuiz.questions.push(...newUnique);
+                        console.log(`Recovered ${newUnique.length} unique questions. Total now: ${parsedQuiz.questions.length}/${targetCount}`);
+                    } else {
+                        console.warn('AI returned duplicate questions during missing questions recovery.');
+                    }
+                }
+            } catch (missingErr) {
+                console.warn('Missing questions recovery attempt failed:', missingErr);
+                if (missingErr.name === 'AbortError' || missingErr.isDeprecated) throw missingErr;
+            }
+        }
+
+        // Final trim if recovery generated more than targetCount
+        if (parsedQuiz.questions.length > targetCount) {
+            parsedQuiz.questions = parsedQuiz.questions.slice(0, targetCount);
+        }
+
+        // Smoothly snap progress to 100%
         clearInterval(state.aiGenerationInterval);
         state.aiGenerationInterval = null;
 
@@ -393,12 +520,9 @@ export async function startNodalAiGeneration(config, fileName) {
         if (elements.loadingProgressPercent) elements.loadingProgressPercent.textContent = '100%';
         if (elements.loadingProgressStageText) elements.loadingProgressStageText.textContent = 'Quiz ready! Launching...';
 
-        // Clean and parse JSON response
-        const parsedQuiz = cleanAndParseQuizJson(rawResponseText, fileName, config);
-
         // Update application state
         state.questions = parsedQuiz.questions;
-        state.currentQuizConfig = { ...config, ...parsedQuiz.config };
+        state.currentQuizConfig = { ...config, ...parsedQuiz.config, count: state.questions.length };
         state.currentFileName = parsedQuiz.fileName || fileName;
 
         // Save generated quiz to database
@@ -411,6 +535,10 @@ export async function startNodalAiGeneration(config, fileName) {
         });
 
         refreshHistory();
+
+        // RECORD COOLDOWN EVENT STRICTLY UPON SUCCESSFUL GENERATION
+        const { recordGenerationEvent } = await import('../helpers.js');
+        await recordGenerationEvent();
 
         // Smooth transition into quiz
         setTimeout(async () => {

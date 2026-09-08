@@ -34,7 +34,9 @@ import {
     setupCustomizeView,
     pushSubState,
     extractShareId,
-    closeModalWithAnimation
+    closeModalWithAnimation,
+    updateResumeButtonVisibility,
+    getGenerationCooldownWarning
 } from './helpers.js';
 
 // Import modules
@@ -208,6 +210,11 @@ export function attachQuizEventListeners() {
     elements.closeAiChoiceModalBtn?.addEventListener('click', () => closeAiChoiceModal());
     elements.closeAiChoiceFooterBtn?.addEventListener('click', () => closeAiChoiceModal());
     elements.aiChoiceNodalBtn?.addEventListener('click', () => {
+        const warning = getGenerationCooldownWarning();
+        if (warning) {
+            showToast(warning, 5000, 'warning');
+            return;
+        }
         startNodalAiGeneration(state.currentQuizConfig, state.currentFileName);
     });
     elements.aiChoiceOtherBtn?.addEventListener('click', () => {
@@ -1054,23 +1061,7 @@ export function attachQuizEventListeners() {
 }
 
 export function prepareResumeButton() {
-    try {
-        const { resumeQuizBtn } = elements;
-        const saved = localStorage.getItem(IN_PROGRESS_QUIZ_KEY);
-        if (saved && document.getElementById('customize-content').classList.contains('hidden')) {
-            const data = JSON.parse(saved);
-            if (data?.questions?.length && (data.shuffledIndexPos < data.shuffledIndices?.length || data.inSkippedRound)) {
-                state.savedProgress = data;
-                resumeQuizBtn.classList.remove('hidden');
-                resumeQuizBtn.textContent = `Resume: ${data.fileName || 'Quiz'} (${data.answeredIndices?.length || 0}/${data.questions.length})`;
-            } else {
-                clearInProgressQuiz();
-            }
-        }
-    } catch (e) {
-        console.error('Could not read progress', e);
-        clearInProgressQuiz();
-    }
+    updateResumeButtonVisibility();
 }
 
 // =====================================================================

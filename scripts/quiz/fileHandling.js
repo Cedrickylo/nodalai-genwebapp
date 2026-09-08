@@ -11,7 +11,8 @@ import {
     pushSubState,
     clearSubState,
     showLoadingOverlay,
-    hideLoadingOverlay
+    hideLoadingOverlay,
+    updateResumeButtonVisibility
 } from '../helpers.js';
 
 const {
@@ -404,6 +405,7 @@ export async function handleFileSelect(event) {
         if (customizeSection) customizeSection.classList.remove('hidden');
         if (customizeContent) customizeContent.classList.remove('hidden');
         elements.cancelCustomizeBtn?.classList.remove('hidden');
+        updateResumeButtonVisibility();
         setHistoryVisibility(false);
 
         // Ensure quiz configuration selectors are visible and clean for new generation
@@ -456,6 +458,7 @@ function resetAppFiles() {
     document.getElementById('customize-content')?.classList.add('hidden');
     validateAllInputs();
     window.history.replaceState({ view: 'start' }, '', '#home');
+    updateResumeButtonVisibility();
 }
 
 export function handleQuizImport(event) {

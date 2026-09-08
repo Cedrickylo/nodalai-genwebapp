@@ -727,17 +727,182 @@ export async function loadGenerationCooldownState() {
     }
 }
 
+export function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return '0 KB';
+    const kb = bytes / 1024;
+    if (kb < 1024) {
+        return `${kb.toFixed(1)} KB`;
+    }
+    const mb = kb / 1024;
+    return `${mb.toFixed(2)} MB`;
+}
+
+/**
+ * Calculates storage used by the logged-in user in Puter cloud storage.
+ * Inspects Puter FS files, Puter KV sync data, and user account metrics.
+ */
+export async function calculatePuterStorageUsage() {
+    let totalBytes = 0;
+    let fileCount = 0;
+
+    if (typeof puter === 'undefined' || !window.puter?.auth?.isSignedIn() || !navigator.onLine) {
+        return {
+            totalBytes: 0,
+            formatted: '0 KB',
+            fileCount: 0,
+            isOffline: !navigator.onLine
+        };
+    }
+
+    try {
+        // 1. Files in user's app directory on Puter FS
+        if (puter.fs && typeof puter.fs.readdir === 'function') {
+            const items = await puter.fs.readdir('./').catch(() => []);
+            if (Array.isArray(items)) {
+                for (const it of items) {
+                    totalBytes += (typeof it.size === 'number' ? it.size : 0);
+                    fileCount++;
+                }
+            }
+        }
+
+        // 2. Fallback check for known sync files via stat if readdir was empty
+        if (totalBytes === 0 && puter.fs && typeof puter.fs.stat === 'function') {
+            const syncStat = await puter.fs.stat(PUTER_FS_SYNC_FILE, { returnSize: true }).catch(() => null);
+            if (syncStat?.size) {
+                totalBytes += syncStat.size;
+                fileCount++;
+            }
+            const backupStat = await puter.fs.stat(PUTER_FS_BACKUP_FILE, { returnSize: true }).catch(() => null);
+            if (backupStat?.size) {
+                totalBytes += backupStat.size;
+                fileCount++;
+            }
+        }
+
+        // 3. Puter KV payload sizes
+        if (puter.kv && typeof puter.kv.get === 'function') {
+            try {
+                const syncRaw = await puter.kv.get(CLOUD_SYNC_KEY);
+                if (typeof syncRaw === 'string') {
+                    totalBytes += new Blob([syncRaw]).size;
+                }
+            } catch (e) {}
+            try {
+                const logRaw = await puter.kv.get(GENERATION_LOG_CLOUD_KEY);
+                if (typeof logRaw === 'string') {
+                    totalBytes += new Blob([logRaw]).size;
+                }
+            } catch (e) {}
+        }
+
+        // 4. Check if Puter user object exposes total account storage
+        try {
+            const user = await puter.auth.getUser();
+            if (user) {
+                if (typeof user.storage_used === 'number') totalBytes = Math.max(totalBytes, user.storage_used);
+                else if (typeof user.used_storage === 'number') totalBytes = Math.max(totalBytes, user.used_storage);
+            }
+        } catch (e) {}
+
+        const formatted = formatBytes(totalBytes);
+        return {
+            totalBytes,
+            formatted,
+            fileCount,
+            isOffline: false
+        };
+    } catch (err) {
+        console.warn('Failed to calculate Puter storage usage:', err);
+        return {
+            totalBytes,
+            formatted: formatBytes(totalBytes),
+            fileCount,
+            isOffline: false
+        };
+    }
+}
+
+/**
+ * Resolves the authenticated user's email address from Puter.
+ * Inspects user properties, username, local cache, and requests permission if available.
+ */
+export async function resolvePuterUserEmail(user) {
+    if (!user) return null;
+
+    // 1. Direct object properties
+    const directEmail = user.email || user.email_address || user.primary_email || user.mail;
+    if (directEmail && typeof directEmail === 'string' && directEmail.includes('@')) {
+        try { localStorage.setItem('nodal_cached_email', directEmail); } catch (e) {}
+        return directEmail;
+    }
+
+    // 2. If username itself is an email address
+    if (user.username && typeof user.username === 'string' && user.username.includes('@')) {
+        try { localStorage.setItem('nodal_cached_email', user.username); } catch (e) {}
+        return user.username;
+    }
+
+    // 3. Local cached email from previous session
+    try {
+        const cached = localStorage.getItem('nodal_cached_email');
+        if (cached && cached.includes('@')) return cached;
+    } catch (e) {}
+
+    // 4. Check if permission was already granted in Puter perms
+    if (typeof puter !== 'undefined' && puter.perms && typeof puter.perms.check === 'function') {
+        try {
+            const hasPerm = await puter.perms.check('email');
+            if (hasPerm && typeof puter.perms?.request === 'function') {
+                const requested = await puter.perms.request('email');
+                if (requested && typeof requested === 'string' && requested.includes('@')) {
+                    try { localStorage.setItem('nodal_cached_email', requested); } catch (e) {}
+                    return requested;
+                }
+            }
+        } catch (e) {
+            console.warn('Puter email permission check error:', e);
+        }
+    }
+
+    return null;
+}
+
 export function getGenerationCooldownInfo(log = state.generationLog || []) {
     const pruned = pruneGenerationLog(log);
-    const used = pruned.length;
-    const remaining = Math.max(0, MAX_GENERATIONS_PER_WINDOW - used);
-    const nextAvailableAt = remaining > 0 ? 0 : (pruned[0] || Date.now()) + GENERATION_WINDOW_MS;
     const now = Date.now();
+    const maxLongTerm = constants.MAX_GENERATIONS_PER_WINDOW || 10;
+    const windowMs = constants.GENERATION_WINDOW_MS || (3 * 60 * 60 * 1000);
+    const shortTermMs = constants.SHORT_TERM_COOLDOWN_MS || (3 * 60 * 1000);
+    const maxShortTerm = constants.SHORT_TERM_MAX_GENERATIONS || 2;
+
+    const used = pruned.length;
+    const remaining = Math.max(0, maxLongTerm - used);
+
+    // Rule 1: Short-term window (2 quizzes per 3 minutes)
+    const recentInShortTerm = pruned.filter(ts => (now - ts) < shortTermMs);
+    const shortTermActive = recentInShortTerm.length >= maxShortTerm;
+    const shortTermNextMs = shortTermActive
+        ? Math.max(0, (recentInShortTerm[0] + shortTermMs) - now)
+        : 0;
+
+    // Rule 2: Long-term window (10 quizzes per 3 hours)
+    const longTermActive = used >= maxLongTerm;
+    const longTermNextMs = longTermActive
+        ? Math.max(0, (pruned[0] + windowMs) - now)
+        : 0;
+
+    const isAllowed = !shortTermActive && !longTermActive;
+    const nextAvailableInMs = Math.max(shortTermNextMs, longTermNextMs);
+
     return {
         used,
         remaining,
-        nextAvailableInMs: Math.max(0, nextAvailableAt - now),
-        isAllowed: remaining > 0
+        nextAvailableInMs,
+        isAllowed,
+        shortTermActive,
+        longTermActive,
+        recentShortTermCount: recentInShortTerm.length
     };
 }
 
@@ -761,7 +926,7 @@ export async function recordGenerationEvent() {
     const existingLog = getLocalGenerationLog();
     const log = pruneGenerationLog([...existingLog, now]);
     state.generationLog = saveLocalGenerationLog(log);
-    if (puter.auth.isSignedIn()) {
+    if (typeof puter !== 'undefined' && puter.auth?.isSignedIn?.()) {
         try {
             await puter.kv.set(GENERATION_LOG_CLOUD_KEY, JSON.stringify({ timestamps: state.generationLog, updatedAt: now }));
         } catch (err) {
@@ -775,11 +940,12 @@ export async function refreshCooldownPanel() {
     if (!modalCooldownPanel) return;
     const log = await loadGenerationCooldownState();
     const info = getGenerationCooldownInfo(log);
+    const maxWindow = constants.MAX_GENERATIONS_PER_WINDOW || 10;
     modalCooldownPanel.classList.remove('hidden');
     if (info.isAllowed) {
-        modalCooldownStatus.textContent = `${info.remaining} / ${MAX_GENERATIONS_PER_WINDOW} available`;
+        modalCooldownStatus.textContent = `${info.remaining} / ${maxWindow} available`;
         modalCooldownStatus.className = 'text-sm font-bold text-green-400';
-        modalCooldownDetail.textContent = `You can generate ${info.remaining} more quiz${info.remaining === 1 ? '' : 'zes'} in the next 3 hours.`;
+        modalCooldownDetail.textContent = `You can generate ${info.remaining} more quiz${info.remaining === 1 ? '' : 'zes'} in the next 3 hours (up to 2 per 3 minutes).`;
     } else {
         modalCooldownStatus.textContent = 'Cooldown active';
         modalCooldownStatus.className = 'text-sm font-bold text-yellow-400';
@@ -788,34 +954,37 @@ export async function refreshCooldownPanel() {
 }
 
 export function getGenerationCooldownWarning() {
+    const localLog = getLocalGenerationLog();
+    if (localLog && localLog.length > 0) {
+        state.generationLog = localLog;
+    }
+
     if (!state.generationLog || state.generationLog.length === 0) {
         return null;
     }
 
-    // Sort the log so the latest generation event timestamp is last
-    const sortedLog = [...state.generationLog].sort((a, b) => a - b);
-    const lastGenerationTime = sortedLog[sortedLog.length - 1];
-    
-    const now = Date.now();
-    const threeMinutesMs = 3 * 60 * 1000; // 3 minutes in milliseconds
-    const timeElapsed = now - lastGenerationTime;
-
-    // RULE 1: Strict 3-minute cooldown since the last creation
-    if (timeElapsed < threeMinutesMs) {
-        const remainingMs = threeMinutesMs - timeElapsed;
-        const remainingMinutes = Math.floor(remainingMs / 60000);
-        const remainingSeconds = Math.ceil((remainingMs % 60000) / 1000);
-        
-        if (remainingMinutes > 0) {
-            return `Please wait ${remainingMinutes}m ${remainingSeconds}s before generating another quiz.`;
-        }
-        return `Please wait ${remainingSeconds} seconds before generating another quiz.`;
+    const info = getGenerationCooldownInfo(state.generationLog);
+    if (info.isAllowed) {
+        return null;
     }
 
-    // RULE 2: Fallback to your sliding multi-generation block window (Optional)
-    const activeLogsInWindow = sortedLog.filter(timestamp => (now - timestamp) < constants.GENERATION_WINDOW_MS);
-    if (activeLogsInWindow.length >= constants.MAX_GENERATIONS_PER_WINDOW) {
-        return `Hourly rate limit reached. You can make ${constants.MAX_GENERATIONS_PER_WINDOW} quizzes every 3 hours.`;
+    if (info.shortTermActive) {
+        const remainingMs = info.nextAvailableInMs;
+        const remainingMinutes = Math.floor(remainingMs / 60000);
+        const remainingSeconds = Math.ceil((remainingMs % 60000) / 1000);
+        if (remainingMinutes > 0) {
+            return `Cooldown active (limit: 2 quizzes per 3 mins). Please wait ${remainingMinutes}m ${remainingSeconds}s before generating another quiz.`;
+        }
+        return `Cooldown active (limit: 2 quizzes per 3 mins). Please wait ${remainingSeconds} seconds before generating another quiz.`;
+    }
+
+    if (info.longTermActive) {
+        const maxLongTerm = constants.MAX_GENERATIONS_PER_WINDOW || 10;
+        const remainingMs = info.nextAvailableInMs;
+        const hours = Math.floor(remainingMs / (60 * 60 * 1000));
+        const mins = Math.ceil((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+        const waitText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        return `Rate limit reached (${maxLongTerm} quizzes per 3 hours). Next generation available in ${waitText}.`;
     }
 
     return null;
@@ -937,19 +1106,18 @@ export async function populateAccountData() {
         let username = 'User';
         let uuid = 'Unavailable';
         let email = 'Unavailable';
+        let user = null;
 
         // CRITICAL FIX: Only poll profile parameters from cloud if online
         if (navigator.onLine) {
             try {
-                const user = await puter.auth.getUser();
+                user = await puter.auth.getUser();
                 username = user.username || 'Unknown';
                 uuid = user.uuid || user.id || user.accountId || 'Unknown';
-                email = user.email || (user.sessionId ? `Session ${user.sessionId}` : 'Not available');
             } catch (uErr) {
                 console.warn("Failed to fetch user data from cloud:", uErr);
                 username = localStorage.getItem('nodal_cached_username') || 'Account User';
                 uuid = 'Offline Mode';
-                email = 'Offline Mode';
             }
         } else {
             username = localStorage.getItem('nodal_cached_username') || 'Account User';
@@ -959,7 +1127,36 @@ export async function populateAccountData() {
 
         if (elements.modalUsername) elements.modalUsername.textContent = username;
         if (document.getElementById('modal-account-id')) document.getElementById('modal-account-id').textContent = uuid;
-        if (document.getElementById('modal-email')) document.getElementById('modal-email').textContent = email;
+
+        const emailEl = document.getElementById('modal-email');
+        if (emailEl) {
+            if (navigator.onLine && user) {
+                const resolvedEmail = await resolvePuterUserEmail(user);
+                if (resolvedEmail) {
+                    emailEl.textContent = resolvedEmail;
+                    emailEl.onclick = null;
+                } else if (typeof puter !== 'undefined' && puter.perms && typeof puter.perms.request === 'function') {
+                    emailEl.innerHTML = '<span class="text-blue-400 hover:text-blue-300 underline cursor-pointer text-xs font-semibold">Click to reveal email (Puter permission)</span>';
+                    emailEl.onclick = async () => {
+                        try {
+                            const grantedEmail = await puter.perms.request('email');
+                            if (grantedEmail && typeof grantedEmail === 'string' && grantedEmail.includes('@')) {
+                                localStorage.setItem('nodal_cached_email', grantedEmail);
+                                emailEl.textContent = grantedEmail;
+                                emailEl.onclick = null;
+                                showToast('Email verified and loaded!', 2500, 'success');
+                            }
+                        } catch (pErr) {
+                            console.warn('User dismissed email permission request:', pErr);
+                        }
+                    };
+                } else {
+                    emailEl.textContent = email;
+                }
+            } else {
+                emailEl.textContent = email;
+            }
+        }
 
         let creditLabel = 'Balance unavailable';
         let progressWidth = 0;
@@ -996,8 +1193,29 @@ export async function populateAccountData() {
         if (document.getElementById('modal-storage-panel')) {
             document.getElementById('modal-storage-panel').classList.remove('hidden');
         }
-        if (document.getElementById('modal-storage-label')) {
-            document.getElementById('modal-storage-label').textContent = navigator.onLine ? 'Free' : 'Offline';
+
+        const storageLabel = document.getElementById('modal-storage-label');
+        const storageDetail = document.getElementById('modal-storage-detail');
+        if (storageLabel && !navigator.onLine) {
+            storageLabel.textContent = 'Offline';
+            storageLabel.className = 'text-sm font-bold text-gray-400';
+            if (storageDetail) storageDetail.textContent = 'Connect to the internet to view cloud storage.';
+        } else if (storageLabel) {
+            storageLabel.textContent = 'Calculating...';
+            calculatePuterStorageUsage().then(info => {
+                if (storageLabel) {
+                    storageLabel.textContent = info.isOffline ? 'Offline' : `${info.formatted} Used`;
+                    storageLabel.className = 'text-sm font-bold text-blue-400';
+                }
+                if (storageDetail) {
+                    storageDetail.textContent = info.isOffline 
+                        ? 'Connect to the internet to view cloud storage.' 
+                        : `Free Cloud Tier • ${info.fileCount} cloud file${info.fileCount === 1 ? '' : 's'} & sync data`;
+                }
+            }).catch(err => {
+                console.warn('Storage calculation error in modal:', err);
+                if (storageLabel) storageLabel.textContent = '0 KB Used';
+            });
         }
 
         let customName = '';
@@ -1419,7 +1637,10 @@ export function showView(id, pushHash = true) {
 
     // 4. Automatically highlight the correct nav button!
     let navKey = id;
-    if (id === 'start') navKey = 'home';
+    if (id === 'start') {
+        navKey = 'home';
+        updateResumeButtonVisibility();
+    }
     if (id === 'history-fullscreen') navKey = 'history';
     if (id === 'whats-new') navKey = 'help';
     if (id === 'statistics' || id === 'review') {
@@ -2448,6 +2669,24 @@ export function openAiChoiceModal(config, fileName) {
         `;
     }
 
+    const cooldownWarning = getGenerationCooldownWarning();
+    const nodalBtn = elements.aiChoiceNodalBtn;
+    if (nodalBtn) {
+        let badge = document.getElementById('ai-choice-cooldown-badge');
+        if (cooldownWarning) {
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.id = 'ai-choice-cooldown-badge';
+                badge.className = 'mt-1 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-yellow-300 text-[11px] font-medium flex items-center gap-1.5';
+                nodalBtn.appendChild(badge);
+            }
+            badge.innerHTML = `<svg class="w-3.5 h-3.5 flex-shrink-0 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${cooldownWarning}</span>`;
+            badge.classList.remove('hidden');
+        } else if (badge) {
+            badge.classList.add('hidden');
+        }
+    }
+
     if (elements.aiChoiceModal) {
         elements.aiChoiceModal.classList.remove('hidden');
         pushSubState('#ai-choice');
@@ -2612,13 +2851,55 @@ export function attachAuthHandlers() {
 }
 
 export function initializeAppState() {
+    state.generationLog = getLocalGenerationLog();
     refreshHistory();
     handleDifficultyChange();
     handleTimeToggle();
     handleAttemptToggle();
     setReduceMotion(localStorage.getItem('nodal_reduce_motion') === 'true');
+    updateResumeButtonVisibility();
 
     updateNavHighlights('home');
+}
+
+/**
+ * Authoritative controller for Resume Previous Quiz button visibility.
+ * Strictly hides resumeQuizBtn whenever customizing documents or editing history,
+ * and reveals it only on start view when an active in-progress quiz exists.
+ */
+export function updateResumeButtonVisibility() {
+    if (!elements.resumeQuizBtn) return;
+
+    const customizeSection = document.getElementById('customize-section');
+    const customizeContent = document.getElementById('customize-content');
+    const isCustomizeOpen = (customizeSection && !customizeSection.classList.contains('hidden')) ||
+                            (customizeContent && !customizeContent.classList.contains('hidden')) ||
+                            (state.currentFiles && state.currentFiles.length > 0) ||
+                            (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0) ||
+                            state.activeSubState === '#customize';
+
+    const isEditOpen = state.isCustomizingHistory || state.activeSubState === '#edit';
+
+    if (isCustomizeOpen || isEditOpen) {
+        elements.resumeQuizBtn.classList.add('hidden');
+        return;
+    }
+
+    // Only show on home/start view if valid progress exists
+    const saved = state.savedProgress || (function() {
+        try {
+            const raw = localStorage.getItem(constants.IN_PROGRESS_QUIZ_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    })();
+
+    if (saved?.questions?.length && (saved.shuffledIndexPos < saved.shuffledIndices?.length || saved.inSkippedRound)) {
+        state.savedProgress = saved;
+        elements.resumeQuizBtn.classList.remove('hidden');
+        elements.resumeQuizBtn.textContent = `Resume: ${saved.fileName || 'Quiz'} (${saved.answeredIndices?.length || 0}/${saved.questions.length})`;
+    } else {
+        elements.resumeQuizBtn.classList.add('hidden');
+    }
 }
 
 export function prepareSavedProgress() {
@@ -2628,8 +2909,6 @@ export function prepareSavedProgress() {
             const data = JSON.parse(saved);
             if (data?.questions?.length && (data.shuffledIndexPos < data.shuffledIndices?.length || data.inSkippedRound)) {
                 state.savedProgress = data;
-                elements.resumeQuizBtn.classList.remove('hidden');
-                elements.resumeQuizBtn.textContent = `Resume: ${data.fileName || 'Quiz'} (${data.answeredIndices?.length || 0}/${data.questions.length})`;
             } else {
                 clearInProgressQuiz();
             }
@@ -2638,12 +2917,13 @@ export function prepareSavedProgress() {
         console.error('Could not read progress', e);
         clearInProgressQuiz();
     }
+    updateResumeButtonVisibility();
 }
 
 export function clearInProgressQuiz() {
     localStorage.removeItem(IN_PROGRESS_QUIZ_KEY);
     state.savedProgress = null;
-    elements.resumeQuizBtn.classList.add('hidden');
+    updateResumeButtonVisibility();
 }
 
 export function saveInProgressQuiz(data) {
