@@ -29,8 +29,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="styles.css">
-</head>
 <body class="bg-gray-900 text-white flex min-h-screen p-4">
+    <!-- Desktop PWA App Window Title Bar Frame (Visible ONLY on Desktop PWA Standalone) -->
+    <div id="desktop-pwa-titlebar" class="hidden fixed top-0 left-0 right-0 z-[200] h-9 bg-gray-900/95 border-b border-gray-800/80 backdrop-blur-md select-none items-center justify-between px-3 text-xs text-gray-400">
+        <div class="flex items-center gap-1.5 app-region-no-drag">
+            <button id="pwa-frame-back-btn" type="button" class="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors cursor-pointer" title="Go Back">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <button id="pwa-frame-refresh-btn" type="button" class="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors cursor-pointer" title="Refresh">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+            </button>
+            <div class="h-3 w-px bg-gray-700/60 mx-1"></div>
+            <span class="font-semibold text-gray-300 text-[11px] tracking-wide">Nodal AI</span>
+        </div>
+        <div class="flex-1 h-full app-region-drag"></div>
+    </div>
     <!-- Startup Initial Loading Screen (Shown ONLY on first-time install or when service worker is updating) -->
     <div id="app-init-loader" class="hidden fixed inset-0 z-[500] flex flex-col items-center justify-center bg-gray-900 transition-opacity duration-300">
         <div class="flex flex-col items-center space-y-5 px-6 text-center max-w-sm">
@@ -1146,8 +1163,8 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">New to the website</h2>
-                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 justify-self-end whitespace-nowrap">Changelog</span>
+                        <h2 id="whats-new-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">New to the website</h2>
+                        <span id="whats-new-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 justify-self-end whitespace-nowrap">Changelog</span>
                     </div>
 
                     <!-- Breadcrumbs Bar: Help / What's New -->
@@ -1168,8 +1185,68 @@
                     <!-- Accordion Container -->
                     <div id="whats-new-accordion-container" class="space-y-4">
                         
-                        <!-- Release: September 8, 2026 (EXPANDED BY DEFAULT) -->
+                        <!-- Release: September 9, 2026 (EXPANDED BY DEFAULT - LATEST) -->
                         <div class="whats-new-item bg-gray-900/60 border border-blue-500/40 rounded-2xl overflow-hidden shadow-lg transition-all">
+                            <button type="button" class="whats-new-toggle w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-800/60 transition cursor-pointer" data-target="changelog-sep-09-2026">
+                                <div class="flex items-center gap-3">
+                                    <span class="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </span>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="text-base sm:text-lg font-bold text-white">September 9, 2026</h3>
+                                            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-0.5">Comprehensive Hardening & UI Polish: Generation Cooldowns, AI Self-Correction, Account Storage, Desktop PWA Titlebar Controls & 30/60/90/120Hz Adaptive Header Transitions</p>
+                                    </div>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+
+                            <!-- Dropdown for September 9: Expanded by default (no hidden class) -->
+                            <div id="changelog-sep-09-2026" class="whats-new-content p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
+                                <div>
+                                    <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
+                                    <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Fair Use Generation Cooldown Protection:</strong> Implemented a smart 2-generation allowance per 3-minute window and a 10-generation limit per 3-hour period. Successful generations only count against limits—failed attempts due to network issues or AI errors do not deduct from quota. Includes real-time status display and live countdown timer in the Puter Account dashboard.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>AI Quiz Generation Hardening & Intelligent Self-Correction:</strong> Added an automatic self-correction recovery loop that detects invalid or malformed JSON from the AI, immediately notifying the user that the AI failed and is retrying. Strictly enforces the user's requested question count by automatically truncating any extra questions. If the AI provides fewer questions than requested, it automatically re-queries the AI to generate the exact missing difference while strictly avoiding duplicate or similar questions.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Puter Cloud Storage Calculation & Profile Management:</strong> Added real-time calculation and visualization of Puter Cloud storage used across quizzes, retakes, and cache files. Displays accurate Puter account email/session resolution, a direct profile edit button (pencil icon) linking to <code>puter.com/#account</code>, and unlocks JSON quiz export in the Share modal for guest users without requiring a sign-in.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Account Modal Small-Screen Responsive Scrolling & Sticky Compact Header:</strong> Solved modal viewport clipping on short screens (&lt;600px, mobile landscape, split screens) with smooth flexbox scrolling and touch momentum containment. Features a sticky header (<code>sticky top-0</code>) with compact vertical padding (~48px height) saving ~28px of vertical screen space, with full-page dashboard isolation.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Mobile Sticky Header Auto-Shrinking & Icon-Only Controls:</strong> Responsive mobile sticky headers on Statistics, Offline Downloads, and What's New views. The header title automatically shrinks when scrolling into sticky mode, Back buttons smoothly collapse into icon-only buttons without text, cloud Sync indicators collapse into icon-only badges, and storage/changelog badges shrink cleanly.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Adaptive 30Hz / 60Hz / 90Hz / 120Hz+ Header Transitions:</strong> Fluid GPU compositor-promoted transitions running unthrottled at the device's native refresh rate (60Hz, 90Hz, 120Hz+ ProMotion). When "Reduce Motion" accessibility mode is enabled, all animations across the website remain disabled, while the header transition deliberately executes at a measured <strong>30Hz</strong> stepped rate (<code>steps(9, end)</code>) for clear, non-dizzying sizing feedback.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Desktop PWA Window Frame Title Bar Controls:</strong> Dedicated Back and Refresh buttons integrated directly into the desktop PWA native window frame (Window Controls Overlay) with drag region support, restoring native desktop browser navigation.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>UI Streamlining:</strong> Automatically hides the "Resume" button on Customize and Edit screens to prevent navigation clutter and state confusion. Informative warning when the built-in Gemini 3.5 Flash-Lite model is deprecated or unavailable, advising users to contact the developer instead of crashing.</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Release: September 8, 2026 (COLLAPSED) -->
+                        <div class="whats-new-item bg-gray-900/60 border border-gray-700/60 rounded-2xl overflow-hidden shadow-lg transition-all">
                             <button type="button" class="whats-new-toggle w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-800/60 transition cursor-pointer" data-target="changelog-sep-08-2026">
                                 <div class="flex items-center gap-3">
                                     <span class="p-2 rounded-xl bg-blue-500/20 text-blue-400">
@@ -1178,16 +1255,15 @@
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <h3 class="text-base sm:text-lg font-bold text-white">September 8, 2026</h3>
-                                            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
                                         </div>
                                         <p class="text-xs text-gray-400 mt-0.5">Comprehensive Update: Homepage Drag & Drop, Encrypted Data Migration, Site-Wide Animations, Reduce Motion, Offline Mode & Enhanced File Management</p>
                                     </div>
                                 </div>
-                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </button>
 
-                            <!-- Dropdown for Today: Expanded by default (no hidden class) -->
-                            <div id="changelog-sep-08-2026" class="whats-new-content p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
+                            <!-- Dropdown for September 8: Collapsed (hidden class) -->
+                            <div id="changelog-sep-08-2026" class="whats-new-content hidden p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
                                 <div>
                                     <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
                                     <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">

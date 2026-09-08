@@ -1,5 +1,5 @@
-// Incremented to v36 for account modal scrolling and mobile sticky header resizing enhancements
-const CACHE_NAME = 'nodal-ai-cache-v36';
+// Incremented to v37 for September 9 changelog, desktop PWA window frame controls, and 30/60/90/120Hz adaptive header transitions
+const CACHE_NAME = 'nodal-ai-cache-v37';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

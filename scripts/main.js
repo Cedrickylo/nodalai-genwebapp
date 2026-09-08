@@ -1,4 +1,4 @@
-import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter } from './helpers.js';
+import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter, showView } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
 import { initNetlifyMigrationBannerAndNotice } from './quiz/quizMigration.js';
@@ -168,10 +168,57 @@ async function initApp() {
         // ==================================================================
         // PWA STANDALONE MODE & APP INSTALLATION PROMPTS
         // ==================================================================
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                             window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+                             window.navigator.standalone === true;
         if (isStandalone) {
             document.documentElement.classList.add('pwa-standalone');
             console.log('[PWA] Running in dedicated standalone window mode');
+        }
+
+        // Desktop PWA Window Frame Title Bar (Back & Refresh)
+        function updateDesktopPwaFrame() {
+            const isDesktop = window.innerWidth >= 768;
+            const titlebar = document.getElementById('desktop-pwa-titlebar');
+            if (isStandalone && isDesktop) {
+                document.documentElement.classList.add('is-desktop');
+                document.body.classList.add('has-desktop-pwa-titlebar');
+                if (titlebar) {
+                    titlebar.classList.remove('hidden');
+                    titlebar.classList.add('flex');
+                }
+            } else {
+                document.documentElement.classList.remove('is-desktop');
+                document.body.classList.remove('has-desktop-pwa-titlebar');
+                if (titlebar) {
+                    titlebar.classList.add('hidden');
+                    titlebar.classList.remove('flex');
+                }
+            }
+        }
+
+        updateDesktopPwaFrame();
+        window.addEventListener('resize', updateDesktopPwaFrame);
+
+        const pwaFrameBackBtn = document.getElementById('pwa-frame-back-btn');
+        const pwaFrameRefreshBtn = document.getElementById('pwa-frame-refresh-btn');
+
+        if (pwaFrameBackBtn) {
+            pwaFrameBackBtn.addEventListener('click', () => {
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    showView('start');
+                }
+            });
+        }
+
+        if (pwaFrameRefreshBtn) {
+            pwaFrameRefreshBtn.addEventListener('click', () => {
+                const svg = pwaFrameRefreshBtn.querySelector('svg');
+                if (svg) svg.classList.add('animate-spin');
+                window.location.reload();
+            });
         }
 
         let deferredInstallPrompt = null;
