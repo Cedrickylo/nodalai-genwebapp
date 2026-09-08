@@ -1,6 +1,7 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
+import { initNetlifyMigrationBannerAndNotice } from './quiz/quizMigration.js';
 import { elements } from './state.js';
 
 // ==================================================================
@@ -92,6 +93,7 @@ async function initApp() {
         prepareSavedProgress();
         initWelcomeModal();
         initRouter();
+        initNetlifyMigrationBannerAndNotice();
 
         // Dismiss the first-time setup loader overlay if it was shown
         hideAppLoader();

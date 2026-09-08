@@ -64,6 +64,23 @@
         }
     </script>
 
+    <!-- Netlify to Vercel Migration Banner (Shown ONLY on cedrickylo-nodal.netlify.app) -->
+    <div id="netlify-migration-banner" class="hidden fixed top-0 left-0 right-0 z-[150] bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white py-2.5 px-4 shadow-xl border-b border-amber-400/40 flex items-center justify-between gap-3 text-xs sm:text-sm backdrop-blur-md transition-all duration-300">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+            <span class="text-base sm:text-lg flex-shrink-0 animate-bounce">🚀</span>
+            <div class="truncate">
+                <strong class="font-bold text-amber-100">We've moved to Vercel!</strong>
+                <span class="hidden sm:inline text-amber-100/90 ml-1">This Netlify website will be retired soon. Migrate your quizzes to avoid data loss.</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <button id="netlify-banner-migrate-btn" type="button" class="bg-white hover:bg-amber-50 text-gray-900 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-colors shadow-md cursor-pointer flex items-center gap-1.5">
+                <span>Migrate Now</span>
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+    </div>
+
 <!-- Updated Desktop Sidebar Navigation with Cohesive Icons -->
     <aside class="hidden md:flex md:w-56 md:flex-col md:bg-gray-800 md:rounded-xl md:shadow-2xl md:p-6 md:mr-4 md:h-fit md:sticky md:top-4 md:border md:border-gray-700">
         <div class="md:space-y-4">
@@ -1533,7 +1550,7 @@
                         </div>
                         <div class="text-left">
                             <h4 class="text-white font-medium">Share via Link</h4>
-                            <p class="text-xs text-gray-400">Generate a public link</p>
+                            <p class="text-xs text-gray-400">Generate a public link (Requires Puter)</p>
                         </div>
                     </div>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-500"><path d="M9 18l6-6-6-6"/></svg>
@@ -1893,6 +1910,94 @@
         <button id="migration-error-close-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-xl transition cursor-pointer text-sm">
             Dismiss
         </button>
+    </div>
+</div>
+
+<!-- Netlify Initial Migration Notice Popup Modal -->
+<div id="netlify-migration-notice-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 transition-opacity duration-300">
+    <div class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-amber-500/40 overflow-hidden transform scale-100 transition-transform duration-300 flex flex-col max-h-[92vh]">
+        <div class="p-5 sm:p-6 text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="space-y-1.5">
+                <h3 class="text-xl font-bold text-white tracking-tight">Nodal AI is Moving to Vercel</h3>
+                <p class="text-xs text-amber-300 font-medium">Permanent relocation to nodal-gamma.vercel.app</p>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed text-left bg-gray-900/60 p-3.5 rounded-xl border border-gray-700/60">
+                We have upgraded Nodal AI to Vercel for faster quiz generation, enhanced AI models, and improved stability. Because quizzes and test history are stored on this Netlify domain, <strong>please migrate now so your data will not be lost</strong> when this Netlify site is retired.
+            </p>
+            <div class="space-y-2.5 pt-1">
+                <button id="netlify-notice-now-btn" type="button" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                    <span>Migrate to Vercel Now</span>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+                <button id="netlify-notice-later-btn" type="button" class="w-full bg-gray-700/60 hover:bg-gray-700 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-xs transition cursor-pointer">
+                    Migrate Later
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Netlify to Vercel Step-by-Step Migration Guide Modal -->
+<div id="netlify-migration-guide-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 transition-opacity duration-300">
+    <div class="bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl border border-blue-500/40 overflow-hidden transform scale-100 transition-transform duration-300 flex flex-col max-h-[92vh]">
+        <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/90 relative">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-500/20 rounded-xl text-blue-400 border border-blue-500/30">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white leading-tight">Migrate to Vercel</h3>
+                    <p class="text-xs text-gray-400">Step-by-step data transfer</p>
+                </div>
+            </div>
+            <button id="close-netlify-guide-btn" type="button" class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-gray-300">
+            <!-- Step 1 Card -->
+            <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 space-y-2">
+                <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Step 1: Backup Generated & Downloaded</span>
+                </div>
+                <p class="text-xs text-emerald-200/90 leading-relaxed">
+                    Your complete encrypted backup file (<code class="bg-emerald-950/60 px-1.5 py-0.5 rounded text-emerald-300 font-mono">nodal-backup-migration.nodal</code>) containing your quizzes, test history, and offline data has been automatically downloaded to your device.
+                </p>
+                <button id="netlify-guide-download-again-btn" type="button" class="text-xs text-emerald-400 hover:text-emerald-300 underline font-medium cursor-pointer pt-0.5 inline-block">
+                    Did not download? Click here to download again
+                </button>
+            </div>
+
+            <!-- Step 2 Card -->
+            <div class="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 space-y-2">
+                <div class="flex items-center gap-2 text-blue-400 font-bold text-sm">
+                    <span class="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-xs">2</span>
+                    <span>Step 2: Open Vercel & Restore</span>
+                </div>
+                <p class="text-xs text-gray-300 leading-relaxed">
+                    Click the button below to open <strong class="text-white">nodal-gamma.vercel.app</strong>. The import screen will open automatically for you to drop or select your downloaded <code class="text-blue-300 font-mono">.nodal</code> file.
+                </p>
+                <p class="text-[11px] text-gray-400 bg-gray-800/80 p-2.5 rounded-lg border border-gray-700/50">
+                    💡 <strong>Puter Cloud Users:</strong> Because Puter storage is isolated per domain, sign into Puter on the Vercel site after restoring to sync your quizzes to your new Vercel cloud store.
+                </p>
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-2">
+                <a id="netlify-guide-open-vercel-btn" href="https://nodal-gamma.vercel.app/#migration-import" target="_blank" rel="noopener noreferrer" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer text-center">
+                    <span>Open nodal-gamma.vercel.app & Restore Data</span>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 

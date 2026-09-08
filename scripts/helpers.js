@@ -1567,6 +1567,18 @@ export async function handlePopState(event) {
             }
         }
 
+        // 5f. Netlify Migration Notice & Guide Modals Dismiss
+        const netlifyNotice = document.getElementById('netlify-migration-notice-modal');
+        if (netlifyNotice && !netlifyNotice.classList.contains('hidden')) {
+            const { closeNetlifyMigrationNoticeModal } = await import('./quiz/quizMigration.js');
+            closeNetlifyMigrationNoticeModal();
+        }
+        const netlifyGuide = document.getElementById('netlify-migration-guide-modal');
+        if (netlifyGuide && !netlifyGuide.classList.contains('hidden')) {
+            const { closeNetlifyMigrationGuideModal } = await import('./quiz/quizMigration.js');
+            closeNetlifyMigrationGuideModal();
+        }
+
         // 6. Active Quiz (#quiz) - Prompt before leaving
         if (currentViewId === 'quiz') {
             window.history.pushState({ view: 'quiz' }, '', '#quiz');
@@ -1698,12 +1710,22 @@ export async function handlePopState(event) {
 }
 
 export function initRouter() {
+    const initialHash = window.location.hash;
+    const isMigrationImport = initialHash === '#migration-import' || initialHash === '#import';
+
     // Reset to home view and nav highlights on fresh load or page refresh
     window.history.replaceState({ view: 'start' }, '', '#home');
     showView('start', false);
     updateNavHighlights('home');
 
     window.addEventListener('popstate', handlePopState);
+
+    if (isMigrationImport) {
+        import('./quiz/quizMigration.js').then(({ openMigrationModal }) => {
+            openMigrationModal('import', false);
+            showToast('Welcome to Nodal on Vercel! Select your .nodal backup file to restore all your data.', 7000, 'info');
+        }).catch(err => console.error('Failed to launch migration modal for import hash', err));
+    }
 }
 
 export function getQuizDB() {

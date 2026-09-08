@@ -216,34 +216,10 @@ export async function handleHistoryClick(e) {
         pushSubState('#edit');
     } else if (action === 'share') {
         state.shareOriginView = getActiveViewId();
-        // ADDED: Require login before sharing
-        if (!puter.auth.isSignedIn()) {
-            const wantsToLogin = await customConfirm(
-                'You must be logged in to share a quiz to the cloud. Would you like to log in now?',
-                'Login Required',
-                'Log In / Sign Up',
-                'Cancel'
-            );
-            if (wantsToLogin) {
-                try {
-                    await puter.auth.signIn();
-                    const { updateAuthUI, syncHistoryWithCloud } = await import('../helpers.js');
-                    await updateAuthUI();
-                    syncHistoryWithCloud();
-                    
-                    // Automatically open the share modal now that they are logged in
-                    state.currentShareQuizKey = key;
-                    openShareModal(key);
-                } catch (err) {
-                    console.error("Login failed during share prompt", err);
-                }
-            }
-            return; // Halt share process until logged in
-        }
         // Store the key of the quiz we are currently interacting with
         state.currentShareQuizKey = key;
         
-        // Open the share modal seamlessly
+        // Open the share modal seamlessly for all users (JSON export is free, cloud link prompts sign-in)
         openShareModal(key);
     } else if (action === 'delete') {
         const confirmed = await customConfirm(

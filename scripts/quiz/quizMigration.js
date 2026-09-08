@@ -681,3 +681,192 @@ export async function executeImport() {
         showMigrationErrorModal(`Import failed: ${err.message || 'Failed to restore data.'}`);
     }
 }
+
+// ==================================================================
+// NETLIFY TO VERCEL MIGRATION SYSTEM (ACTIVE ONLY ON NETLIFY HOST)
+// ==================================================================
+
+/**
+ * Detects if the current host is the legacy Netlify deployment.
+ */
+export function isNetlifyDeployment() {
+    const hostname = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
+    return hostname === 'cedrickylo-nodal.netlify.app' || hostname.endsWith('.netlify.app');
+}
+
+/**
+ * Automatically creates and triggers browser download of the complete encrypted .nodal backup bundle.
+ */
+export function autoExportMigrationBundle() {
+    try {
+        let quizzes = state.quizHistory || {};
+        if (Object.keys(quizzes).length === 0) {
+            const rawQuizzes = localStorage.getItem(constants.DB_NAME);
+            if (rawQuizzes) {
+                try { quizzes = JSON.parse(rawQuizzes); } catch (e) {}
+            }
+        }
+
+        let takes = {};
+        try { takes = getQuizTakes() || {}; } catch (e) {}
+
+        let offlineDownloads = {};
+        try {
+            const rawOffline = localStorage.getItem(constants.OFFLINE_DOWNLOADS_DB_KEY);
+            offlineDownloads = rawOffline ? JSON.parse(rawOffline) : {};
+        } catch (e) {}
+
+        const preferences = {
+            customDisplayName: localStorage.getItem('nodal_cached_username') || '',
+            deletedKeys: localStorage.getItem('nodal_deleted_quiz_keys') || '{}',
+            reduceMotion: localStorage.getItem('nodal_reduce_motion') === 'true'
+        };
+
+        const exportPayload = {
+            format: 'nodal-migration-v1',
+            exportedAt: Date.now(),
+            sourceDomain: window.location.hostname || 'cedrickylo-nodal.netlify.app',
+            clientTime: new Date().toISOString(),
+            quizzes,
+            takes,
+            offlineDownloads,
+            preferences
+        };
+
+        if (typeof CryptoJS === 'undefined' || !CryptoJS.AES) {
+            throw new Error('Encryption library is not ready.');
+        }
+
+        const rawJson = JSON.stringify(exportPayload);
+        const encrypted = CryptoJS.AES.encrypt(rawJson, NODAL_AES_KEY).toString();
+        const finalPackage = `${NODAL_MAGIC_HEADER}:${encrypted}`;
+
+        const blob = new Blob([finalPackage], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'nodal-backup-migration.nodal';
+        document.body.appendChild(a);
+        a.click();
+
+        setTimeout(() => {
+            if (document.body.contains(a)) document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 1500);
+
+        return true;
+    } catch (err) {
+        console.error('[Migration] Auto-export failed:', err);
+        showToast('Export error: ' + err.message, 4000, 'error');
+        return false;
+    }
+}
+
+/**
+ * Handles the "Migrate Now" action from either the top banner or the initial notice modal.
+ * Triggers 1-click download and opens the Step-by-Step Guide modal.
+ */
+export function handleNetlifyMigrateNow() {
+    closeNetlifyMigrationNoticeModal();
+    autoExportMigrationBundle();
+    openNetlifyMigrationGuideModal();
+    showToast('Backup downloaded! Complete migration to Vercel.', 4000, 'success');
+}
+
+/**
+ * Opens the initial Netlify notice modal.
+ */
+export function openNetlifyMigrationNoticeModal() {
+    const modal = document.getElementById('netlify-migration-notice-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+/**
+ * Closes the initial Netlify notice modal.
+ */
+export function closeNetlifyMigrationNoticeModal() {
+    const modal = document.getElementById('netlify-migration-notice-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Opens the step-by-step Netlify to Vercel migration guide modal.
+ */
+export function openNetlifyMigrationGuideModal() {
+    const modal = document.getElementById('netlify-migration-guide-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+/**
+ * Closes the step-by-step Netlify to Vercel migration guide modal.
+ */
+export function closeNetlifyMigrationGuideModal() {
+    const modal = document.getElementById('netlify-migration-guide-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Initializes the Netlify migration banner and initial notice modal.
+ * STRICTLY active only when running on cedrickylo-nodal.netlify.app (or *.netlify.app).
+ */
+export function initNetlifyMigrationBannerAndNotice() {
+    if (!isNetlifyDeployment()) {
+        return;
+    }
+
+    // 1. Reveal top migration banner and adjust page padding
+    const banner = document.getElementById('netlify-migration-banner');
+    if (banner) {
+        banner.classList.remove('hidden');
+        document.body.classList.add('has-netlify-banner');
+    }
+
+    // 2. Wire Top Banner Button
+    const bannerMigrateBtn = document.getElementById('netlify-banner-migrate-btn');
+    if (bannerMigrateBtn) {
+        bannerMigrateBtn.onclick = () => {
+            handleNetlifyMigrateNow();
+        };
+    }
+
+    // 3. Check if initial popup was dismissed in this session
+    const isDismissed = sessionStorage.getItem('nodal_migration_notice_dismissed');
+    if (!isDismissed) {
+        // Show after a brief delay for smooth appearance
+        setTimeout(() => {
+            openNetlifyMigrationNoticeModal();
+        }, 400);
+    }
+
+    // 4. Wire Notice Modal Buttons
+    const noticeNowBtn = document.getElementById('netlify-notice-now-btn');
+    if (noticeNowBtn) {
+        noticeNowBtn.onclick = () => {
+            handleNetlifyMigrateNow();
+        };
+    }
+
+    const noticeLaterBtn = document.getElementById('netlify-notice-later-btn');
+    if (noticeLaterBtn) {
+        noticeLaterBtn.onclick = () => {
+            closeNetlifyMigrationNoticeModal();
+            sessionStorage.setItem('nodal_migration_notice_dismissed', 'true');
+        };
+    }
+
+    // 5. Wire Guide Modal Buttons
+    const closeGuideBtn = document.getElementById('close-netlify-guide-btn');
+    if (closeGuideBtn) {
+        closeGuideBtn.onclick = () => {
+            closeNetlifyMigrationGuideModal();
+        };
+    }
+
+    const downloadAgainBtn = document.getElementById('netlify-guide-download-again-btn');
+    if (downloadAgainBtn) {
+        downloadAgainBtn.onclick = () => {
+            autoExportMigrationBundle();
+            showToast('Backup downloaded again!', 2500, 'info');
+        };
+    }
+}

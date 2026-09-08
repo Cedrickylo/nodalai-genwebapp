@@ -429,10 +429,22 @@ export async function startNodalAiGeneration(config, fileName) {
 
         console.error('Nodal AI Generation Error:', error);
 
+        const isDeprecation = error.isDeprecated || 
+            /deprecated|no longer available|shut down|retired|models\/.*is not found/i.test(error.message || '');
+
         const { customConfirm } = await import('../helpers.js');
+
+        const dialogTitle = isDeprecation 
+            ? 'AI Provider Deprecated / Unavailable' 
+            : 'AI Generation Failed';
+
+        const dialogMessage = isDeprecation
+            ? `The built-in AI quiz generation engine is currently unavailable because the configured AI model has been retired by Google.\n\nPlease contact the developer to update the website's AI model configuration.\n\nIn the meantime, you can continue generating your quiz immediately by copying the prompt to use with ChatGPT or Claude:`
+            : `Generation failed: ${error.message || 'Server error'}\n\nWould you like to copy the prompt to use with ChatGPT or Claude instead?`;
+
         const userChoseCopy = await customConfirm(
-            `Generation failed: ${error.message || 'Server error'}\n\nWould you like to copy the prompt to use with ChatGPT or Claude instead?`,
-            'AI Generation Failed',
+            dialogMessage,
+            dialogTitle,
             'Copy Prompt to Other AI',
             'Return Home',
             true

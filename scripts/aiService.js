@@ -40,7 +40,11 @@ export async function requestQuizFromVercel(systemPrompt, userPrompt = '', signa
             || errorData.message 
             || (typeof errorData.details === 'string' ? errorData.details : null)
             || `Server responded with status ${response.status}`;
-        throw new Error(detailedError);
+        const err = new Error(detailedError);
+        if (errorData.isDeprecated || /deprecated|no longer available|shut down|retired|models\/.*is not found/i.test(detailedError)) {
+            err.isDeprecated = true;
+        }
+        throw err;
     }
 
     const data = await response.json();

@@ -321,11 +321,34 @@ export function attachQuizEventListeners() {
         closeShareModal();
     };
     elements.shareMenuLinkBtn.onclick = async () => {
-        const { navigateToShareStep, showToast } = await import('./helpers.js');
+        const { navigateToShareStep, showToast, customConfirm, updateAuthUI, syncHistoryWithCloud } = await import('./helpers.js');
         if (!navigator.onLine) {
             showToast('Cannot generate a new share link while offline. Please connect to the internet.', 4000, 'warning');
             return;
         }
+
+        // Generating a public cloud share link requires Puter cloud access
+        if (typeof puter === 'undefined' || !window.puter || !puter.auth || !puter.auth.isSignedIn()) {
+            const wantsToLogin = await customConfirm(
+                'You must be signed in to Puter to create a public cloud share link.\n\nWould you like to sign in now? (You can also export as JSON without an account).',
+                'Sign In Required for Link Sharing',
+                'Sign In to Puter',
+                'Cancel',
+                false
+            );
+            if (wantsToLogin) {
+                try {
+                    await puter.auth.signIn();
+                    await updateAuthUI();
+                    syncHistoryWithCloud();
+                    navigateToShareStep('config');
+                } catch (err) {
+                    console.error('Sign in failed during link sharing', err);
+                }
+            }
+            return;
+        }
+
         navigateToShareStep('config');
     };
     elements.shareMenuExportBtn.onclick = async () => {

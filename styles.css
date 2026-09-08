@@ -777,6 +777,8 @@
 #share-modal:not(.hidden),
 #migration-modal:not(.hidden),
 #migration-error-modal:not(.hidden),
+#netlify-migration-notice-modal:not(.hidden),
+#netlify-migration-guide-modal:not(.hidden),
 #ai-choice-modal:not(.hidden),
 #ai-prompt-modal:not(.hidden),
 #unanswered-modal:not(.hidden),
@@ -793,6 +795,8 @@
 #share-modal:not(.hidden) > div,
 #migration-modal:not(.hidden) > div,
 #migration-error-modal:not(.hidden) > div,
+#netlify-migration-notice-modal:not(.hidden) > div,
+#netlify-migration-guide-modal:not(.hidden) > div,
 #ai-choice-modal:not(.hidden) > div,
 #ai-prompt-modal:not(.hidden) > div,
 #unanswered-modal:not(.hidden) > div,
@@ -802,6 +806,17 @@
 #shared-quiz-modal:not(.hidden) > div,
 #loading-overlay:not(.hidden) > div {
     animation: modalContentPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Netlify to Vercel Migration Top Banner & Page Offset */
+body.has-netlify-banner {
+    padding-top: 52px !important;
+}
+
+@media (min-width: 768px) {
+    body.has-netlify-banner {
+        padding-top: 56px !important;
+    }
 }
 
 /* Mobile Menu Modal & Bottom Sheet - Entrance */

@@ -137,13 +137,22 @@ export default async function handler(req, res) {
             });
         }
 
-        // If all candidate models failed, return HTTP 502 with detailed error
+        // If all candidate models failed, check for model deprecation / retirement
         const googleMessage = lastError?.details?.error?.message 
             || (typeof lastError?.details === 'string' ? lastError?.details : null)
             || `Gemini API responded with status ${lastError?.status || 500}`;
 
+        const isModelDeprecation = lastError?.status === 404 || 
+            /deprecated|no longer available|shut down|retired|models\/.*is not found/i.test(googleMessage);
+
         return res.status(502).json({
-            error: `Gemini API Error: ${googleMessage}`,
+            error: isModelDeprecation 
+                ? 'AI Provider Model Deprecated' 
+                : `Gemini API Error: ${googleMessage}`,
+            message: isModelDeprecation
+                ? 'The built-in AI model is currently unavailable or has been retired by Google. Please contact the developer to update the AI model.'
+                : googleMessage,
+            isDeprecated: isModelDeprecation,
             details: lastError?.details,
             failedModel: lastError?.model,
             upstreamStatus: lastError?.status
