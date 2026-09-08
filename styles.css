@@ -561,49 +561,12 @@
 }
 
 /* ==========================================
-   STANDALONE PWA DEDICATED APP ENHANCEMENTS
+   STANDALONE / MINIMAL-UI PWA DEDICATED APP ENHANCEMENTS
    ========================================== */
-
-/* Window Controls Drag / No-Drag Regions for Desktop PWA */
-.app-region-drag {
-    -webkit-app-region: drag;
-    app-region: drag;
-}
-
-.app-region-no-drag {
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
-}
-
-#desktop-pwa-titlebar {
-    display: none;
-    -webkit-app-region: drag;
-    app-region: drag;
-}
-
-@media all and (display-mode: standalone) and (min-width: 768px),
-       all and (display-mode: window-controls-overlay) and (min-width: 768px) {
-    #desktop-pwa-titlebar {
-        display: flex !important;
-    }
-    body.has-desktop-pwa-titlebar {
-        padding-top: calc(2.25rem + env(titlebar-area-height, 0px)) !important;
-    }
-}
-
-html.pwa-standalone.is-desktop #desktop-pwa-titlebar {
-    display: flex !important;
-}
-
-body.has-desktop-pwa-titlebar {
-    padding-top: calc(2.25rem + env(titlebar-area-height, 0px)) !important;
-}
-
-@media all and (display-mode: standalone) {
-    body:not(.has-desktop-pwa-titlebar) {
-        padding-top: max(1rem, env(safe-area-inset-top));
-    }
+@media all and (display-mode: standalone),
+       all and (display-mode: minimal-ui) {
     body {
+        padding-top: max(1rem, env(safe-area-inset-top));
         padding-bottom: max(1rem, env(safe-area-inset-bottom));
         padding-left: max(1rem, env(safe-area-inset-left));
         padding-right: max(1rem, env(safe-area-inset-right));

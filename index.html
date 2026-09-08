@@ -30,24 +30,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 <body class="bg-gray-900 text-white flex min-h-screen p-4">
-    <!-- Desktop PWA App Window Title Bar Frame (Visible ONLY on Desktop PWA Standalone) -->
-    <div id="desktop-pwa-titlebar" class="hidden fixed top-0 left-0 right-0 z-[200] h-9 bg-gray-900/95 border-b border-gray-800/80 backdrop-blur-md select-none items-center justify-between px-3 text-xs text-gray-400">
-        <div class="flex items-center gap-1.5 app-region-no-drag">
-            <button id="pwa-frame-back-btn" type="button" class="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors cursor-pointer" title="Go Back">
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <button id="pwa-frame-refresh-btn" type="button" class="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors cursor-pointer" title="Refresh">
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                </svg>
-            </button>
-            <div class="h-3 w-px bg-gray-700/60 mx-1"></div>
-            <span class="font-semibold text-gray-300 text-[11px] tracking-wide">Nodal AI</span>
-        </div>
-        <div class="flex-1 h-full app-region-drag"></div>
-    </div>
     <!-- Startup Initial Loading Screen (Shown ONLY on first-time install or when service worker is updating) -->
     <div id="app-init-loader" class="hidden fixed inset-0 z-[500] flex flex-col items-center justify-center bg-gray-900 transition-opacity duration-300">
         <div class="flex flex-col items-center space-y-5 px-6 text-center max-w-sm">
@@ -1234,7 +1216,7 @@
                                         </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
-                                            <span><strong>Desktop PWA Window Frame Title Bar Controls:</strong> Dedicated Back and Refresh buttons integrated directly into the desktop PWA native window frame (Window Controls Overlay) with drag region support, restoring native desktop browser navigation.</span>
+                                            <span><strong>Native Browser Frame Navigation (Minimal-UI PWA):</strong> Configured PWA display mode to <code>minimal-ui</code> so the browser window frame itself natively provides integrated Back and Refresh controls without requiring an artificial in-page titlebar.</span>
                                         </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
