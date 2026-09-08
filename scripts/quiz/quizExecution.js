@@ -186,11 +186,11 @@ export function updateUnansweredReviewBtn() {
     nextUnansweredBtn.classList.remove('hidden');
 
     if (unanswered.length > 0) {
-        nextUnansweredBtn.className = 'flex-grow bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg flex items-center justify-center gap-2';
+        nextUnansweredBtn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg flex items-center justify-center gap-2';
         nextUnansweredBtn.innerHTML = `<span>Next Unanswered (${unanswered.length} left)</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>`;
     } else {
         // All unanswered questions are now answered! Dynamically convert to Submit Quiz button
-        nextUnansweredBtn.className = 'flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg flex items-center justify-center gap-2 animate-pulse';
+        nextUnansweredBtn.className = 'w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg flex items-center justify-center gap-2 animate-pulse';
         nextUnansweredBtn.innerHTML = `<span>Submit Quiz ✓</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
     }
 
