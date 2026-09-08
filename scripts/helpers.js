@@ -79,6 +79,32 @@ const setVisibility = (element, isVisible) => {
     element.classList.toggle('hidden', !isVisible);
 };
 
+export function closeModalWithAnimation(modal, onClosed) {
+    if (!modal) {
+        if (typeof onClosed === 'function') onClosed();
+        return;
+    }
+    const modalEl = typeof modal === 'string' ? document.getElementById(modal) : modal;
+    if (!modalEl || modalEl.classList.contains('hidden')) {
+        if (typeof onClosed === 'function') onClosed();
+        return;
+    }
+    if (state.isReduceMotion) {
+        modalEl.classList.add('hidden');
+        modalEl.classList.remove('modal-closing');
+        if (typeof onClosed === 'function') onClosed();
+        return;
+    }
+    if (modalEl.classList.contains('modal-closing')) return;
+
+    modalEl.classList.add('modal-closing');
+    setTimeout(() => {
+        modalEl.classList.add('hidden');
+        modalEl.classList.remove('modal-closing');
+        if (typeof onClosed === 'function') onClosed();
+    }, 180);
+}
+
 export function customConfirm(message, title = 'Confirm', acceptText = 'OK', cancelText = 'Cancel', isDestructive = false) {
     return new Promise((resolve) => {
         confirmTitle.textContent = title;
@@ -99,14 +125,16 @@ export function customConfirm(message, title = 'Confirm', acceptText = 'OK', can
 
         confirmModal.classList.remove('hidden');
 
-        const cleanup = () => {
-            confirmModal.classList.add('hidden');
-            acceptConfirmBtn.removeEventListener('click', onAccept);
-            cancelConfirmBtn.removeEventListener('click', onCancel);
+        const cleanup = (result) => {
+            closeModalWithAnimation(confirmModal, () => {
+                acceptConfirmBtn.removeEventListener('click', onAccept);
+                cancelConfirmBtn.removeEventListener('click', onCancel);
+                resolve(result);
+            });
         };
 
-        const onAccept = () => { cleanup(); resolve(true); };
-        const onCancel = () => { cleanup(); resolve(false); };
+        const onAccept = () => { cleanup(true); };
+        const onCancel = () => { cleanup(false); };
 
         acceptConfirmBtn.addEventListener('click', onAccept);
         cancelConfirmBtn.addEventListener('click', onCancel);
@@ -890,6 +918,12 @@ export async function populateAccountData() {
     const loggedInContent = document.getElementById('account-logged-in-content');
     const loggedOutContent = document.getElementById('account-logged-out-content');
 
+    const rm = localStorage.getItem('nodal_reduce_motion') === 'true';
+    const cb1 = document.getElementById('reduce-motion-toggle');
+    const cb2 = document.getElementById('reduce-motion-toggle-logged-out');
+    if (cb1) cb1.checked = rm;
+    if (cb2) cb2.checked = rm;
+
     if (typeof puter === 'undefined' || !window.puter || !puter.auth.isSignedIn()) {
         if (loggedInContent) loggedInContent.classList.add('hidden');
         if (loggedOutContent) loggedOutContent.classList.remove('hidden');
@@ -999,28 +1033,80 @@ export async function saveDisplayName() {
 }
 
 export function closeAccountHandler(fromPopState = false) {
-    // If it's inside the modal overlay, just hide the modal
+    // If it's inside the modal overlay, just hide the modal with smooth exit animation
     if (elements.accountCard.parentElement?.id === 'account-modal-overlay') {
         clearSubState('#account-modal');
-        elements.accountModalOverlay.classList.add('hidden');
-        if (!fromPopState && window.location.hash === '#account-modal') {
-            window.history.back();
-        }
+        closeModalWithAnimation(elements.accountModalOverlay, () => {
+            if (!fromPopState && window.location.hash === '#account-modal') {
+                window.history.back();
+            }
+        });
     } else {
         // If it's inside the view, go back to start screen
         showView('start');
     }
 }
 
+export function setReduceMotion(enabled) {
+    state.isReduceMotion = !!enabled;
+    localStorage.setItem('nodal_reduce_motion', state.isReduceMotion ? 'true' : 'false');
+    document.documentElement.classList.toggle('reduce-motion', state.isReduceMotion);
+    const cb1 = document.getElementById('reduce-motion-toggle');
+    const cb2 = document.getElementById('reduce-motion-toggle-logged-out');
+    if (cb1) cb1.checked = state.isReduceMotion;
+    if (cb2) cb2.checked = state.isReduceMotion;
+}
+
 export function showToast(message, duration = 3000, type = 'success') {
     if (state.toastTimeout) {
         clearTimeout(state.toastTimeout);
     }
+    if (state.toastExitTimeout) {
+        clearTimeout(state.toastExitTimeout);
+    }
     toastMessageEl.textContent = message;
-    toastEl.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-yellow-600');
-    toastEl.classList.add(type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-yellow-600' : 'bg-green-600');
+    toastEl.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-yellow-600', 'bg-gray-700', 'border', 'border-gray-600', 'toast-out');
+    if (type === 'error') {
+        toastEl.classList.add('bg-red-600');
+    } else if (type === 'warning') {
+        toastEl.classList.add('bg-yellow-600');
+    } else if (type === 'info' || type === 'neutral') {
+        toastEl.classList.add('bg-gray-700', 'border', 'border-gray-600');
+    } else {
+        toastEl.classList.add('bg-green-600');
+    }
+    
+    // Enable quick click-to-dismiss on toast with animation
+    toastEl.onclick = () => {
+        if (state.toastTimeout) clearTimeout(state.toastTimeout);
+        if (state.toastExitTimeout) clearTimeout(state.toastExitTimeout);
+        if (!state.isReduceMotion) {
+            toastEl.classList.remove('toast-in');
+            toastEl.classList.add('toast-out');
+            state.toastExitTimeout = setTimeout(() => {
+                toastEl.classList.add('hidden');
+                toastEl.classList.remove('toast-out');
+            }, 180);
+        } else {
+            toastEl.classList.add('hidden');
+        }
+    };
+
+    if (!state.isReduceMotion) {
+        toastEl.classList.add('toast-in');
+    }
+
     state.toastTimeout = setTimeout(() => {
-        toastEl.classList.add('hidden');
+        if (!state.isReduceMotion) {
+            toastEl.classList.remove('toast-in');
+            toastEl.classList.add('toast-out');
+            state.toastExitTimeout = setTimeout(() => {
+                toastEl.classList.add('hidden');
+                toastEl.classList.remove('toast-out');
+            }, 180);
+        } else {
+            toastEl.classList.add('hidden');
+        }
     }, duration);
 }
 
@@ -1038,7 +1124,7 @@ export function showLoadingOverlay(title = 'Please wait...', message = 'Processi
 export function hideLoadingOverlay() {
     const overlay = elements.loadingOverlay || document.getElementById('loading-overlay');
     if (overlay) {
-        overlay.classList.add('hidden');
+        closeModalWithAnimation(overlay);
     }
 }
 
@@ -1311,7 +1397,23 @@ export function showView(id, pushHash = true) {
         document.body.classList.remove('quiz-active');
     }
 
-    // 3. Automatically highlight the correct nav button!
+    // 3. Reset scroll position to topmost of the page immediately upon navigation
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    if (elements.views[id]) {
+        elements.views[id].scrollTop = 0;
+    }
+    requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        if (elements.views[id]) {
+            elements.views[id].scrollTop = 0;
+        }
+    });
+
+    // 4. Automatically highlight the correct nav button!
     let navKey = id;
     if (id === 'start') navKey = 'home';
     if (id === 'history-fullscreen') navKey = 'history';
@@ -1480,7 +1582,7 @@ export async function handlePopState(event) {
                     const { resetApp } = await import('./quiz/quizUtils.js');
                     resetApp(true);
                     window.history.replaceState({ view: 'start' }, '', '#home');
-                    showToast('Quiz generation cancelled.', 2000, 'info');
+                    showToast('Quiz generation cancelled.', 2000, 'neutral');
                 }
                 return;
             }
@@ -1967,7 +2069,7 @@ export function setupCustomizeView(config, name) {
 
     // --- Unpack Summary Only ---
     if (summaryOnlyToggle) {
-        summaryOnlyToggle.checked = !!config.showAnswersInSummaryOnly;
+        summaryOnlyToggle.checked = !!(config.showAnswersInSummaryOnly ?? config.manualReveal);
     }
 
     // --- Unpacking Form Field Variables and Syncing Sub-Containers ---
@@ -2311,12 +2413,11 @@ export function openAiPromptModal(config, fileName) {
 
 export function closeAiPromptModal(fromPopState = false) {
     clearSubState('#ai-prompt');
-    if (elements.aiPromptModal) {
-        elements.aiPromptModal.classList.add('hidden');
-    }
-    if (!fromPopState && window.location.hash === '#ai-prompt') {
-        window.history.back();
-    }
+    closeModalWithAnimation(elements.aiPromptModal, () => {
+        if (!fromPopState && window.location.hash === '#ai-prompt') {
+            window.history.back();
+        }
+    });
 }
 
 export function initializeAudio() {
@@ -2404,6 +2505,20 @@ export function attachAuthHandlers() {
             }
         };
     }
+
+    // 6. Reduce Motion Toggles (Website-wide accessibility setting)
+    const reduceMotionToggle = document.getElementById('reduce-motion-toggle');
+    if (reduceMotionToggle) {
+        reduceMotionToggle.onchange = (e) => {
+            setReduceMotion(e.target.checked);
+        };
+    }
+    const reduceMotionToggleLoggedOut = document.getElementById('reduce-motion-toggle-logged-out');
+    if (reduceMotionToggleLoggedOut) {
+        reduceMotionToggleLoggedOut.onchange = (e) => {
+            setReduceMotion(e.target.checked);
+        };
+    }
 }
 
 export function initializeAppState() {
@@ -2411,6 +2526,7 @@ export function initializeAppState() {
     handleDifficultyChange();
     handleTimeToggle();
     handleAttemptToggle();
+    setReduceMotion(localStorage.getItem('nodal_reduce_motion') === 'true');
 
     updateNavHighlights('home');
 }
@@ -2491,29 +2607,24 @@ export function closeShareModal(fromPopState = false) {
     clearSubState('#share-live');
     clearSubState('#share-manage');
 
-    // 1. Hide the modal container
-    if (elements.shareModal) {
-        elements.shareModal.classList.add('hidden');
-    }
-
-    // 2. IMPORTANT: If you have an overlay div (the dark background), 
-    // make sure it is hidden too, or it will block the entire page.
-    const shareOverlay = document.getElementById('share-modal-overlay'); // Adjust ID as needed
-    if (shareOverlay) {
-        shareOverlay.classList.add('hidden');
-    }
-    
-    if (!fromPopState && window.location.hash.startsWith('#share')) {
-        if (state.shareOriginView === 'history-fullscreen') {
+    closeModalWithAnimation(elements.shareModal, () => {
+        const shareOverlay = document.getElementById('share-modal-overlay');
+        if (shareOverlay) {
+            shareOverlay.classList.add('hidden');
+        }
+        
+        if (!fromPopState && window.location.hash.startsWith('#share')) {
+            if (state.shareOriginView === 'history-fullscreen') {
+                window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
+                showView('history-fullscreen', false);
+            } else {
+                window.history.back();
+            }
+        } else if (fromPopState && state.shareOriginView === 'history-fullscreen' && (!window.location.hash || window.location.hash === '#home' || window.location.hash === '#history')) {
             window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
             showView('history-fullscreen', false);
-        } else {
-            window.history.back();
         }
-    } else if (fromPopState && state.shareOriginView === 'history-fullscreen' && (!window.location.hash || window.location.hash === '#home' || window.location.hash === '#history')) {
-        window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
-        showView('history-fullscreen', false);
-    }
+    });
 }
 
 export function navigateToShareStep(step, pushHash = true) {
@@ -2554,10 +2665,12 @@ export function exportQuizAsJSON(quizKey) {
     if (!quiz) return;
     
     try {
+        const takes = getQuizTakes(quizKey) || [];
         const exportData = {
             fileName: quiz.fileName,
             config: quiz.config,
-            questions: quiz.questions
+            questions: quiz.questions,
+            takes: takes
         };
         
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
@@ -2595,7 +2708,7 @@ export function initWelcomeModal() {
             if (welcomeCheckbox && welcomeCheckbox.checked) {
                 localStorage.setItem(constants.WELCOME_DISMISSED_KEY, 'true');
             }
-            welcomeModal.classList.add('hidden');
+            closeModalWithAnimation(welcomeModal);
         };
     }
 }
@@ -2627,18 +2740,19 @@ export async function openHistoryActionsModal(quizKey) {
 
 export function closeHistoryActionsModal(isFromPopState = false, popHistory = true) {
     if (!elements.historyActionsModal || elements.historyActionsModal.classList.contains('hidden')) return;
-    elements.historyActionsModal.classList.add('hidden');
     clearSubState('#history-actions');
     const originHash = state.historyMenuOriginHash || '#history';
     state.activeHistoryMenuKey = null;
 
-    if (!isFromPopState && window.location.hash === '#history-actions') {
-        if (popHistory) {
-            window.history.back();
-        } else {
-            window.history.replaceState({ view: hashToView(originHash) }, '', originHash);
+    closeModalWithAnimation(elements.historyActionsModal, () => {
+        if (!isFromPopState && window.location.hash === '#history-actions') {
+            if (popHistory) {
+                window.history.back();
+            } else {
+                window.history.replaceState({ view: hashToView(originHash) }, '', originHash);
+            }
         }
-    }
+    });
 }
 
 // ==========================================
@@ -2862,17 +2976,18 @@ export function openSharedQuizModal() {
 
 export function closeSharedQuizModal(isFromPopState = false, popHistory = true) {
     if (!elements.sharedQuizModal || elements.sharedQuizModal.classList.contains('hidden')) return;
-    elements.sharedQuizModal.classList.add('hidden');
     clearSubState('#shared-quiz');
     state.pendingSharedQuiz = null;
 
-    if (!isFromPopState && window.location.hash === '#shared-quiz') {
-        if (popHistory) {
-            window.history.back();
-        } else {
-            window.history.replaceState({ view: 'start' }, '', '#home');
+    closeModalWithAnimation(elements.sharedQuizModal, () => {
+        if (!isFromPopState && window.location.hash === '#shared-quiz') {
+            if (popHistory) {
+                window.history.back();
+            } else {
+                window.history.replaceState({ view: 'start' }, '', '#home');
+            }
         }
-    }
+    });
 }
 
 // Keep history section responsive layout classes synced on viewport change

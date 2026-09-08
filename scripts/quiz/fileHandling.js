@@ -51,6 +51,88 @@ if (clearFilesBtnLocal) {
     });
 }
 
+// Delegate scrolling inside selected files container to the files list if overflowing
+if (selectedFilesContainerLocal && selectedFilesListLocal) {
+    selectedFilesContainerLocal.addEventListener('wheel', (e) => {
+        if (selectedFilesListLocal.scrollHeight > selectedFilesListLocal.clientHeight) {
+            if (e.deltaY !== 0) {
+                selectedFilesListLocal.scrollTop += e.deltaY;
+                e.preventDefault();
+            }
+        }
+    }, { passive: false });
+}
+
+// Setup Drag & Drop exclusively on the homepage
+export function setupHomeDragAndDrop() {
+    const dragOverlay = document.getElementById('home-drag-overlay');
+    let dragCounter = 0;
+
+    function isHomePageActive() {
+        return Boolean(
+            elements.views?.start &&
+            elements.views.start.classList.contains('active') &&
+            !document.body.classList.contains('quiz-active')
+        );
+    }
+
+    function hasFiles(e) {
+        if (!e.dataTransfer || !e.dataTransfer.types) return false;
+        return Array.from(e.dataTransfer.types).includes('Files');
+    }
+
+    window.addEventListener('dragenter', (e) => {
+        if (!isHomePageActive() || !hasFiles(e)) return;
+        e.preventDefault();
+        dragCounter++;
+        if (dragOverlay) dragOverlay.classList.remove('hidden');
+    });
+
+    window.addEventListener('dragover', (e) => {
+        if (!isHomePageActive() || !hasFiles(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (dragOverlay && dragOverlay.classList.contains('hidden')) {
+            dragOverlay.classList.remove('hidden');
+        }
+    });
+
+    window.addEventListener('dragleave', (e) => {
+        if (!isHomePageActive()) return;
+        dragCounter--;
+        if (dragCounter <= 0) {
+            dragCounter = 0;
+            if (dragOverlay) dragOverlay.classList.add('hidden');
+        }
+    });
+
+    window.addEventListener('drop', async (e) => {
+        if (!isHomePageActive() || !hasFiles(e)) return;
+        e.preventDefault();
+        dragCounter = 0;
+        if (dragOverlay) dragOverlay.classList.add('hidden');
+
+        const files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
+
+        // Check if customize section is already open and has files
+        const customizeSection = document.getElementById('customize-section');
+        const isCustomizeOpen = customizeSection && !customizeSection.classList.contains('hidden');
+        const isAddMore = Boolean(isCustomizeOpen && Array.isArray(state.currentFiles) && state.currentFiles.length > 0);
+
+        await handleFileSelect({
+            target: {
+                files: files,
+                id: isAddMore ? 'add-more-files-input' : 'file-upload-input',
+                value: ''
+            }
+        });
+    });
+}
+
+// Initialize homepage drag-and-drop
+setupHomeDragAndDrop();
+
 // Helper to extract text from modern PowerPoint (.pptx) files
 async function extractTextFromPPTX(arrayBuffer) {
     if (typeof JSZip === 'undefined') {
@@ -125,7 +207,44 @@ async function extractTextFromPPTLegacy(file) {
     return cleanText;
 }
 
-// Render the selected files list with delete buttons, 35-char limit, and single-line horizontal scroll
+// In-memory text extraction cache so existing documents are resolved in 0ms when adding more files
+const fileTextCache = new WeakMap();
+
+async function extractTextFromFile(file) {
+    if (fileTextCache.has(file)) {
+        return fileTextCache.get(file);
+    }
+    const ext = file.name.split('.').pop().toLowerCase();
+    let txt = '';
+
+    if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json'].includes(ext)) {
+        txt = await file.text();
+    } else if (ext === 'docx') {
+        const ab = await file.arrayBuffer();
+        const res = await mammoth.extractRawText({ arrayBuffer: ab });
+        txt = res.value;
+    } else if (ext === 'pdf') {
+        const ab = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(ab).promise;
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const tc = await page.getTextContent();
+            txt += tc.items.map(it => it.str).join(' ') + '\n';
+        }
+    } else if (ext === 'pptx') {
+        const ab = await file.arrayBuffer();
+        txt = await extractTextFromPPTX(ab);
+    } else if (ext === 'ppt') {
+        txt = await extractTextFromPPTLegacy(file);
+    } else {
+        txt = await file.text();
+    }
+
+    fileTextCache.set(file, txt);
+    return txt;
+}
+
+// Render the selected files list with full original filenames, responsive text wrapping, and delete buttons
 export function renderSelectedFilesList() {
     if (!state.currentFiles || state.currentFiles.length === 0) {
         selectedFilesListLocal.innerHTML = '';
@@ -133,11 +252,10 @@ export function renderSelectedFilesList() {
     }
     selectedFilesListLocal.innerHTML = state.currentFiles
         .map((f, idx) => {
-            const displayName = f.name.length > 35 ? f.name.slice(0, 35) : f.name;
-            return `<li class="flex items-center gap-2 group w-full min-w-0 py-0.5">
-                <button class="delete-file-btn text-red-400 hover:text-red-300 font-bold text-lg transition flex-shrink-0 leading-none" data-file-index="${idx}" title="Delete this file">×</button>
-                <div class="min-w-0 flex-1 overflow-x-auto whitespace-nowrap scrollbar-thin py-0.5">
-                    <span class="inline-block text-gray-300 text-xs" title="${f.name}">• ${displayName}</span>
+            return `<li class="flex items-start gap-2 group w-full min-w-0 py-1.5 border-b border-gray-700/40 last:border-b-0">
+                <button class="delete-file-btn text-red-400 hover:text-red-300 font-bold text-lg transition flex-shrink-0 leading-none mt-0.5" data-file-index="${idx}" title="Delete this file">×</button>
+                <div class="min-w-0 flex-1 py-0.5">
+                    <span class="text-gray-300 text-xs break-words whitespace-normal block leading-relaxed" title="${f.name}">• ${f.name}</span>
                 </div>
             </li>`;
         })
@@ -167,6 +285,7 @@ async function handleDeleteFile(event) {
     // If no files left, reset the UI
     if (state.currentFiles.length === 0) {
         resetAppFiles();
+        showToast('All documents removed.', 2000, 'neutral');
         return;
     }
     
@@ -174,40 +293,16 @@ async function handleDeleteFile(event) {
     renderSelectedFilesList();
     
     // Update file content by re-processing remaining files
-    statusMessage.textContent = `Analyzing ${state.currentFiles.length} document(s)...`;
-    statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
+    showLoadingOverlay('Updating Documents...', `Re-processing ${state.currentFiles.length} remaining document(s)...`);
     state.fileContent = '';
     state.fileHash = '';
     validateAllInputs();
     
-    // Re-process all files
+    // Re-process all remaining files using fast memory cache
     try {
         let combinedText = '';
         for (const file of state.currentFiles) {
-            const ext = file.name.split('.').pop().toLowerCase();
-            let txt = '';
-            if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json'].includes(ext)) {
-                txt = await file.text();
-            } else if (ext === 'docx') {
-                const ab = await file.arrayBuffer();
-                const res = await mammoth.extractRawText({ arrayBuffer: ab });
-                txt = res.value;
-            } else if (ext === 'pdf') {
-                const ab = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(ab).promise;
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const tc = await page.getTextContent();
-                    txt += tc.items.map(it => it.str).join(' ') + '\n';
-                }
-            } else if (ext === 'pptx') {
-                const ab = await file.arrayBuffer();
-                txt = await extractTextFromPPTX(ab);
-            } else if (ext === 'ppt') {
-                txt = await extractTextFromPPTLegacy(file);
-            } else {
-                txt = await file.text();
-            }
+            const txt = await extractTextFromFile(file);
             combinedText += `\n[SOURCE: ${file.name}]\n${txt}\n`;
         }
         
@@ -217,73 +312,62 @@ async function handleDeleteFile(event) {
         
         state.fileContent = combinedText;
         state.fileHash = CryptoJS.SHA256(state.fileContent).toString();
-        statusMessage.textContent = 'Documents ready!';
-        statusMessage.className = 'text-center text-green-400 mt-4 text-sm h-5';
         
-        // Update the file name if needed (capped at 35 characters)
-        if (state.currentFiles.length === 1) {
+        // Update header display
+        if (fileNameDisplay) {
+            fileNameDisplay.textContent = state.currentFiles.length === 1
+                ? state.currentFiles[0].name
+                : `${state.currentFiles.length} Documents Selected`;
+        }
+
+        // Update the file name if needed (strictly capped at 35 characters for quiz name)
+        if (state.currentFiles.length === 1 && !editQuizNameInput?.value?.trim()) {
             const rawName = state.currentFiles[0].name;
             state.currentFileName = rawName.length > 35 ? rawName.slice(0, 35) : rawName;
             editQuizNameInput.value = state.currentFileName;
         }
         validateAllInputs();
+        hideLoadingOverlay();
+        showToast(`"${fileName}" removed.`, 2000, 'neutral');
     } catch (err) {
         console.error('File processing error:', err);
-        statusMessage.textContent = `Error: ${err.message}`;
-        statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
+        hideLoadingOverlay();
+        showToast(`Error: ${err.message}`, 4000, 'error');
         state.fileContent = '';
     }
 }
 
 export async function handleFileSelect(event) {
-    // FIX: Look up statusMessage directly from live layout context to avoid undefined errors
-    const statusMsg = document.getElementById('status-message');
     const fileNameDisplay = document.getElementById('file-name');
-    
-    if (statusMsg) {
-        statusMsg.textContent = 'Analyzing and processing documents...';
-        statusMsg.className = 'text-center text-blue-400 mt-4 text-sm h-5 animate-pulse';
-    }
 
-    const files = event.target.files;
+    const files = event.target?.files;
     if (!files || files.length === 0) {
-        if (statusMsg) statusMsg.textContent = '';
         return;
     }
 
+    const isAddMore = event.target?.id === 'add-more-files-input';
+
+    showLoadingOverlay(
+        'Processing Documents...',
+        isAddMore ? 'Extracting and appending additional documents...' : 'Extracting text and analyzing documents...'
+    );
+
     try {
-        state.currentFiles = Array.from(files);
+        const newFiles = Array.from(files);
+
+        // If clicking "Add More", append new files to existing files (prevent duplicate entries)
+        if (isAddMore && Array.isArray(state.currentFiles) && state.currentFiles.length > 0) {
+            const filesToAppend = newFiles.filter(nf => 
+                !state.currentFiles.some(ef => ef.name === nf.name && ef.size === nf.size && ef.lastModified === nf.lastModified)
+            );
+            state.currentFiles = [...state.currentFiles, ...filesToAppend];
+        } else {
+            state.currentFiles = newFiles;
+        }
+
         let combinedText = '';
-        let names = [];
-
-        for (const file of files) {
-            names.push(file.name);
-            const ext = file.name.split('.').pop().toLowerCase();
-            let txt = '';
-
-            if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json'].includes(ext)) {
-                txt = await file.text();
-            } else if (ext === 'docx') {
-                const ab = await file.arrayBuffer();
-                const res = await mammoth.extractRawText({ arrayBuffer: ab });
-                txt = res.value;
-            } else if (ext === 'pdf') {
-                const ab = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(ab).promise;
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const tc = await page.getTextContent();
-                    txt += tc.items.map(it => it.str).join(' ') + '\n';
-                }
-            } else if (ext === 'pptx') {
-                const ab = await file.arrayBuffer();
-                txt = await extractTextFromPPTX(ab);
-            } else if (ext === 'ppt') {
-                txt = await extractTextFromPPTLegacy(file);
-            } else {
-                txt = await file.text();
-            }
-
+        for (const file of state.currentFiles) {
+            const txt = await extractTextFromFile(file);
             combinedText += `\n[SOURCE: ${file.name}]\n${txt}\n`;
         }
 
@@ -294,14 +378,22 @@ export async function handleFileSelect(event) {
         state.fileContent = combinedText;
         state.fileHash = CryptoJS.SHA256(state.fileContent).toString();
         
-        // Enforce 35-character limit on file name
-        const rawFileName = files.length === 1 ? files[0].name : (files[0]?.name || 'Combined Quiz');
-        state.currentFileName = rawFileName.length > 35 ? rawFileName.slice(0, 35) : rawFileName;
+        // Maintain custom quiz name if user previously typed one; otherwise default to first file name (max 35 chars)
+        const existingCustomName = editQuizNameInput?.value?.trim();
+        if (!existingCustomName || !isAddMore) {
+            const rawFileName = state.currentFiles.length === 1 
+                ? state.currentFiles[0].name 
+                : (state.currentFiles[0]?.name || 'Combined Quiz');
+            state.currentFileName = rawFileName.length > 35 ? rawFileName.slice(0, 35) : rawFileName;
+            if (editQuizNameInput) {
+                editQuizNameInput.value = state.currentFileName;
+            }
+        }
 
         if (fileNameDisplay) {
-            const displayHeaderName = files.length === 1 
-                ? (files[0].name.length > 35 ? files[0].name.slice(0, 35) : files[0].name)
-                : `${files.length} Documents Selected`;
+            const displayHeaderName = state.currentFiles.length === 1 
+                ? state.currentFiles[0].name
+                : `${state.currentFiles.length} Documents Selected`;
             fileNameDisplay.textContent = displayHeaderName;
         }
 
@@ -323,14 +415,8 @@ export async function handleFileSelect(event) {
 
         renderSelectedFilesList();
 
-        if (editQuizNameInput && state.currentFileName) {
-            editQuizNameInput.value = state.currentFileName;
-        }
-
-        if (statusMsg) {
-            statusMsg.textContent = 'Documents processed successfully!';
-            statusMsg.className = 'text-center text-green-400 mt-4 text-sm h-5';
-        }
+        // Reset input value so selecting the same document again can fire change
+        if (event.target) event.target.value = '';
         
         // Ensure generate button unlocks context properly
         const generateBtn = document.getElementById('generate-quiz-btn');
@@ -339,12 +425,13 @@ export async function handleFileSelect(event) {
         validateAllInputs();
         pushSubState('#customize');
 
+        hideLoadingOverlay();
+        showToast(isAddMore ? 'Additional documents added successfully!' : 'Documents processed successfully!', 3000, 'success');
+
     } catch (err) {
         console.error("Document analysis break:", err);
-        if (statusMsg) {
-            statusMsg.textContent = `Error: ${err.message || 'Failed to read document scope'}`;
-            statusMsg.className = 'text-center text-red-400 mt-4 text-sm h-5';
-        }
+        hideLoadingOverlay();
+        showToast(`Error: ${err.message || 'Failed to read document scope'}`, 4000, 'error');
     }
 }
 
@@ -470,6 +557,36 @@ export function handleQuizImport(event) {
             if (typeof closeAiPromptModal === 'function') closeAiPromptModal(true);
 
             saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
+
+            // Restore takes and statistics if bundled in the imported JSON
+            if (Array.isArray(data.takes) && data.takes.length > 0) {
+                const takesDbKey = constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1';
+                let allTakes = {};
+                try {
+                    const raw = localStorage.getItem(takesDbKey);
+                    allTakes = raw ? JSON.parse(raw) : {};
+                } catch (e) {
+                    allTakes = {};
+                }
+                const existing = Array.isArray(allTakes[state.currentQuizKey]) ? allTakes[state.currentQuizKey] : [];
+                const merged = [...existing];
+                data.takes.forEach(newTake => {
+                    const newId = newTake.id || newTake.takeId;
+                    const newTime = newTake.completedAt || newTake.timestamp;
+                    const exists = merged.some(t => {
+                        const tId = t.id || t.takeId;
+                        const tTime = t.completedAt || t.timestamp;
+                        if (newId && tId && newId === tId) return true;
+                        if (newTime && tTime && newTime === tTime) return true;
+                        return false;
+                    });
+                    if (!exists) merged.push(newTake);
+                });
+                merged.sort((a, b) => (a.completedAt || a.timestamp || 0) - (b.completedAt || b.timestamp || 0));
+                merged.forEach((t, idx) => { t.takeNumber = idx + 1; });
+                allTakes[state.currentQuizKey] = merged;
+                localStorage.setItem(takesDbKey, JSON.stringify(allTakes));
+            }
             if (typeof puter !== 'undefined' && window.puter && puter.auth && puter.auth.isSignedIn() && navigator.onLine) {
                 try {
                     await syncHistoryWithCloud(false);
@@ -510,17 +627,23 @@ export function handleQuizImport(event) {
 
 export async function resumeQuiz(savedData) {
     state.questions = savedData.questions;
-    state.currentQuizConfig = savedData.config;
+    state.currentQuizConfig = { ...savedData.config };
+    if (state.currentQuizConfig.manualReveal !== undefined) {
+        if (state.currentQuizConfig.showAnswersInSummaryOnly === undefined) {
+            state.currentQuizConfig.showAnswersInSummaryOnly = !!state.currentQuizConfig.manualReveal;
+        }
+        delete state.currentQuizConfig.manualReveal;
+    }
     state.currentQuizKey = savedData.key;
     state.currentFileName = savedData.fileName;
     state.score = savedData.score;
     state.userAnswers = savedData.answers;
     state.shuffledIndices = savedData.shuffledIndices;
     state.shuffledOptionsMap = savedData.shuffledOptionsMap || {};
-    state.isTimedQuiz = savedData.config.isTimed || false;
-    state.totalQuizTime = savedData.config.totalTime || 0;
-    state.isAttemptLimited = savedData.config.isAttemptLimited || false;
-    state.maxAttempts = savedData.config.maxAttempts || 3;
+    state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
+    state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
+    state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
+    state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
     state.currentAttempts = savedData.currentAttempts || 0;
     state.currentShuffledIndexPos = savedData.shuffledIndexPos || 0;
     state.answeredOriginalIndices = new Set(savedData.answeredIndices || []);
@@ -536,6 +659,10 @@ export async function resumeQuiz(savedData) {
     const isSummaryOnly = !!state.currentQuizConfig?.showAnswersInSummaryOnly;
     if (elements.muteSoundBtn) {
         elements.muteSoundBtn.classList.toggle('hidden', isSummaryOnly);
+    }
+    if (isSummaryOnly && elements.modernScoreStats) {
+        elements.modernScoreStats.classList.add('hidden');
+        elements.modernScoreStats.classList.remove('flex');
     }
     const { updateAttemptDisplay, displayNextQuestion, displayCurrentQuestion, startQuizTimer, stopQuizTimer } = await import('./quizExecution.js');
     updateAttemptDisplay();

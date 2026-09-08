@@ -7,7 +7,8 @@ import {
     getQuizTakes,
     setupScrollReactiveHeader,
     pushSubState,
-    clearSubState
+    clearSubState,
+    closeModalWithAnimation
 } from '../helpers.js';
 import { handleHistoryClick } from './quizHistory.js';
 
@@ -389,14 +390,14 @@ export function refreshOfflineModalContent(quizKey) {
 export function closeOfflineModal(isFromPopState = false, popHistory = true) {
     if (!elements.offlineModal || elements.offlineModal.classList.contains('hidden')) return;
 
-    elements.offlineModal.classList.add('hidden');
     clearSubState('#offline-modal');
 
-    if (popHistory && !isFromPopState && window.location.hash === '#offline-modal') {
-        window.history.back();
-    }
-
-    state.activeOfflineModalKey = null;
+    closeModalWithAnimation(elements.offlineModal, () => {
+        if (popHistory && !isFromPopState && window.location.hash === '#offline-modal') {
+            window.history.back();
+        }
+        state.activeOfflineModalKey = null;
+    });
 }
 
 /**
@@ -530,13 +531,13 @@ export function renderDownloadsView(pushHash = true) {
 
         const config = quiz.config || {};
         const tInfo = formatTime(config.totalTime);
-        let diffTxt = config.difficulty ? `(${config.difficulty}` : '(';
+        let diffTxt = '';
         if (config.difficulty === 'custom' && config.customTypeShort) {
-            diffTxt += `: ${config.customTypeShort})`;
+            diffTxt = `(${config.difficulty}: ${config.customTypeShort})`;
         } else if (config.difficulty) {
-            diffTxt += ')';
+            diffTxt = `(${config.difficulty})`;
         } else {
-            diffTxt += `${config.type || 'mixed'})`;
+            diffTxt = `(${config.type || 'mixed'})`;
         }
 
         const remainingMs = offlineInfo.remainingMs || 0;

@@ -3,7 +3,9 @@ import {
     showToast,
     showView,
     saveInProgressQuiz,
-    clearInProgressQuiz
+    clearInProgressQuiz,
+    initializeAudio,
+    closeModalWithAnimation
 } from '../helpers.js';
 import { showResults, displayExplanation } from './quizResults.js';
 
@@ -115,8 +117,10 @@ export function updateScoreAndStatsDisplay() {
         scoreEl?.classList.add('hidden');
         if (isSummaryOnly) {
             modernScoreStats?.classList.add('hidden');
+            modernScoreStats?.classList.remove('flex');
         } else {
             modernScoreStats?.classList.remove('hidden');
+            modernScoreStats?.classList.add('flex');
             const correctCount = state.userAnswers.filter(a => a.isCorrect === true).length;
             const wrongCount = state.userAnswers.filter(a => a.isCorrect === false).length;
             if (modernStatCorrectCount) modernStatCorrectCount.textContent = correctCount;
@@ -124,6 +128,7 @@ export function updateScoreAndStatsDisplay() {
         }
     } else {
         modernScoreStats?.classList.add('hidden');
+        modernScoreStats?.classList.remove('flex');
         scoreEl?.classList.remove('hidden');
         if (isSummaryOnly) {
             if (scoreEl) scoreEl.textContent = 'Score: Hidden';
@@ -257,11 +262,12 @@ export function checkAndHandleSubmit() {
             badge.className = 'px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 rounded-lg text-xs font-semibold transition cursor-pointer';
             badge.textContent = `Question ${item.displayNumber}`;
             badge.onclick = () => {
-                unansweredModal?.classList.add('hidden');
-                state.isReviewingUnanswered = true;
-                state.currentQuestionIndex = item.posIndex;
-                displayCurrentQuestion();
-                updateUnansweredReviewBtn();
+                closeModalWithAnimation(unansweredModal, () => {
+                    state.isReviewingUnanswered = true;
+                    state.currentQuestionIndex = item.posIndex;
+                    displayCurrentQuestion();
+                    updateUnansweredReviewBtn();
+                });
             };
             unansweredNumbersList.appendChild(badge);
         });
@@ -269,21 +275,23 @@ export function checkAndHandleSubmit() {
 
     if (unansweredProceedSubmitBtn) {
         unansweredProceedSubmitBtn.onclick = () => {
-            unansweredModal?.classList.add('hidden');
-            showResults();
+            closeModalWithAnimation(unansweredModal, () => {
+                showResults();
+            });
         };
     }
 
     if (unansweredReviewBtn) {
         unansweredReviewBtn.onclick = () => {
-            unansweredModal?.classList.add('hidden');
-            state.isReviewingUnanswered = true;
-            const remaining = getUnansweredQuestionIndices();
-            if (remaining.length > 0) {
-                state.currentQuestionIndex = remaining[0].posIndex;
-            }
-            displayCurrentQuestion();
-            updateUnansweredReviewBtn();
+            closeModalWithAnimation(unansweredModal, () => {
+                state.isReviewingUnanswered = true;
+                const remaining = getUnansweredQuestionIndices();
+                if (remaining.length > 0) {
+                    state.currentQuestionIndex = remaining[0].posIndex;
+                }
+                displayCurrentQuestion();
+                updateUnansweredReviewBtn();
+            });
         };
     }
 
@@ -322,6 +330,10 @@ export function startQuiz() {
     if (elements.muteSoundBtn) {
         elements.muteSoundBtn.classList.toggle('hidden', isSummaryOnly);
     }
+    if (isSummaryOnly) {
+        modernScoreStats?.classList.add('hidden');
+        modernScoreStats?.classList.remove('flex');
+    }
     updateAttemptDisplay();
     
     const isModern = (state.currentQuizConfig?.uiMode || 'modern') !== 'classic';
@@ -332,6 +344,7 @@ export function startQuiz() {
         nextUnansweredBtn?.classList.add('hidden');
         modernMetaContainer?.classList.add('hidden');
         modernScoreStats?.classList.add('hidden');
+        modernScoreStats?.classList.remove('flex');
         classicProgressContainer?.classList.remove('hidden');
         scoreEl?.classList.remove('hidden');
         skipQuestionBtn?.classList.remove('hidden');
@@ -1090,14 +1103,22 @@ export function checkAnswer(userAnswer) {
     const qData = state.questions[currOrigIdx];
     const isCorrect = evaluateAnswer(qData, userAnswer);
 
-    const isManualReveal = isSummaryOnly || (state.currentQuizConfig && state.currentQuizConfig.manualReveal);
-
     // Second chance check
-    if (!isCorrect && state.currentQuizConfig.enableSecondChance && state.currentQuestionChancesLeft > 0 && !isManualReveal && userAnswer !== "Time Out") {
+    if (!isCorrect && state.currentQuizConfig.enableSecondChance && state.currentQuestionChancesLeft > 0 && !isSummaryOnly && userAnswer !== "Time Out") {
         state.currentQuestionChancesLeft--;
-        // FIXED: Sound effects muted when showAnswersInSummaryOnly is enabled or state.isMuted
-        if (!isSummaryOnly && !state.isMuted && state.incorrectSound) {
-            try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
+        // Trigger audio feedback if showAnswersInSummaryOnly is NOT enabled and NOT muted
+        if (!isSummaryOnly && !state.isMuted) {
+            try {
+                if (window.Tone && Tone.context && Tone.context.state === 'suspended') {
+                    Tone.context.resume();
+                }
+                if (!state.incorrectSound) {
+                    initializeAudio();
+                }
+                if (state.incorrectSound) {
+                    state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now());
+                }
+            } catch (e) {}
         }
         showToast(`Incorrect response! Attempts remaining: ${state.currentQuestionChancesLeft + 1}`, 3000, 'warning');
 
@@ -1126,7 +1147,7 @@ export function checkAnswer(userAnswer) {
     answerAreaEl?.classList.add('disabled-options');
     skipQuestionBtn?.classList.add('hidden');
 
-    if (isManualReveal) {
+    if (isSummaryOnly) {
         if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 if (btn.textContent.trim().toLowerCase() === (userAnswer || '').toString().trim().toLowerCase()) {
@@ -1142,31 +1163,37 @@ export function checkAnswer(userAnswer) {
             }
         }
     } else {
-        if (!isSummaryOnly) {
-            if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
-                const selAns = (userAnswer || '').toString().trim().toLowerCase();
-                document.querySelectorAll('.option-btn').forEach(btn => {
-                    const btnTxt = btn.textContent.trim().toLowerCase();
-                    if (btnTxt === (qData.answer || '').toString().trim().toLowerCase()) btn.classList.add('correct');
-                    else if (btnTxt === selAns) btn.classList.add('incorrect');
-                });
-            } else {
-                const txtInput = document.getElementById('id-ans') || document.getElementById('en-ans');
-                if (txtInput) txtInput.classList.add(isCorrect ? 'correct' : 'incorrect');
-            }
+        if (qData.type === 'multiple-choice' || qData.type === 'true-or-false') {
+            const selAns = (userAnswer || '').toString().trim().toLowerCase();
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                const btnTxt = btn.textContent.trim().toLowerCase();
+                if (btnTxt === (qData.answer || '').toString().trim().toLowerCase()) btn.classList.add('correct');
+                else if (btnTxt === selAns) btn.classList.add('incorrect');
+            });
+        } else {
+            const txtInput = document.getElementById('id-ans') || document.getElementById('en-ans');
+            if (txtInput) txtInput.classList.add(isCorrect ? 'correct' : 'incorrect');
+        }
 
-            // FIXED: Only trigger audio feedback if showAnswersInSummaryOnly is NOT enabled and NOT muted
-            if (!state.isMuted) {
+        // Trigger audio feedback if showAnswersInSummaryOnly is NOT enabled and NOT muted
+        if (!state.isMuted) {
+            try {
+                if (window.Tone && Tone.context && Tone.context.state === 'suspended') {
+                    Tone.context.resume();
+                }
+                if (!state.correctSound || !state.incorrectSound) {
+                    initializeAudio();
+                }
                 if (isCorrect) {
                     if (state.correctSound) {
-                        try { state.correctSound.triggerAttackRelease('C4', '8n', Tone.now()); } catch (e) {}
+                        state.correctSound.triggerAttackRelease('C4', '8n', Tone.now());
                     }
                 } else {
                     if (state.incorrectSound) {
-                        try { state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); } catch (e) {}
+                        state.incorrectSound.triggerAttackRelease('A2', '8n', Tone.now());
                     }
                 }
-            }
+            } catch (e) {}
         }
     }
 
@@ -1183,7 +1210,7 @@ export function checkAnswer(userAnswer) {
     if (isCorrect) {
         state.score = state.userAnswers.filter(a => a.isCorrect === true).length;
     } else {
-        if (state.isAttemptLimited && !isManualReveal && !isSummaryOnly) {
+        if (state.isAttemptLimited && !isSummaryOnly) {
             state.currentAttempts++;
             updateAttemptDisplay();
             if (state.currentAttempts >= state.maxAttempts) {

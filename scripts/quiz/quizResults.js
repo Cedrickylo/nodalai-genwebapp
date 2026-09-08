@@ -36,8 +36,8 @@ const {
 
 export function displayExplanation(qData, isCorrect) {
     
-    // OFFLINE PROGRESS SILENCE GATE: If manual reveal is enabled, mask the prompt card entirely
-    if (state.currentQuizConfig && state.currentQuizConfig.manualReveal) {
+    // OFFLINE PROGRESS SILENCE GATE: If summary only is enabled, mask the prompt card entirely
+    if (state.currentQuizConfig && state.currentQuizConfig.showAnswersInSummaryOnly) {
         explanationAreaEl.innerHTML = '';
         explanationAreaEl.classList.add('hidden');
     } else {
@@ -46,13 +46,11 @@ export function displayExplanation(qData, isCorrect) {
         let ansDisp = '';
         let explanationDisp = '';
 
-        if (!state.currentQuizConfig.showAnswersInSummaryOnly) {
-            if (!isCorrect) {
-                const corrAns = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
-                ansDisp = `<p class="text-sm text-gray-400 mt-2">Correct: <strong class="font-semibold text-white">${corrAns || 'N/A'}</strong></p>`;
-            }
-            explanationDisp = `<p class="mt-2 text-gray-300">${qData.explanation || 'No explanation.'}</p>`;
+        if (!isCorrect) {
+            const corrAns = Array.isArray(qData.answer) ? qData.answer.join(', ') : qData.answer;
+            ansDisp = `<p class="text-sm text-gray-400 mt-2">Correct: <strong class="font-semibold text-white">${corrAns || 'N/A'}</strong></p>`;
         }
+        explanationDisp = `<p class="mt-2 text-gray-300">${qData.explanation || 'No explanation.'}</p>`;
 
         explanationAreaEl.innerHTML = `<div class="bg-gray-900/50 p-4 rounded-lg"><h3 class="font-bold text-lg ${resCol}">${resTxt}</h3>${ansDisp}${explanationDisp}</div>`;
         explanationAreaEl.classList.remove('hidden');

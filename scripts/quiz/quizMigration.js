@@ -4,7 +4,9 @@ import {
     pushSubState,
     clearSubState,
     refreshHistory,
-    syncHistoryWithCloud
+    syncHistoryWithCloud,
+    getQuizTakes,
+    closeModalWithAnimation
 } from '../helpers.js';
 
 // ==================================================================
@@ -39,21 +41,22 @@ export function openMigrationModal(step = 'choice', pushHash = true) {
 }
 
 /**
- * Closes the unified Data Migration popup modal.
+ * Closes the unified Data Migration popup modal with smooth exit animation.
  * @param {boolean} fromPopState 
  */
 export function closeMigrationModal(fromPopState = false) {
     const modal = document.getElementById('migration-modal');
     if (!modal || modal.classList.contains('hidden')) return;
-    modal.classList.add('hidden');
     clearSubState('#migration-modal');
 
     // Also reset import state if staged
     resetImportStaging();
 
-    if (!fromPopState && window.location.hash === '#migration-modal') {
-        window.history.back();
-    }
+    closeModalWithAnimation(modal, () => {
+        if (!fromPopState && window.location.hash === '#migration-modal') {
+            window.history.back();
+        }
+    });
 }
 
 /**
@@ -195,11 +198,12 @@ export function showMigrationErrorModal(errorMessage) {
 export function closeMigrationErrorModal(fromPopState = false) {
     const modal = document.getElementById('migration-error-modal');
     if (!modal || modal.classList.contains('hidden')) return;
-    modal.classList.add('hidden');
     clearSubState('#migration-error');
-    if (!fromPopState && window.location.hash === '#migration-error') {
-        window.history.back();
-    }
+    closeModalWithAnimation(modal, () => {
+        if (!fromPopState && window.location.hash === '#migration-error') {
+            window.history.back();
+        }
+    });
 }
 
 // ==================================================================
@@ -321,8 +325,8 @@ export async function executeExport() {
 
         if (includeTakes) {
             try {
-                const rawTakes = localStorage.getItem(constants.QUIZ_ATTEMPTS_DB_KEY);
-                exportPayload.takes = rawTakes ? JSON.parse(rawTakes) : {};
+                const takesDb = getQuizTakes() || {};
+                exportPayload.takes = takesDb;
             } catch (e) {
                 exportPayload.takes = {};
             }
@@ -340,7 +344,8 @@ export async function executeExport() {
         if (includeSettings) {
             exportPayload.preferences = {
                 customDisplayName: localStorage.getItem('nodal_cached_username') || '',
-                deletedKeys: localStorage.getItem('nodal_deleted_quiz_keys') || '{}'
+                deletedKeys: localStorage.getItem('nodal_deleted_quiz_keys') || '{}',
+                reduceMotion: localStorage.getItem('nodal_reduce_motion') === 'true'
             };
         }
 
@@ -583,7 +588,7 @@ export async function executeImport() {
 
         // 2. Restore Takes & Statistics
         if (importTakes && stagedImportPayload.takes) {
-            updateMigrationProgress(50, 'Restoring quiz takes and test history...');
+            updateMigrationProgress(50, 'Restoring quiz takes and test statistics...');
             await new Promise(r => setTimeout(r, 180));
 
             let currentTakes = {};
@@ -599,8 +604,22 @@ export async function executeImport() {
                     const existing = Array.isArray(currentTakes[quizKey]) ? currentTakes[quizKey] : [];
                     const merged = [...existing];
                     takesList.forEach(newTake => {
-                        const exists = merged.some(t => (t.takeId && t.takeId === newTake.takeId) || t.timestamp === newTake.timestamp);
+                        const newId = newTake.id || newTake.takeId;
+                        const newTime = newTake.completedAt || newTake.timestamp;
+                        const exists = merged.some(t => {
+                            const tId = t.id || t.takeId;
+                            const tTime = t.completedAt || t.timestamp;
+                            if (newId && tId && newId === tId) return true;
+                            if (newTime && tTime && newTime === tTime) return true;
+                            return false;
+                        });
                         if (!exists) merged.push(newTake);
+                    });
+
+                    // Sort chronologically ascending and re-index takeNumber sequentially
+                    merged.sort((a, b) => (a.completedAt || a.timestamp || 0) - (b.completedAt || b.timestamp || 0));
+                    merged.forEach((t, idx) => {
+                        t.takeNumber = idx + 1;
                     });
                     currentTakes[quizKey] = merged;
                 }
@@ -635,6 +654,11 @@ export async function executeImport() {
                 localStorage.setItem('nodal_cached_username', stagedImportPayload.preferences.customDisplayName);
                 const nameInput = document.getElementById('display-name-input');
                 if (nameInput) nameInput.value = stagedImportPayload.preferences.customDisplayName;
+            }
+
+            if (stagedImportPayload.preferences.reduceMotion !== undefined) {
+                const { setReduceMotion } = await import('../helpers.js');
+                setReduceMotion(stagedImportPayload.preferences.reduceMotion);
             }
         }
 

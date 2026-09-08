@@ -31,7 +31,8 @@ import {
     openSharedQuizModal,
     setupCustomizeView,
     pushSubState,
-    extractShareId
+    extractShareId,
+    closeModalWithAnimation
 } from './helpers.js';
 
 // Import modules
@@ -467,19 +468,32 @@ export function attachQuizEventListeners() {
                 if (elements.mobileMenuModal) elements.mobileMenuModal.classList.remove('hidden');
             });
             elements.mobileMenuCloseBtn?.addEventListener('click', () => {
-                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
+                closeModalWithAnimation(elements.mobileMenuModal);
             });
             elements.mobileMenuBackdrop?.addEventListener('click', () => {
-                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
+                closeModalWithAnimation(elements.mobileMenuModal);
             });
             elements.mobileMenuDownloadsBtn?.addEventListener('click', async () => {
-                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden');
-                const { renderDownloadsView } = await import('./quiz/quizOffline.js');
-                renderDownloadsView();
+                closeModalWithAnimation(elements.mobileMenuModal, async () => {
+                    const { renderDownloadsView } = await import('./quiz/quizOffline.js');
+                    renderDownloadsView();
+                });
             });
-            elements.mobileMenuHelpBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('help'); });
-            elements.mobileMenuAboutBtn?.addEventListener('click', () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); showView('about'); });
-            elements.mobileMenuAccountBtn?.addEventListener('click', async () => { if (elements.mobileMenuModal) elements.mobileMenuModal.classList.add('hidden'); await openAccountAsView(); });
+            elements.mobileMenuHelpBtn?.addEventListener('click', () => {
+                closeModalWithAnimation(elements.mobileMenuModal, () => {
+                    showView('help');
+                });
+            });
+            elements.mobileMenuAboutBtn?.addEventListener('click', () => {
+                closeModalWithAnimation(elements.mobileMenuModal, () => {
+                    showView('about');
+                });
+            });
+            elements.mobileMenuAccountBtn?.addEventListener('click', async () => {
+                closeModalWithAnimation(elements.mobileMenuModal, async () => {
+                    await openAccountAsView();
+                });
+            });
 
             // Desktop nav handlers
             elements.desktopNavHomeBtn?.addEventListener('click', () => { state.historyOrigin = 'nav'; setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
@@ -668,7 +682,7 @@ export function attachQuizEventListeners() {
             clearSubState('#customize');
             resetApp(true);
             window.history.replaceState({ view: 'start' }, '', '#home');
-            showToast('Quiz generation cancelled.', 2000, 'info');
+            showToast('Quiz generation cancelled.', 2000, 'neutral');
         }
     });
     
@@ -796,10 +810,6 @@ export function attachQuizEventListeners() {
         });
     }
 
-    if (elements.manualRevealToggle) {
-        elements.manualRevealToggle.addEventListener('change', validateAllInputs);
-    }
-    
     if (elements.shuffleQuestionsToggle) {
         elements.shuffleQuestionsToggle.addEventListener('change', validateAllInputs);
     }

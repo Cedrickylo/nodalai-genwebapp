@@ -220,7 +220,6 @@ export const elements = {
     questionTimeInput: document.getElementById('question-time-input'),
     secondChanceToggle: document.getElementById('second-chance-toggle'),
     maxChancesInput: document.getElementById('max-chances-input'),
-    manualRevealToggle: document.getElementById('manual-reveal-toggle'),
     shuffleQuestionsToggle: document.getElementById('shuffle-questions-toggle'),
     shuffleChoicesToggle: document.getElementById('shuffle-choices-toggle'),
     revealAnswerBtn: document.getElementById('reveal-answer-btn'),
@@ -329,7 +328,9 @@ export const elements = {
     offlineModalProgressText: document.getElementById('offline-modal-progress-text'),
     offlineModalDownloadBtn: document.getElementById('offline-modal-download-btn'),
     offlineModalRenewBtn: document.getElementById('offline-modal-renew-btn'),
-    offlineModalRemoveBtn: document.getElementById('offline-modal-remove-btn')
+    offlineModalRemoveBtn: document.getElementById('offline-modal-remove-btn'),
+    reduceMotionToggle: document.getElementById('reduce-motion-toggle'),
+    reduceMotionToggleLoggedOut: document.getElementById('reduce-motion-toggle-logged-out')
 };
 
 export const state = {
@@ -346,6 +347,7 @@ export const state = {
     correctSound: null,
     incorrectSound: null,
     isMuted: localStorage.getItem('nodal_quiz_muted') === 'true',
+    isReduceMotion: localStorage.getItem('nodal_reduce_motion') === 'true',
     loadingInterval: null,
     toastTimeout: null,
     quizTimerInterval: null,

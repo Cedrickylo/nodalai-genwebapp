@@ -55,7 +55,10 @@
             }
         }
         .view { display: none; }
-        .view.active { display: block; }
+        .view.active {
+            display: block;
+            animation: viewFadeSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
         #start-view {
             width: 100%;
             max-width: 36rem;
@@ -621,6 +624,301 @@
     }
 }
 
+/* Ensure modern score stats counters strictly hide in Summary-Only mode */
+#modern-score-stats.hidden {
+    display: none !important;
+}
 
+/* Persistent Scrollbar & Scroll Containment for Selected Documents List */
+#selected-files-list {
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #64748b rgba(31, 41, 55, 0.6);
+}
 
+#selected-files-list::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+    display: block !important;
+}
 
+#selected-files-list::-webkit-scrollbar-track {
+    background: rgba(31, 41, 55, 0.6);
+    border-radius: 4px;
+}
+
+#selected-files-list::-webkit-scrollbar-thumb {
+    background: #64748b;
+    border-radius: 4px;
+}
+
+#selected-files-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ==================================================================
+   GPU-ACCELERATED ULTRA-SMOOTH KEYFRAMES
+   Strictly uses transform & opacity to avoid browser layout reflows
+   and guarantee silky-smooth 60fps performance on all devices.
+   ================================================================== */
+@keyframes modalBackdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalContentPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes drawerSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes modalBackdropFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes modalContentPopOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+}
+
+@keyframes drawerSlideDown {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 14px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, 14px) scale(0.96);
+    }
+}
+
+@keyframes viewFadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================================================================
+   POPUP MODAL & OVERLAY TRANSITIONS WEBSITE-WIDE
+   ================================================================== */
+
+/* Prevent Tailwind transition property conflicts with keyframes */
+#account-modal-overlay,
+#share-modal,
+#migration-modal,
+#migration-error-modal,
+#ai-prompt-modal,
+#unanswered-modal,
+#custom-confirm-modal,
+#welcome-modal-overlay,
+#offline-modal,
+#shared-quiz-modal,
+#loading-overlay,
+#mobile-menu-modal,
+#history-actions-modal,
+#custom-confirm-modal > div {
+    transition: none !important;
+}
+
+/* Modal Overlays & Backdrops - Entrance */
+#account-modal-overlay:not(.hidden),
+#share-modal:not(.hidden),
+#migration-modal:not(.hidden),
+#migration-error-modal:not(.hidden),
+#ai-prompt-modal:not(.hidden),
+#unanswered-modal:not(.hidden),
+#custom-confirm-modal:not(.hidden),
+#welcome-modal-overlay:not(.hidden),
+#offline-modal:not(.hidden),
+#shared-quiz-modal:not(.hidden),
+#loading-overlay:not(.hidden) {
+    animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Modal Content Cards - Pop-In Entrance */
+#account-modal-overlay:not(.hidden) > #account-card,
+#share-modal:not(.hidden) > div,
+#migration-modal:not(.hidden) > div,
+#migration-error-modal:not(.hidden) > div,
+#ai-prompt-modal:not(.hidden) > div,
+#unanswered-modal:not(.hidden) > div,
+#custom-confirm-modal:not(.hidden) > div,
+#welcome-modal-overlay:not(.hidden) > div,
+#offline-modal:not(.hidden) > div,
+#shared-quiz-modal:not(.hidden) > div,
+#loading-overlay:not(.hidden) > div {
+    animation: modalContentPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Mobile Menu Modal & Bottom Sheet - Entrance */
+#mobile-menu-modal:not(.hidden) #mobile-menu-backdrop {
+    animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#mobile-menu-modal:not(.hidden) > div:last-child {
+    animation: drawerSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* History Actions Submenu Modal - Entrance */
+#history-actions-modal:not(.hidden) #history-actions-backdrop {
+    animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#history-actions-modal:not(.hidden) > div:last-child {
+    animation: drawerSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (min-width: 768px) {
+    #history-actions-modal:not(.hidden) > div:last-child {
+        animation: modalContentPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+}
+
+/* ==================================================================
+   POPUP MODAL & OVERLAY CLOSING EXIT ANIMATIONS
+   ================================================================== */
+
+/* Modal Overlays & Backdrops - Exit */
+#account-modal-overlay.modal-closing,
+#share-modal.modal-closing,
+#migration-modal.modal-closing,
+#migration-error-modal.modal-closing,
+#ai-prompt-modal.modal-closing,
+#unanswered-modal.modal-closing,
+#custom-confirm-modal.modal-closing,
+#welcome-modal-overlay.modal-closing,
+#offline-modal.modal-closing,
+#shared-quiz-modal.modal-closing,
+#loading-overlay.modal-closing {
+    animation: modalBackdropFadeOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* Modal Content Cards - Exit Pop-Out */
+#account-modal-overlay.modal-closing > #account-card,
+#share-modal.modal-closing > div,
+#migration-modal.modal-closing > div,
+#migration-error-modal.modal-closing > div,
+#ai-prompt-modal.modal-closing > div,
+#unanswered-modal.modal-closing > div,
+#custom-confirm-modal.modal-closing > div,
+#welcome-modal-overlay.modal-closing > div,
+#offline-modal.modal-closing > div,
+#shared-quiz-modal.modal-closing > div,
+#loading-overlay.modal-closing > div {
+    animation: modalContentPopOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* Mobile Menu Modal & Bottom Sheet - Exit */
+#mobile-menu-modal.modal-closing #mobile-menu-backdrop {
+    animation: modalBackdropFadeOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+#mobile-menu-modal.modal-closing > div:last-child {
+    animation: drawerSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* History Actions Submenu Modal - Exit */
+#history-actions-modal.modal-closing #history-actions-backdrop {
+    animation: modalBackdropFadeOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+#history-actions-modal.modal-closing > div:last-child {
+    animation: drawerSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@media (min-width: 768px) {
+    #history-actions-modal.modal-closing > div:last-child {
+        animation: modalContentPopOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    }
+}
+
+/* ==================================================================
+   TOAST NOTIFICATION TRANSITIONS
+   ================================================================== */
+#toast-notification {
+    transition: none !important;
+}
+
+#toast-notification.toast-in {
+    animation: toastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#toast-notification.toast-out {
+    animation: toastOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==================================================================
+   GLOBAL REDUCE MOTION ACCESSIBILITY OVERRIDE
+   Disables all animations and transitions website-wide instantly
+   when toggled in Account settings or when OS prefers-reduced-motion is active.
+   ================================================================== */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

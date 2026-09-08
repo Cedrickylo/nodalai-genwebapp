@@ -42,6 +42,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         state.questions = state.customizingQuizData.questions;
         state.currentFileName = newName;
         state.currentQuizConfig = { ...state.customizingQuizData.config };
+        delete state.currentQuizConfig.manualReveal;
 
         state.isTimedQuiz = timeLimitToggle.checked;
         if (state.isTimedQuiz) {
@@ -181,7 +182,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const questionTime = elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30;
     const enableSecondChance = elements.secondChanceToggle ? elements.secondChanceToggle.checked : false;
     const maxChances = elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1;
-    const manualReveal = elements.manualRevealToggle ? elements.manualRevealToggle.checked : false;
     const randomizeQuestions = elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true;
     const randomizeChoices = elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true;
     const allowChangeSelection = document.getElementById('allow-change-toggle')?.checked || false;
@@ -209,7 +209,6 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         questionTime,
         enableSecondChance,
         maxChances,
-        manualReveal,
         randomizeQuestions,
         randomizeChoices,
         allowChangeSelection

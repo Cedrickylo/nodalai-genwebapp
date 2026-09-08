@@ -1,5 +1,5 @@
-// Incremented to v24 for Desktop Customize Width, Edit In-Progress Prompts, Unified Summary-Only, Mute Visibility & Back Button Refinements
-const CACHE_NAME = 'nodal-ai-cache-v24';
+// Incremented to v28 for Homepage Drag & Drop, Selected Docs scroll/scrollbar, popup loading overlay, and neutral cancel toast
+const CACHE_NAME = 'nodal-ai-cache-v28';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

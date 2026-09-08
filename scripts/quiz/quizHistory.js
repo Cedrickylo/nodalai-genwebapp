@@ -19,7 +19,8 @@ import {
     showLoadingOverlay,
     hideLoadingOverlay,
     deleteQuizPermanently,
-    extractShareId
+    extractShareId,
+    getQuizTakes
 } from '../helpers.js';
 
 const {
@@ -33,11 +34,13 @@ export function exportQuiz() {
 
 export function exportQuizFromHistory(data, key) {
     try {
+        const takes = key ? (getQuizTakes(key) || []) : [];
         const exportPayload = {
             quizId: key || CryptoJS.SHA256(JSON.stringify(data.questions) + JSON.stringify(data.config) + data.fileName).toString(),
             fileName: data.fileName,
             config: data.config,
-            questions: data.questions
+            questions: data.questions,
+            takes: takes
         };
         const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -180,7 +183,13 @@ export async function handleHistoryClick(e) {
         
         clearInProgressQuiz();
         state.questions = quizData.questions;
-        state.currentQuizConfig = quizData.config;
+        state.currentQuizConfig = { ...quizData.config };
+        if (state.currentQuizConfig.manualReveal !== undefined) {
+            if (state.currentQuizConfig.showAnswersInSummaryOnly === undefined) {
+                state.currentQuizConfig.showAnswersInSummaryOnly = !!state.currentQuizConfig.manualReveal;
+            }
+            delete state.currentQuizConfig.manualReveal;
+        }
         state.currentQuizKey = key;
         state.currentFileName = quizData.fileName;
         state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
@@ -194,8 +203,14 @@ export async function handleHistoryClick(e) {
         exportQuizFromHistory(quizData, key);
     } else if (action === 'customize') {
         state.editOriginView = getActiveViewId();
-        state.customizingQuizData = { ...quizData, key };
-        setupCustomizeView(quizData.config, quizData.fileName);
+        state.customizingQuizData = { ...quizData, key, config: { ...quizData.config } };
+        if (state.customizingQuizData.config.manualReveal !== undefined) {
+            if (state.customizingQuizData.config.showAnswersInSummaryOnly === undefined) {
+                state.customizingQuizData.config.showAnswersInSummaryOnly = !!state.customizingQuizData.config.manualReveal;
+            }
+            delete state.customizingQuizData.config.manualReveal;
+        }
+        setupCustomizeView(state.customizingQuizData.config, quizData.fileName);
         setHistoryVisibility(false);
         showView('start', false);
         pushSubState('#edit');
