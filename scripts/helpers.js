@@ -3636,6 +3636,71 @@ export function saveInProgressQuiz(data) {
 // SHARE GATEWAY MODAL LOGIC
 // ==========================================
 
+export function updateShareLinkDisplay(quiz, forceFormat = null) {
+    if (!quiz || !quiz.share) return;
+    
+    const shortUrl = quiz.share.shortUrl;
+    const fullUrl = quiz.share.fullShareUrl || quiz.share.shareUrl;
+    const input = elements.shareLinkInput || document.getElementById('share-link-input');
+    const badge = elements.shareLinkTypeBadge || document.getElementById('share-link-type-badge');
+    const textEl = elements.shareLinkTypeText || document.getElementById('share-link-type-text');
+    const toggleBtn = elements.toggleShareLinkFormatBtn || document.getElementById('toggle-share-link-format-btn');
+
+    // Determine target format
+    let showShort = true;
+    if (forceFormat === 'full') {
+        showShort = false;
+    } else if (forceFormat === 'short') {
+        showShort = true;
+    } else {
+        // Default: prefer shortUrl if available, otherwise fullUrl
+        showShort = !!shortUrl;
+    }
+
+    if (showShort && shortUrl) {
+        if (input) input.value = shortUrl;
+        if (badge) {
+            badge.className = 'text-[11px] text-emerald-400 flex items-center gap-1 font-medium';
+            badge.classList.remove('hidden');
+        }
+        if (textEl) textEl.textContent = 'Short Link';
+        if (toggleBtn) {
+            toggleBtn.textContent = 'Show Full Link';
+            toggleBtn.classList.remove('hidden');
+        }
+    } else {
+        if (input) input.value = fullUrl || 'Link unavailable. Please generate again.';
+        if (badge) {
+            badge.className = 'text-[11px] text-blue-400 flex items-center gap-1 font-medium';
+            badge.classList.remove('hidden');
+        }
+        if (textEl) textEl.textContent = 'Full Link';
+        if (toggleBtn) {
+            if (shortUrl) {
+                toggleBtn.textContent = 'Show Short Link';
+                toggleBtn.classList.remove('hidden');
+            } else {
+                toggleBtn.classList.add('hidden');
+            }
+        }
+    }
+}
+
+export function toggleShareLinkFormat() {
+    const key = state.currentShareQuizKey;
+    const quiz = state.quizHistory && state.quizHistory[key];
+    if (!quiz || !quiz.share) return;
+
+    const currentVal = (elements.shareLinkInput || document.getElementById('share-link-input'))?.value;
+    const shortUrl = quiz.share.shortUrl;
+
+    if (shortUrl && currentVal === shortUrl) {
+        updateShareLinkDisplay(quiz, 'full');
+    } else {
+        updateShareLinkDisplay(quiz, 'short');
+    }
+}
+
 export function openShareModal(quizKey) {
     state.currentShareQuizKey = quizKey;
     const quiz = state.quizHistory[quizKey];
@@ -3645,8 +3710,8 @@ export function openShareModal(quizKey) {
     
     // Check if this quiz is already shared
     if (quiz && quiz.share && quiz.share.isShared) {
-        // Populate the existing share details
-        elements.shareLinkInput.value = quiz.share.shareUrl || 'Link unavailable. Please generate again.';
+        // Populate the existing share details with short/full format handling
+        updateShareLinkDisplay(quiz);
         
         // Calculate days remaining
         if (quiz.share.expiryTimestamp) {

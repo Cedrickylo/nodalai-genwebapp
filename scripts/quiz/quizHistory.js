@@ -21,7 +21,8 @@ import {
     deleteQuizPermanently,
     extractShareId,
     getQuizTakes,
-    getQuizTypeLabel
+    getQuizTypeLabel,
+    updateShareLinkDisplay
 } from '../helpers.js';
 
 const {
@@ -95,13 +96,36 @@ export async function generateShareableLink(quizKey) {
         
         // Generate public access URL
         const publicUrl = await puter.fs.getReadURL(shareId);
-        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
+        const fullShareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(publicUrl)}`;
         
+        // Attempt link shortening with graceful fallback
+        let shortUrl = null;
+        try {
+            showLoadingOverlay('Link Share Creation', 'Creating compact short link...');
+            const shortRes = await fetch('/api/shorten', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: fullShareUrl })
+            });
+            if (shortRes.ok) {
+                const shortData = await shortRes.json();
+                if (shortData && shortData.shortUrl && typeof shortData.shortUrl === 'string' && shortData.shortUrl.startsWith('http')) {
+                    shortUrl = shortData.shortUrl;
+                }
+            }
+        } catch (shortErr) {
+            console.warn('[Share] Shortener request failed, falling back to full URL:', shortErr);
+        }
+
+        const activeShareUrl = shortUrl || fullShareUrl;
+
         // Update local state and commit persistence matrices
         quiz.share = {
             isShared: true,
             shareId: shareId,
-            shareUrl: shareUrl,
+            shareUrl: activeShareUrl,
+            shortUrl: shortUrl,
+            fullShareUrl: fullShareUrl,
             publicUrl: publicUrl,
             uid: extractShareId(publicUrl),
             expiryTimestamp: expiryTimestamp
@@ -116,8 +140,8 @@ export async function generateShareableLink(quizKey) {
         await syncHistoryWithCloud();
         refreshHistory();
         
-        // Populate management fields for Step 2 UI view transition
-        elements.shareLinkInput.value = shareUrl;
+        // Populate management fields for Step 2 UI view transition with short/full format support
+        updateShareLinkDisplay(quiz);
         elements.shareExpiryDisplay.textContent = `Expires in ${days} days`;
         elements.shareExpiryDisplay.className = 'text-xs text-blue-300 mt-1';
         

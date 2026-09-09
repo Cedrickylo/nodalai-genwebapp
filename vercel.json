@@ -3,6 +3,9 @@
   "functions": {
     "api/generate-quiz.js": {
       "maxDuration": 60
+    },
+    "api/shorten.js": {
+      "maxDuration": 15
     }
   }
 }

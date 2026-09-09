@@ -205,11 +205,27 @@ export function attachQuizEventListeners() {
     document.getElementById('account-mobile-back-btn')?.addEventListener('click', () => showView('start'));
     
     // Copy Link Button
-    elements.copyShareLinkBtn.onclick = () => {
+    elements.copyShareLinkBtn.onclick = async () => {
+        const link = elements.shareLinkInput.value;
+        if (!link) return;
         elements.shareLinkInput.select();
-        document.execCommand('copy');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(link);
+            } catch {
+                document.execCommand('copy');
+            }
+        } else {
+            document.execCommand('copy');
+        }
         showToast('Link copied to clipboard!', 2000, 'success');
     };
+
+    // Toggle Short/Full Link Format Button
+    elements.toggleShareLinkFormatBtn?.addEventListener('click', async () => {
+        const { toggleShareLinkFormat } = await import('./helpers.js');
+        toggleShareLinkFormat();
+    });
 
     // AI Choice Modal Event Listeners
     elements.closeAiChoiceModalBtn?.addEventListener('click', () => closeAiChoiceModal());
