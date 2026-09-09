@@ -2919,8 +2919,19 @@ export function setupCustomizeView(config, name) {
     if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = config.randomizeQuestions !== false;
     if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = config.randomizeChoices !== false;
 
-    if (elements.allowChangeToggle) {
-        elements.allowChangeToggle.checked = config.allowChangeSelection || false;
+    const isSummaryOnly = summaryOnlyToggle ? summaryOnlyToggle.checked : false;
+    const allowChangeToggleEl = elements.allowChangeToggle || document.getElementById('allow-change-toggle');
+    const allowChangeContainer = elements.allowChangeContainer || document.getElementById('allow-change-container');
+    if (allowChangeToggleEl) {
+        if (isSummaryOnly) {
+            allowChangeToggleEl.checked = false;
+            allowChangeToggleEl.disabled = true;
+            allowChangeContainer?.classList.add('opacity-50', 'pointer-events-none');
+        } else {
+            allowChangeToggleEl.disabled = false;
+            allowChangeToggleEl.checked = config.allowChangeSelection || false;
+            allowChangeContainer?.classList.remove('opacity-50', 'pointer-events-none');
+        }
     }
 
     state.initialCustomizeState = getCustomizeState();
@@ -3024,11 +3035,27 @@ export function validateAllInputs() {
         enabled = enabled && maxAttempts > 0;
     }
 
-    // 1. Choice-Swapping settings panel (Always unlocked and enabled)
-    const allowChangeToggleEl = document.getElementById('allow-change-toggle');
-    const allowChangeContainer = document.getElementById('allow-change-container');
-    if (allowChangeToggleEl) allowChangeToggleEl.disabled = false;
-    if (allowChangeContainer) allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
+    // 1. Choice-Swapping settings panel (Automatically disabled when "Don't auto-validate" is checked)
+    const isSummaryOnly = summaryOnlyToggle ? summaryOnlyToggle.checked : false;
+    const allowChangeToggleEl = elements.allowChangeToggle || document.getElementById('allow-change-toggle');
+    const allowChangeContainer = elements.allowChangeContainer || document.getElementById('allow-change-container');
+
+    if (isSummaryOnly) {
+        if (allowChangeToggleEl) {
+            allowChangeToggleEl.checked = false;
+            allowChangeToggleEl.disabled = true;
+        }
+        if (allowChangeContainer) {
+            allowChangeContainer.classList.add('opacity-50', 'pointer-events-none');
+        }
+    } else {
+        if (allowChangeToggleEl) {
+            allowChangeToggleEl.disabled = false;
+        }
+        if (allowChangeContainer) {
+            allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
+        }
+    }
 
     // 2. Evaluate Verification Bounds on Timed Quiz Variations
     if (timeLimitToggle.checked && elements.timerModeSelect) {

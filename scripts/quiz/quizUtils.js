@@ -56,8 +56,12 @@ export function resetAdvancedOptions() {
     if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = true;
     if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = true;
     if (elements.summaryOnlyToggle) elements.summaryOnlyToggle.checked = false;
-    if (elements.allowChangeToggle) elements.allowChangeToggle.checked = false;
-    if (elements.allowchangetoggle) elements.allowchangetoggle.checked = false;
+    const allowChangeEl = elements.allowChangeToggle || elements.allowchangetoggle || document.getElementById('allow-change-toggle');
+    if (allowChangeEl) {
+        allowChangeEl.checked = false;
+        allowChangeEl.disabled = false;
+    }
+    document.getElementById('allow-change-container')?.classList.remove('opacity-50', 'pointer-events-none');
     if (elements.secondChanceToggle) elements.secondChanceToggle.checked = false;
     document.getElementById('second-chance-options')?.classList.add('hidden');
     if (elements.maxChancesInput) elements.maxChancesInput.value = 1;

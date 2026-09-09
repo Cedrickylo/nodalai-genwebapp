@@ -988,6 +988,7 @@ export function attachQuizEventListeners() {
     elements.remedialQuestionTimeInput?.addEventListener('input', validateRemedialInputs);
     elements.remedialMaxChancesInput?.addEventListener('change', validateRemedialInputs);
     elements.remedialAllowChangeToggle?.addEventListener('change', validateRemedialInputs);
+    elements.remedialSummaryOnlyToggle?.addEventListener('change', validateRemedialInputs);
     elements.remedialShuffleQuestionsToggle?.addEventListener('change', validateRemedialInputs);
     elements.remedialShuffleChoicesToggle?.addEventListener('change', validateRemedialInputs);
     elements.remedialQuizNameInput?.addEventListener('input', validateRemedialInputs);

@@ -411,6 +411,28 @@ export function validateRemedialInputs() {
         chanceOk = Number.isInteger(chanceVal) && chanceVal > 0;
     }
 
+    // Choice-Swapping settings panel (Automatically disabled when "Don't auto-validate" is checked)
+    const isRemedialSummaryOnly = elements.remedialSummaryOnlyToggle ? elements.remedialSummaryOnlyToggle.checked : false;
+    const rAllowChange = elements.remedialAllowChangeToggle || document.getElementById('remedial-allow-change-toggle');
+    const rAllowContainer = elements.remedialAllowChangeContainer || document.getElementById('remedial-allow-change-container');
+
+    if (isRemedialSummaryOnly) {
+        if (rAllowChange) {
+            rAllowChange.checked = false;
+            rAllowChange.disabled = true;
+        }
+        if (rAllowContainer) {
+            rAllowContainer.classList.add('opacity-50', 'pointer-events-none');
+        }
+    } else {
+        if (rAllowChange) {
+            rAllowChange.disabled = false;
+        }
+        if (rAllowContainer) {
+            rAllowContainer.classList.remove('opacity-50', 'pointer-events-none');
+        }
+    }
+
     if (generateRemedialQuizBtn) {
         generateRemedialQuizBtn.disabled = !(custOk && qCountOk && timeOk && attOk && chanceOk);
     }

@@ -88,7 +88,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         if (elements.shuffleChoicesToggle) state.currentQuizConfig.randomizeChoices = elements.shuffleChoicesToggle.checked;
         
         const allowChangeToggleEl = document.getElementById('allow-change-toggle');
-        state.currentQuizConfig.allowChangeSelection = allowChangeToggleEl ? allowChangeToggleEl.checked : false;
+        state.currentQuizConfig.allowChangeSelection = state.currentQuizConfig.showAnswersInSummaryOnly ? false : (allowChangeToggleEl ? allowChangeToggleEl.checked : false);
         const selectedUiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
         state.currentQuizConfig.uiMode = selectedUiMode;
 
@@ -200,9 +200,10 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const randomizeChoices = isRemedial
         ? (elements.remedialShuffleChoicesToggle?.checked ?? true)
         : (elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true);
-    const allowChangeSelection = isRemedial
+    const rawAllowChange = isRemedial
         ? (elements.remedialAllowChangeToggle?.checked || false)
         : (document.getElementById('allow-change-toggle')?.checked || false);
+    const allowChangeSelection = showAnswersInSummaryOnly ? false : rawAllowChange;
     const uiMode = isRemedial
         ? (document.querySelector('input[name="remedial_ui_mode"]:checked')?.value || 'modern')
         : (document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern');
