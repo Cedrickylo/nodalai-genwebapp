@@ -1071,11 +1071,13 @@ export async function openAccountAsModal(pushHash = true) {
 
     elements.accountModalOverlay.appendChild(elements.accountCard);
 
-    // Reset scroll position to top when opening modal
-    const loggedIn = document.getElementById('account-logged-in-content');
-    const loggedOut = document.getElementById('account-logged-out-content');
-    if (loggedIn) loggedIn.scrollTop = 0;
-    if (loggedOut) loggedOut.scrollTop = 0;
+    // Reset scroll position to top only when opening fresh modal (pushHash === true)
+    if (pushHash) {
+        const loggedIn = document.getElementById('account-logged-in-content');
+        const loggedOut = document.getElementById('account-logged-out-content');
+        if (loggedIn) loggedIn.scrollTop = 0;
+        if (loggedOut) loggedOut.scrollTop = 0;
+    }
 
     elements.accountModalOverlay.classList.remove('hidden');
     if (pushHash) {
@@ -1769,6 +1771,7 @@ export function showView(id, pushHash = true) {
     }
 
     // 3. Reset scroll position to topmost of the page immediately upon navigation
+    state.preModalScrollY = null;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
@@ -2232,7 +2235,26 @@ export async function handlePopState(event) {
             }
             updateNavHighlights('history');
         } else if (targetViewId === 'account') {
-            await openAccountAsView();
+            const wasAccount = currentViewId === 'account';
+            if (!wasAccount) {
+                await openAccountAsView();
+            } else {
+                await populateAccountData();
+            }
+            if (state.preModalScrollY !== null && state.preModalScrollY !== undefined) {
+                const targetY = state.preModalScrollY;
+                window.scrollTo({ top: targetY, behavior: 'instant' });
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: targetY, behavior: 'instant' });
+                });
+                state.preModalScrollY = null;
+            } else if (event.state?.preScrollY !== undefined) {
+                const targetY = event.state.preScrollY;
+                window.scrollTo({ top: targetY, behavior: 'instant' });
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: targetY, behavior: 'instant' });
+                });
+            }
             updateNavHighlights('account');
         } else if (targetViewId === 'statistics') {
             const statsKey = event.state?.quizKey || state.currentStatsQuizKey || state.lastHistoryMenuKey || localStorage.getItem('nodal_last_stats_key');

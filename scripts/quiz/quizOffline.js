@@ -289,6 +289,56 @@ export async function renewQuizOfflineAccess(quizKey) {
 }
 
 /**
+ * Compiles the active offline downloads registry for migration/export.
+ * Ensures all quizzes currently available offline (both manual downloads and auto-offline retention)
+ * are accurately counted and formatted for export bundles.
+ * @returns {Record<string, { quizKey: string, fileName: string, downloadedAt: number, expiresAt: number, sizeBytes: number, isManual: boolean, isOptedOut: boolean }>}
+ */
+export function getExportableOfflineDownloads() {
+    let quizDb = state.quizHistory;
+    if (!quizDb || Object.keys(quizDb).length === 0) {
+        try {
+            const rawQuizzes = localStorage.getItem(constants.DB_NAME);
+            if (rawQuizzes) {
+                quizDb = JSON.parse(rawQuizzes);
+            }
+        } catch (e) {}
+    }
+    quizDb = quizDb || {};
+
+    const rawDownloads = getOfflineDownloads();
+    const activeDownloads = {};
+    const now = Date.now();
+    const expiryMs = constants.OFFLINE_EXPIRATION_MS || (7 * 24 * 60 * 60 * 1000);
+
+    // 1. Include all explicitly registered downloads that are active and not opted out
+    for (const [key, record] of Object.entries(rawDownloads)) {
+        if (record && !record.isOptedOut && record.expiresAt && record.expiresAt > now) {
+            activeDownloads[key] = record;
+        }
+    }
+
+    // 2. Include all quizzes in history that are currently available offline
+    for (const [key, quiz] of Object.entries(quizDb)) {
+        const offlineInfo = isQuizAvailableOffline(key);
+        if (offlineInfo.available && !activeDownloads[key]) {
+            const storage = calculateQuizStorageBytes(key);
+            activeDownloads[key] = {
+                quizKey: key,
+                fileName: quiz.fileName || 'Untitled Quiz',
+                downloadedAt: offlineInfo.downloadedAt || quiz.timestamp || now,
+                expiresAt: offlineInfo.expiresAt || ((quiz.timestamp || now) + expiryMs),
+                sizeBytes: storage.totalBytes,
+                isManual: !!offlineInfo.isManual,
+                isOptedOut: false
+            };
+        }
+    }
+
+    return activeDownloads;
+}
+
+/**
  * Opens the Offline Download & Management Modal for a quiz.
  * @param {string} quizKey
  */

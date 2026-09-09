@@ -8,6 +8,7 @@ import {
     getQuizTakes,
     closeModalWithAnimation
 } from '../helpers.js';
+import { getExportableOfflineDownloads } from './quizOffline.js';
 
 // ==================================================================
 // CRYPTOGRAPHIC SPECIFICATIONS FOR .NODAL PROPRIETARY BACKUP FORMAT
@@ -55,6 +56,9 @@ export function closeMigrationModal(fromPopState = false) {
     closeModalWithAnimation(modal, () => {
         if (!fromPopState && window.location.hash === '#migration-modal') {
             window.history.back();
+        } else if (state.preModalScrollY !== null && state.preModalScrollY !== undefined) {
+            window.scrollTo({ top: state.preModalScrollY, behavior: 'instant' });
+            state.preModalScrollY = null;
         }
     });
 }
@@ -262,9 +266,8 @@ export async function populateExportItemCounts() {
 
     let offlineCount = 0;
     try {
-        const rawOffline = localStorage.getItem(constants.OFFLINE_DOWNLOADS_DB_KEY);
-        const offlineDb = rawOffline ? JSON.parse(rawOffline) : {};
-        offlineCount = Object.keys(offlineDb).length;
+        const activeOffline = getExportableOfflineDownloads();
+        offlineCount = Object.keys(activeOffline).length;
     } catch (e) {
         offlineCount = 0;
     }
@@ -272,7 +275,7 @@ export async function populateExportItemCounts() {
     // Set text values
     if (badgeQuizzes) badgeQuizzes.textContent = `${quizCount} quizzes`;
     if (badgeTakes) badgeTakes.textContent = `${takesCount} takes`;
-    if (badgeOffline) badgeOffline.textContent = `${offlineCount} items`;
+    if (badgeOffline) badgeOffline.textContent = `${offlineCount} ${offlineCount === 1 ? 'item' : 'items'}`;
 
     // 2. Hide skeletons and reveal resolved badges
     if (skQuizzes) skQuizzes.classList.add('hidden');
@@ -334,8 +337,7 @@ export async function executeExport() {
 
         if (includeOffline) {
             try {
-                const rawOffline = localStorage.getItem(constants.OFFLINE_DOWNLOADS_DB_KEY);
-                exportPayload.offlineDownloads = rawOffline ? JSON.parse(rawOffline) : {};
+                exportPayload.offlineDownloads = getExportableOfflineDownloads();
             } catch (e) {
                 exportPayload.offlineDownloads = {};
             }
@@ -712,8 +714,7 @@ export function autoExportMigrationBundle() {
 
         let offlineDownloads = {};
         try {
-            const rawOffline = localStorage.getItem(constants.OFFLINE_DOWNLOADS_DB_KEY);
-            offlineDownloads = rawOffline ? JSON.parse(rawOffline) : {};
+            offlineDownloads = getExportableOfflineDownloads();
         } catch (e) {}
 
         const preferences = {
