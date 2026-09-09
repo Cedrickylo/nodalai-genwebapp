@@ -20,7 +20,8 @@ import {
     hideLoadingOverlay,
     deleteQuizPermanently,
     extractShareId,
-    getQuizTakes
+    getQuizTakes,
+    getQuizTypeLabel
 } from '../helpers.js';
 
 const {
@@ -294,14 +295,9 @@ export function showAllHistoryFullScreen(pushHash = true) {
         const config = data.config || {};
         
         const tInfo = formatTime(config.totalTime);
-        let diffTxt = '';
-        if (config.difficulty === 'custom' && config.customTypeShort) {
-            diffTxt = `(${config.difficulty}: ${config.customTypeShort})`;
-        } else if (config.difficulty) {
-            diffTxt = `(${config.difficulty})`;
-        } else {
-            diffTxt = `(${config.type || 'mixed'})`;
-        }
+        const typeLabel = getQuizTypeLabel(config, data.questions);
+        const diffName = config.difficulty || (config.customType === 'mixed' ? 'custom' : 'easy');
+        const diffTxt = `(${diffName})`;
 
         const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
         const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
@@ -325,7 +321,7 @@ export function showAllHistoryFullScreen(pushHash = true) {
         item.innerHTML = `
             <div class="flex-grow min-w-0 mr-4 overflow-hidden">
                 ${titleHtml}
-                <p class="text-xs text-gray-400 truncate">${data.config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs (${typeLabel}) ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
             <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
             <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">

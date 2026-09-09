@@ -8,7 +8,8 @@ import {
     setupScrollReactiveHeader,
     pushSubState,
     clearSubState,
-    closeModalWithAnimation
+    closeModalWithAnimation,
+    getQuizTypeLabel
 } from '../helpers.js';
 import { handleHistoryClick } from './quizHistory.js';
 
@@ -362,21 +363,23 @@ export function refreshOfflineModalContent(quizKey) {
     }
 
     // Configure buttons:
-    // If available: download button acts as "Already Available" (clicking it asks to remove),
-    // and Renew & Remove buttons are displayed.
+    // If available: download button is replaced by "Delete from Offline Downloads" (and "Renew for 1 Week")
+    // If not available: download button is displayed ("Download for Offline Use"), and Renew & Delete buttons are hidden.
     if (status.available) {
         if (elements.offlineModalDownloadBtn) {
-            elements.offlineModalDownloadBtn.textContent = 'Available Offline (Tap to Remove)';
-            elements.offlineModalDownloadBtn.className = 'w-full py-2.5 bg-cyan-800/60 hover:bg-rose-900/60 text-cyan-200 hover:text-rose-200 border border-cyan-700/60 hover:border-rose-700 font-semibold rounded-xl text-center text-sm transition-colors cursor-pointer shadow-md';
+            elements.offlineModalDownloadBtn.classList.add('hidden');
         }
         if (elements.offlineModalRenewBtn) {
             elements.offlineModalRenewBtn.classList.remove('hidden');
+            elements.offlineModalRenewBtn.textContent = 'Renew for 1 Week';
         }
         if (elements.offlineModalRemoveBtn) {
             elements.offlineModalRemoveBtn.classList.remove('hidden');
+            elements.offlineModalRemoveBtn.textContent = 'Delete from Offline Downloads';
         }
     } else {
         if (elements.offlineModalDownloadBtn) {
+            elements.offlineModalDownloadBtn.classList.remove('hidden');
             elements.offlineModalDownloadBtn.textContent = 'Download for Offline Use';
             elements.offlineModalDownloadBtn.className = 'w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-xl text-center text-sm transition-colors cursor-pointer shadow-md';
         }
@@ -416,13 +419,31 @@ export function updateHistorySubmenuOfflineButton(quizKey) {
 
     const status = isQuizAvailableOffline(quizKey);
 
+    // Never hide the button; show current offline status or option to download
+    elements.historySubmenuOfflineBtn.classList.remove('hidden');
+
     if (status.available) {
-        // Quiz is already available offline: hide the button from the options menu
-        elements.historySubmenuOfflineBtn.classList.add('hidden');
-    } else {
-        elements.historySubmenuOfflineBtn.classList.remove('hidden');
         if (elements.historySubmenuOfflineText) {
-            elements.historySubmenuOfflineText.textContent = 'Make Available Offline';
+            elements.historySubmenuOfflineText.textContent = 'Offline Download Status';
+            elements.historySubmenuOfflineText.className = 'block text-sm font-semibold text-emerald-200';
+        }
+        if (elements.historySubmenuOfflineSubtext) {
+            elements.historySubmenuOfflineSubtext.textContent = `Expires in ${status.formattedTimeLeft} • Tap to manage or delete`;
+            elements.historySubmenuOfflineSubtext.className = 'block text-xs text-emerald-300/70';
+        }
+        if (elements.historySubmenuOfflineIconContainer) {
+            elements.historySubmenuOfflineIconContainer.className = 'p-2.5 bg-emerald-500/20 text-emerald-400 rounded-lg flex-shrink-0';
+            elements.historySubmenuOfflineIconContainer.innerHTML = `
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            `;
+        }
+        elements.historySubmenuOfflineBtn.className = 'w-full flex items-center gap-3.5 p-3 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/50 text-left transition-colors cursor-pointer';
+    } else {
+        if (elements.historySubmenuOfflineText) {
+            elements.historySubmenuOfflineText.textContent = 'Download for Offline Use';
             elements.historySubmenuOfflineText.className = 'block text-sm font-semibold text-cyan-200';
         }
         if (elements.historySubmenuOfflineSubtext) {
@@ -534,18 +555,13 @@ export function renderDownloadsView(pushHash = true) {
 
     offlineQuizzes.forEach(({ key, quiz, offlineInfo, storage }) => {
         const item = document.createElement('div');
-        item.className = 'p-3 sm:p-4 bg-gray-700/50 rounded-xl flex justify-between items-center gap-2 border border-gray-600/50';
+        item.className = 'offline-card-item p-3 sm:p-4 bg-gray-700/50 rounded-xl flex justify-between items-center gap-2 border border-gray-600/50';
 
         const config = quiz.config || {};
         const tInfo = formatTime(config.totalTime);
-        let diffTxt = '';
-        if (config.difficulty === 'custom' && config.customTypeShort) {
-            diffTxt = `(${config.difficulty}: ${config.customTypeShort})`;
-        } else if (config.difficulty) {
-            diffTxt = `(${config.difficulty})`;
-        } else {
-            diffTxt = `(${config.type || 'mixed'})`;
-        }
+        const typeLabel = getQuizTypeLabel(config, quiz.questions);
+        const diffName = config.difficulty || (config.customType === 'mixed' ? 'custom' : 'easy');
+        const diffTxt = `(${diffName})`;
 
         const remainingMs = offlineInfo.remainingMs || 0;
         const daysLeft = Math.floor(remainingMs / (24 * 60 * 60 * 1000));
@@ -564,21 +580,23 @@ export function renderDownloadsView(pushHash = true) {
         `;
 
         const titleHtml = `
-            <div class="flex items-center gap-2 min-w-0 mb-1 w-full flex-wrap">
-                <p class="font-semibold text-sm truncate min-w-0 text-white" title="${quiz.fileName || 'Untitled'}">
+            <div class="offline-header-row mb-1">
+                <p class="offline-quiz-title font-semibold text-sm truncate min-w-0 text-white flex-shrink" title="${quiz.fileName || 'Untitled'}">
                     ${quiz.fileName || 'Untitled'}
                 </p>
-                ${expiryBadgeHTML}
-                <span class="offline-pill" title="Total offline storage: Quiz + statistics">
-                    ${storage.totalFormatted}
-                </span>
+                <div class="offline-chips-group">
+                    ${expiryBadgeHTML}
+                    <span class="offline-pill" title="Total offline storage: Quiz + statistics">
+                        ${storage.totalFormatted}
+                    </span>
+                </div>
             </div>
         `;
 
         item.innerHTML = `
-            <div class="flex-grow min-w-0 mr-4 overflow-hidden">
+            <div class="flex-grow min-w-0 mr-4 overflow-hidden offline-card-content flex flex-col justify-center">
                 ${titleHtml}
-                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} • Saved with statistics</p>
+                <p class="offline-meta-row text-xs text-gray-400 truncate">${config.count || 0} Qs (${typeLabel}) ${diffTxt} ${tInfo} • Saved with statistics</p>
             </div>
             <!-- Mobile 2-button layout: Stacked Load on top, Option button with text below -->
             <div class="flex flex-col md:hidden flex-shrink-0 gap-1.5 items-stretch min-w-[70px]">
@@ -621,6 +639,76 @@ export function renderDownloadsView(pushHash = true) {
 
     container.onclick = handleHistoryClick;
     setupScrollReactiveHeader('downloads');
+    setupDownloadsResizeObserver(container);
+    requestAnimationFrame(() => {
+        checkOfflineChipsFit();
+    });
+}
+
+let downloadsResizeObserver = null;
+let lastContainerWidth = 0;
+
+/**
+ * Checks whether any card in the offline downloads table cannot fit its title and chips on row 1.
+ * If ANY card overflows, the entire table shifts chips to row 2 and quiz info to row 3 in unity.
+ */
+export function checkOfflineChipsFit() {
+    const container = elements.downloadsList || document.getElementById('downloads-list');
+    if (!container) return;
+
+    const cards = container.querySelectorAll('.offline-card-item');
+    if (cards.length === 0) {
+        container.classList.remove('table-chips-stacked');
+        return;
+    }
+
+    let shouldStack = false;
+
+    for (const card of cards) {
+        const content = card.querySelector('.offline-card-content');
+        const title = card.querySelector('.offline-quiz-title');
+        const chips = card.querySelector('.offline-chips-group');
+
+        if (!content || !title || !chips) continue;
+
+        const availableWidth = content.clientWidth;
+        if (availableWidth <= 0) continue;
+
+        const titleWidth = title.scrollWidth;
+        const chipsWidth = chips.offsetWidth;
+        const gap = 8;
+        const marginBuffer = 6;
+
+        if ((titleWidth + chipsWidth + gap + marginBuffer) > availableWidth) {
+            shouldStack = true;
+            break;
+        }
+    }
+
+    const currentlyStacked = container.classList.contains('table-chips-stacked');
+    if (shouldStack !== currentlyStacked) {
+        container.classList.toggle('table-chips-stacked', shouldStack);
+    }
+}
+
+function setupDownloadsResizeObserver(container) {
+    if (downloadsResizeObserver) {
+        downloadsResizeObserver.disconnect();
+    }
+    if (typeof ResizeObserver !== 'undefined') {
+        downloadsResizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const width = entry.contentRect.width;
+                if (Math.abs(width - lastContainerWidth) > 1) {
+                    lastContainerWidth = width;
+                    checkOfflineChipsFit();
+                }
+            }
+        });
+        downloadsResizeObserver.observe(container);
+    } else {
+        window.addEventListener('resize', checkOfflineChipsFit, { passive: true });
+    }
 }
 
 /**

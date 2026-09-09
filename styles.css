@@ -721,6 +721,42 @@
 }
 
 /* ==================================================================
+   OFFLINE DOWNLOADS TABLE CHIPS UNITY LAYOUT
+   Default: Chips inline with title on Row 1, Quiz info on Row 2
+   Stacked (.table-chips-stacked): Title on Row 1, Chips on Row 2,
+                                   Quiz info on Row 3 across all cards
+   ================================================================== */
+#downloads-list .offline-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    width: 100%;
+}
+
+#downloads-list .offline-chips-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+#downloads-list.table-chips-stacked .offline-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+
+#downloads-list.table-chips-stacked .offline-header-row .offline-quiz-title {
+    width: 100%;
+}
+
+#downloads-list.table-chips-stacked .offline-header-row .offline-chips-group {
+    margin-bottom: 0.15rem;
+}
+
+/* ==================================================================
    RESPONSIVE QUIZ STATUS HEADER LAYOUT
    Mobile (< 640px): 2-row layout (Row 1: Question left, Points right;
                                     Row 2: Sync left, Actions right)

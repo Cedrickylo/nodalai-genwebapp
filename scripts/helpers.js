@@ -2495,6 +2495,46 @@ export function formatTime(secs) {
     return `(${mins}m)`;
 }
 
+export function getQuizTypeLabel(config = {}, questions = []) {
+    const raw = (config.customTypeShort || config.customType || config.type || '').toString().trim().toLowerCase().replace(/[_\-\/]/g, '');
+    if (raw === 'mc' || raw === 'multiplechoice') return 'MC';
+    if (raw === 'tf' || raw === 'trueorfalse' || raw === 'truefalse') return 'T/F';
+    if (raw === 'id' || raw === 'identification') return 'ID';
+    if (raw === 'en' || raw === 'enumeration') return 'EN';
+    if (raw === 'mix' || raw === 'mixed') return 'MIX';
+
+    const mc = (config.mc !== undefined ? config.mc : (config.counts?.mc)) || 0;
+    const tf = (config.tf !== undefined ? config.tf : (config.counts?.tf)) || 0;
+    const id = (config.id !== undefined ? config.id : (config.counts?.id)) || 0;
+    const en = (config.en !== undefined ? config.en : (config.counts?.en)) || 0;
+    const active = [];
+    if (mc > 0) active.push('MC');
+    if (tf > 0) active.push('T/F');
+    if (id > 0) active.push('ID');
+    if (en > 0) active.push('EN');
+    if (active.length > 1) return 'MIX';
+    if (active.length === 1) return active[0];
+
+    if (Array.isArray(questions) && questions.length > 0) {
+        const typesFound = new Set();
+        for (const q of questions) {
+            const qt = (q.type || '').toString().trim().toLowerCase().replace(/[_\-\/]/g, '');
+            const isTF = qt === 'trueorfalse' || qt === 'truefalse' || qt === 'tf' || (
+                Array.isArray(q.options) && q.options.length === 2 &&
+                q.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase()))
+            );
+            if (isTF) typesFound.add('T/F');
+            else if (qt === 'identification' || qt === 'id') typesFound.add('ID');
+            else if (qt === 'enumeration' || qt === 'en') typesFound.add('EN');
+            else typesFound.add('MC');
+        }
+        if (typesFound.size > 1) return 'MIX';
+        if (typesFound.size === 1) return [...typesFound][0];
+    }
+
+    return 'MC';
+}
+
 export function refreshHistory() {
     const isCustomizing = state.isCustomizingHistory || (state.currentFiles && state.currentFiles.length > 0) || !document.getElementById('customize-content')?.classList.contains('hidden');
     if (isCustomizing) {
@@ -2563,15 +2603,9 @@ export function refreshHistory() {
     function generateQuizItemHTML(key, data, showDelete = false) {
         const config = data.config || {};
         const tInfo = formatTime(config.totalTime);
-        
-        let diffTxt = '';
-        if (config.difficulty === 'custom' && config.customTypeShort) {
-            diffTxt = `(${config.difficulty}: ${config.customTypeShort})`;
-        } else if (config.difficulty) {
-            diffTxt = `(${config.difficulty})`;
-        } else {
-            diffTxt = `(${config.type || 'mixed'})`;
-        }
+        const typeLabel = getQuizTypeLabel(config, data.questions);
+        const diffName = config.difficulty || (config.customType === 'mixed' ? 'custom' : 'easy');
+        const diffTxt = `(${diffName})`;
         
         const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
         const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
@@ -2591,7 +2625,7 @@ export function refreshHistory() {
                     </p>
                     ${shareIconHTML}
                 </div>
-                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs (${typeLabel}) ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
             </div>
             <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
             <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
