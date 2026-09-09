@@ -218,15 +218,15 @@
                     <label for="file-upload-input" class="flex-1 min-w-0 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate">
                         <span id="file-name">Select Documents</span>
                     </label>
-                    <label for="import-quiz-input" class="w-12 h-12 flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition cursor-pointer flex-shrink-0" title="Import Quiz">
+                    <button id="open-import-choice-btn" type="button" class="w-12 h-12 flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition cursor-pointer flex-shrink-0 shadow-md" title="Import Quiz" aria-label="Import Quiz">
                         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="3" x2="12" y2="15"></line>
                         </svg>
-                    </label>
-                    <input type="file" id="file-upload-input" multiple>
-                    <input type="file" id="import-quiz-input" accept=".json">
+                    </button>
+                    <input type="file" id="file-upload-input" multiple accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md,.rtf,.odt,.csv,.html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,text/plain,text/markdown,text/html">
+                    <input type="file" id="import-quiz-input" accept=".json" class="hidden">
                 </div>
 
                 <div id="customize-section" class="hidden mb-6">
@@ -250,10 +250,26 @@
                         <div id="selected-files-container" class="hidden p-4 bg-gray-700/30 border border-gray-600 rounded-lg w-full min-w-0 overflow-hidden">
                             <div class="flex justify-between items-center mb-2">
                                 <h4 class="text-sm font-medium text-gray-300">Selected Documents</h4>
-                                <div class="flex gap-2">
-                                    <label for="add-more-files-input" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded cursor-pointer transition shadow-md">Add More</label>
-                                    <button id="clear-files-btn" class="text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-3 rounded transition shadow-md">Clear</button>
-                                    <input type="file" id="add-more-files-input" multiple class="hidden">
+                                <div class="flex gap-2 items-center">
+                                    <label for="add-more-files-input" class="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center cursor-pointer transition shadow-md" title="Add More Documents" aria-label="Add More Documents">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 12H3"/>
+                                            <path d="M16 6H3"/>
+                                            <path d="M16 18H3"/>
+                                            <path d="M18 9v6"/>
+                                            <path d="M15 12h6"/>
+                                        </svg>
+                                    </label>
+                                    <button id="clear-files-btn" type="button" class="w-8 h-8 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center justify-center transition shadow-md cursor-pointer" title="Clear All Documents" aria-label="Clear All Documents">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 12H3"/>
+                                            <path d="M16 6H3"/>
+                                            <path d="M16 18H3"/>
+                                            <path d="m19 10-4 4"/>
+                                            <path d="m15 10 4 4"/>
+                                        </svg>
+                                    </button>
+                                    <input type="file" id="add-more-files-input" multiple class="hidden" accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md,.rtf,.odt,.csv,.html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,text/plain,text/markdown,text/html">
                                 </div>
                             </div>
                             <ul id="selected-files-list" class="space-y-1.5 text-xs text-gray-400 max-h-36 overflow-y-auto overflow-x-hidden pl-1 w-full min-w-0"></ul>
@@ -274,9 +290,9 @@
                             </div>
                         </div>
 
-                        <!-- Quiz Type and Mode of Interaction Row -->
+                        <!-- Quiz Type, Mode of Interaction, and Mixed Counts Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div id="quiz-type-group" class="bg-gray-700/50 p-4 rounded-lg space-y-2">
+                            <div id="quiz-type-group" class="order-1 md:order-1 md:col-span-1 bg-gray-700/50 p-4 rounded-lg space-y-2">
                                 <label for="custom-question-type" class="block text-sm font-medium text-gray-300">Quiz Type</label>
                                 <select id="custom-question-type" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="mixed" selected>Mixed Types</option>
@@ -288,7 +304,7 @@
                                 <span class="text-[11px] text-gray-400 block">Choose specific question format or a mix of types.</span>
                             </div>
 
-                            <div id="ui-mode-group" class="bg-gray-700/50 p-4 rounded-lg space-y-2">
+                            <div id="ui-mode-group" class="order-3 md:order-2 md:col-span-1 bg-gray-700/50 p-4 rounded-lg space-y-2">
                                 <label class="block text-sm font-medium text-gray-300">Mode of Interaction</label>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
@@ -306,19 +322,19 @@
                                 </div>
                                 <span class="text-[11px] text-gray-400 block">Modern UI includes Back button, readable counters, and review tools.</span>
                             </div>
-                        </div>
 
-                        <!-- Mixed Counts Section (shown when Mixed is selected) -->
-                        <div id="custom-options" class="bg-gray-700/50 p-4 rounded-lg space-y-4">
-                            <div id="custom-mixed-counts">
-                                <p class="text-sm font-medium text-gray-300 mb-3 text-center">Specify counts for mixed type:</p>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    <div><label for="mc-count" class="block text-xs text-gray-400">Multiple Choice</label><input type="number" id="mc-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="4" min="0"></div>
-                                    <div><label for="tf-count" class="block text-xs text-gray-400">True / False</label><input type="number" id="tf-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="2" min="0"></div>
-                                    <div><label for="id-count" class="block text-xs text-gray-400">Identification</label><input type="number" id="id-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="2" min="0"></div>
-                                    <div><label for="en-count" class="block text-xs text-gray-400">Enumeration</label><input type="number" id="en-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="2" min="0"></div>
+                            <!-- Mixed Counts Section (shown when Mixed is selected) -->
+                            <div id="custom-options" class="order-2 md:order-3 md:col-span-2 bg-gray-700/50 p-4 rounded-lg space-y-4">
+                                <div id="custom-mixed-counts">
+                                    <p class="text-sm font-medium text-gray-300 mb-3 text-center">Specify counts for mixed type:</p>
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div><label for="mc-count" class="block text-xs text-gray-400">Multiple Choice</label><input type="number" id="mc-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="4" min="0"></div>
+                                        <div><label for="tf-count" class="block text-xs text-gray-400">True / False</label><input type="number" id="tf-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="2" min="0"></div>
+                                        <div><label for="id-count" class="block text-xs text-gray-400">Identification</label><input type="number" id="id-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="2" min="0"></div>
+                                        <div><label for="en-count" class="block text-xs text-gray-400">Enumeration</label><input type="number" id="en-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 custom-count" value="2" min="0"></div>
+                                    </div>
+                                    <p id="custom-total-feedback" class="text-xs text-center mt-3 h-4"></p>
                                 </div>
-                                <p id="custom-total-feedback" class="text-xs text-center mt-3 h-4"></p>
                             </div>
                         </div>
 
@@ -460,16 +476,16 @@
                         <div class="flex items-center gap-3">
                             <button id="sync-cloud-btn" class="global-sync-btn flex items-center text-xs font-medium transition-colors cursor-pointer outline-none" title="Click to sync with cloud">
                                 <span class="sync-icon-done hidden text-green-500 flex items-center gap-1 hover:text-green-400">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><path d="M3 15a9 9 0 0 1 17.1-4.2"/><polyline points="7 12 10 15 17 8"/></svg>
-                                    Synced
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><polyline points="9 16 12 19 19 12"/></svg>
+                                    <span class="sync-text-label">Synced</span>
                                 </span>
                                 <span class="sync-icon-loading hidden text-blue-400 flex items-center gap-1">
-                                    <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.21-8.58"/><path d="M15 2v5h5"/><path d="M21 12a9 9 0 0 1-15 6.6L3 12"/><path d="M3 12a9 9 0 0 1 15-6.6L21 12"/></svg>
-                                    Syncing...
+                                    <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
+                                    <span class="sync-text-label">Syncing...</span>
                                 </span>
                                 <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1 hover:text-red-300">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                    <span class="sync-text-offline">Logged out</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                    <span class="sync-text-label sync-text-offline">Logged out</span>
                                 </span>
                             </button>
                             
@@ -519,16 +535,16 @@
                     <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Quiz History</h2>
                         <button id="full-history-sync-btn" class="global-sync-btn flex items-center justify-end text-xs font-medium transition-colors cursor-pointer outline-none justify-self-end" title="Click to sync with cloud">
                             <span class="sync-icon-done hidden text-green-500 flex items-center gap-1 hover:text-green-400">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><path d="M3 15a9 9 0 0 1 17.1-4.2"/><polyline points="7 12 10 15 17 8"/></svg>
-                                Synced
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><polyline points="9 16 12 19 19 12"/></svg>
+                                <span class="sync-text-label">Synced</span>
                             </span>
                             <span class="sync-icon-loading hidden text-blue-400 flex items-center gap-1">
-                                <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.21-8.58"/><path d="M15 2v5h5"/><path d="M21 12a9 9 0 0 1-15 6.6L3 12"/><path d="M3 12a9 9 0 0 1 15-6.6L21 12"/></svg>
-                                Syncing...
+                                <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
+                                <span class="sync-text-label">Syncing...</span>
                             </span>
                             <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1 hover:text-red-300">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                <span class="sync-text-offline">Logged out</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                <span class="sync-text-label sync-text-offline">Logged out</span>
                             </span>
                         </button>
                     </div>
@@ -586,15 +602,15 @@
                         <h2 id="statistics-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">Quiz Statistics</h2>
                         <button id="statistics-sync-btn" class="global-sync-btn flex items-center justify-end text-xs font-medium transition-colors cursor-pointer outline-none justify-self-end" title="Click to sync with cloud">
                             <span class="sync-icon-done hidden text-green-500 flex items-center gap-1 hover:text-green-400">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><path d="M3 15a9 9 0 0 1 17.1-4.2"/><polyline points="7 12 10 15 17 8"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><polyline points="9 16 12 19 19 12"/></svg>
                                 <span class="sync-text-label">Synced</span>
                             </span>
                             <span class="sync-icon-loading hidden text-blue-400 flex items-center gap-1">
-                                <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.21-8.58"/><path d="M15 2v5h5"/><path d="M21 12a9 9 0 0 1-15 6.6L3 12"/><path d="M3 12a9 9 0 0 1 15-6.6L21 12"/></svg>
+                                <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
                                 <span class="sync-text-label">Syncing...</span>
                             </span>
                             <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1 hover:text-red-300">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
                                 <span class="sync-text-label sync-text-offline">Logged out</span>
                             </span>
                         </button>
@@ -908,8 +924,12 @@
         <div id="quiz-view" class="view w-full max-w-4xl mx-auto">
              <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl relative flex flex-col min-h-[75vh] md:min-h-[600px]">
                 
-                <div id="visual-timer-container" class="hidden w-full h-2 bg-gray-700 rounded-full overflow-hidden mb-4 flex-shrink-0">
-                    <div id="visual-timer-bar" class="h-2 bg-blue-500 transition-colors duration-300" style="width: 100%;"></div>
+                <div id="visual-timer-container" class="hidden flex items-center gap-2.5 mb-4 w-full flex-shrink-0">
+                    <div id="timer-total-display" class="hidden text-xs font-semibold text-gray-400 tabular-nums px-2 py-0.5 bg-gray-800/90 border border-gray-700/80 rounded-md transition-colors shadow-sm whitespace-nowrap" title="Total Duration"></div>
+                    <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div id="visual-timer-bar" class="h-2 bg-blue-500 transition-colors duration-300" style="width: 100%;"></div>
+                    </div>
+                    <div id="timer-display" class="hidden text-xs font-semibold text-gray-300 tabular-nums px-2 py-0.5 bg-gray-800/90 border border-gray-700/80 rounded-md transition-colors shadow-sm whitespace-nowrap" title="Remaining Time"></div>
                 </div>
                 
                 <div id="quiz-status-header" class="quiz-status-header mb-6 flex-shrink-0"> 
@@ -919,23 +939,19 @@
                         <div id="classic-progress-container" class="flex items-center">
                             <div id="progress" class="text-sm font-medium text-gray-300"></div>
                         </div>
-                        <!-- Modern Meta Container: Readable Question Number & Type Badge -->
+                        <!-- Modern Meta Container: Readable Question Number -->
                         <div id="modern-meta-container" class="hidden flex items-center gap-2.5 flex-wrap">
                             <span id="modern-question-number" class="text-sm sm:text-base font-bold text-blue-300 bg-blue-950/70 border border-blue-600/40 px-3 py-1 rounded-lg shadow-sm">
                                 Question 1 of 10
-                            </span>
-                            <span id="modern-question-type-badge" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50">
-                                Multiple Choice
                             </span>
                         </div>
                     </div>
 
                     <!-- Right Cluster: Contains Stats, Sync, and Action Buttons -->
                     <div class="quiz-header-right-cluster">
-                        <!-- Row 1 Right (Mobile): Points, Timer, Score, Check/Exes -->
+                        <!-- Row 1 Right (Mobile): Points, Score, Check/Exes -->
                         <div class="quiz-header-stats">
-                            <div id="attempt-display" class="hidden text-sm font-medium bg-yellow-600 text-white px-3 py-1 rounded-full"></div>
-                            <div id="timer-display" class="hidden text-sm font-medium bg-gray-700 text-white px-3 py-1 rounded-full transition-colors"></div>
+                            <div id="attempt-display" class="hidden text-xs font-bold px-2.5 py-1 rounded-full bg-amber-950/70 text-amber-300 border border-amber-600/50 flex items-center gap-1 shadow-sm"></div>
                             
                             <!-- Classic Score Badge -->
                             <div id="score" class="text-sm font-medium bg-blue-500 text-white px-3 py-1 rounded-full"></div>
@@ -953,20 +969,23 @@
                             </div>
                         </div>
 
-                        <!-- Row 2 Left (Mobile): Cloud Sync Indicator -->
-                        <div class="quiz-header-sync">
+                        <!-- Row 2 Left (Mobile): Question Type Badge First, Cloud Sync Indicator After -->
+                        <div class="quiz-header-sync flex items-center gap-2">
+                            <span id="modern-question-type-badge" class="hidden text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50 whitespace-nowrap">
+                                Multiple Choice
+                            </span>
                             <div id="quiz-sync-indicator" class="flex items-center text-xs font-medium" title="Cloud Status">
                                 <span class="sync-icon-done hidden text-green-500 flex items-center gap-1">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/><polyline points="7 12 10 15 17 8"/></svg>
-                                    Synced
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><polyline points="9 16 12 19 19 12"/></svg>
+                                    <span class="sync-text-label">Synced</span>
                                 </span>
                                 <span class="sync-icon-loading hidden text-blue-400 flex items-center gap-1">
-                                    <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.21-8.58"/><path d="M15 2v5h5"/></svg>
-                                    Syncing
+                                    <svg class="animate-sync" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
+                                    <span class="sync-text-label">Syncing</span>
                                 </span>
                                 <span class="sync-icon-offline hidden text-red-400 flex items-center gap-1">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                    <span class="sync-text-offline">Logged out</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                    <span class="sync-text-label sync-text-offline">Logged out</span>
                                 </span>
                             </div>
                         </div>
@@ -1207,7 +1226,7 @@
                                             <h3 class="text-base sm:text-lg font-bold text-white">September 9, 2026</h3>
                                             <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-0.5">Comprehensive Hardening & UI Polish: Generation Cooldowns, AI Self-Correction, Account Storage, Desktop PWA Titlebar Controls & 30/60/90/120Hz Adaptive Header Transitions</p>
+                                        <p class="text-xs text-gray-400 mt-0.5">Comprehensive Update: Raw JSON Pasting & Unified Import Modal, 60fps Modal Transitions, Customize Navigation Guard, Universal Sync Icons, Centered Headers, Document File Limits & Timer Display</p>
                                     </div>
                                 </div>
                                 <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -1218,6 +1237,42 @@
                                 <div>
                                     <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
                                     <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Raw Quiz JSON Text Pasting & Unified Import Modal:</strong> You can now paste raw JSON text or markdown code blocks (<code>```json</code>) generated by external AI tools (ChatGPT, Claude, Gemini Web, DeepSeek) directly into Nodal AI without downloading or saving files. Combined the homepage import buttons into a single, intuitive "Import Quiz" modal (<code>#import-choice-modal</code>) that lets you choose between selecting a saved <code>.json</code> file or pasting raw text.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>60fps GPU-Accelerated Modal Opening & Closing Transitions:</strong> Integrated silky-smooth backdrop fade (<code>modalBackdropFadeIn</code> / <code>modalBackdropFadeOut</code>) and card pop (<code>modalContentPopIn</code> / <code>modalContentPopOut</code>) keyframe animations across all dialogs including Import Choice, Paste Quiz JSON, and Confirmations with click-outside backdrop dismissal.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Active Customize Screen Page Navigation Guard:</strong> Navigating away from the active Customize screen to another view (History, Help, About, Downloads, Account, or Home) now prompts a confirmation modal with <strong>"Stay"</strong> and <strong>"Cancel Generation"</strong> options, preventing accidental document loss. Opening the mobile slide-out drawer remains freely accessible without triggering the prompt.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Conditional AI Service Notice:</strong> The amber "AI Service Notice" banner in the AI prompt generator is automatically hidden when manually choosing "Other Provider" or canceling generation. It only appears when AI generation experiences an actual network outage, timeout, or model failure.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Universal Cloud Sync Icon Standardization:</strong> Standardized cloud sync status icons across the Home screen, Full History view, Statistics dashboard, live Quiz execution header, and Mobile navigation, ensuring synchronized real-time offline, syncing, and synced states website-wide.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Screen-Centered Sticky Header Titles:</strong> Sticky page header titles (<code>.page-sticky-header h2</code>) are now anchored to the exact visual center of the device screen (<code>left: 50%; transform: translateX(-50%)</code>), preventing title shifting regardless of whether navigation buttons appear on the left or right.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Document File Type Restrictions:</strong> Enforced document-only file upload validation (accepting <code>.txt</code>, <code>.pdf</code>, <code>.docx</code>, <code>.doc</code>, <code>.ppt</code>, <code>.pptx</code>, <code>.md</code>, <code>.rtf</code>, <code>.odt</code>) with clear warning notifications for unsupported formats.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Timer Total Duration Display & Reordered Quiz Header:</strong> Added the total quiz time duration badge to the left of the visual progress bar (<code>#timer-total-display</code>), and reordered live quiz header chips so the question type badge intuitively precedes the cloud sync status indicator.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Mobile UI Symmetrical Button Sizing & Mixed Count Card Alignment:</strong> Replaced the Customize screen "Add More" and "Clear" text buttons with symmetrical modern icon buttons (list-plus and list-x), matched mobile modal load button heights, and fixed the mixed question type breakdown card to show instantly upon opening and position directly beneath the quiz type dropdown on mobile.</span>
+                                        </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
                                             <span><strong>Fair Use Generation Cooldown Protection:</strong> Implemented a smart 2-generation allowance per 3-minute window and a 10-generation limit per 3-hour period. Successful generations only count against limits—failed attempts due to network issues or AI errors do not deduct from quota. Includes real-time status display and live countdown timer in the Puter Account dashboard.</span>
@@ -2324,7 +2379,7 @@
         </div>
 
         <div class="p-5 sm:p-6 overflow-y-auto space-y-5">
-            <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-start gap-3">
+            <div id="ai-service-notice" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-start gap-3">
                 <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 <div class="text-xs text-gray-300 leading-relaxed">
                     <strong class="text-amber-300 font-semibold block text-sm mb-0.5">AI Service Notice</strong>
@@ -2355,17 +2410,116 @@
                 <ol class="list-decimal list-inside space-y-2 text-xs text-gray-300 leading-relaxed pl-1">
                     <li><span class="font-medium text-white">Copy Prompt:</span> Click <strong class="text-blue-400">Copy Prompt</strong> above and paste it into your AI of choice (ChatGPT, Claude, Gemini, etc.). If you did not upload files here, paste your reviewer notes below the prompt.</li>
                     <li><span class="font-medium text-white">Save Output:</span> Save or download the AI's JSON output as a <code class="bg-gray-800 text-blue-400 px-1.5 py-0.5 rounded border border-gray-700">.json</code> file on your computer/phone.</li>
-                    <li><span class="font-medium text-white">Import to Nodal AI:</span> Click the <strong class="text-teal-400">Import JSON File</strong> button below (or use the teal import icon on the home screen) to open and play your quiz!</li>
+                    <li><span class="font-medium text-white">Import to Nodal AI:</span> Click <strong class="text-blue-400">Paste Quiz JSON</strong> to paste directly, or <strong class="text-teal-400">Import JSON File</strong> to open your saved file!</li>
                 </ol>
             </div>
         </div>
 
         <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex flex-col sm:flex-row gap-2 justify-end">
+            <button id="ai-prompt-paste-btn" type="button" class="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg text-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                <span>Paste Quiz JSON</span>
+            </button>
             <button id="ai-prompt-import-btn" class="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg text-sm">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 <span>Import JSON File</span>
             </button>
             <button id="close-ai-prompt-footer-btn" class="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl transition-colors text-sm">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Import Choice Modal -->
+<div id="import-choice-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+    <div class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col">
+        <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/90 relative">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-teal-500/20 rounded-xl text-teal-400">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white leading-tight">Import Quiz</h3>
+                    <p class="text-xs text-gray-400">Choose how you'd like to load your quiz</p>
+                </div>
+            </div>
+            <button id="close-import-choice-modal-btn" class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700/50" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-3">
+            <button id="import-choice-file-btn" type="button" class="w-full text-left p-4 bg-gray-700/50 hover:bg-gray-700 border border-gray-600 hover:border-teal-500 rounded-xl transition-all group flex items-start gap-4 cursor-pointer">
+                <div class="p-3 bg-teal-600/20 text-teal-400 rounded-xl group-hover:bg-teal-600 group-hover:text-white transition-colors flex-shrink-0">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-white text-base group-hover:text-teal-300 transition-colors">Import JSON File</div>
+                    <div class="text-xs text-gray-400 mt-0.5">Select and upload a saved quiz <code class="text-teal-400 font-mono">.json</code> file from your device.</div>
+                </div>
+            </button>
+
+            <button id="import-choice-paste-btn" type="button" class="w-full text-left p-4 bg-gray-700/50 hover:bg-gray-700 border border-gray-600 hover:border-blue-500 rounded-xl transition-all group flex items-start gap-4 cursor-pointer">
+                <div class="p-3 bg-blue-600/20 text-blue-400 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors flex-shrink-0">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-white text-base group-hover:text-blue-300 transition-colors">Paste Raw JSON Text</div>
+                    <div class="text-xs text-gray-400 mt-0.5">Paste raw JSON text or markdown code block generated by ChatGPT, Claude, Gemini, etc.</div>
+                </div>
+            </button>
+        </div>
+
+        <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex justify-end">
+            <button id="close-import-choice-footer-btn" type="button" class="w-full sm:w-auto px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl transition-colors text-sm cursor-pointer">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Paste Quiz JSON Modal -->
+<div id="paste-json-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+    <div class="bg-gray-800 w-full max-w-xl rounded-2xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[92vh]">
+        <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/90 relative">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-500/20 rounded-xl text-blue-400">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white leading-tight">Paste Quiz JSON</h3>
+                    <p class="text-xs text-gray-400">Paste raw AI response text or JSON code blocks</p>
+                </div>
+            </div>
+            <button id="close-paste-json-modal-btn" class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700/50" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-4">
+            <p class="text-xs text-gray-300">Copy the JSON output generated by ChatGPT, Claude, Gemini, DeepSeek, or any other AI provider and paste it below. Markdown wrappers like <code class="bg-gray-900 text-blue-400 px-1.5 py-0.5 rounded border border-gray-700">```json</code> are automatically detected and cleaned.</p>
+            <div class="relative bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-inner">
+                <textarea id="paste-json-textarea" class="w-full h-56 bg-transparent text-xs font-mono text-gray-200 outline-none resize-none selection:bg-blue-600 selection:text-white leading-relaxed pr-1" placeholder="Paste your quiz JSON text here..."></textarea>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex flex-col sm:flex-row gap-2 justify-end">
+            <button id="submit-paste-json-btn" type="button" class="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg text-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Load Quiz</span>
+            </button>
+            <button id="cancel-paste-json-btn" type="button" class="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl transition-colors text-sm">Cancel</button>
         </div>
     </div>
 </div>

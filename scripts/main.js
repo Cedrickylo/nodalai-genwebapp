@@ -1,8 +1,8 @@
-import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter } from './helpers.js';
+import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter, isCustomizingQuizGeneration } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
 import { initNetlifyMigrationBannerAndNotice } from './quiz/quizMigration.js';
-import { elements } from './state.js';
+import { elements, state } from './state.js';
 
 // ==================================================================
 // GLOBAL UNHANDLED REJECTION SAFETY NET
@@ -18,6 +18,27 @@ window.addEventListener('unhandledrejection', (event) => {
     if (isPuterRelated || !navigator.onLine) {
         console.warn('Globally intercepted and suppressed offline cloud promise rejection:', event.reason);
         event.preventDefault(); // Silences the red error crash trigger
+    }
+});
+
+// ==================================================================
+// GLOBAL BROWSER REFRESH / CLOSE SAFETY GUARD (beforeunload)
+// Prevents accidental data loss or disruption during:
+// 1. Active Quiz session
+// 2. Pending or active AI Quiz Generation (loading view / API request)
+// 3. Active Quiz Customization
+// ==================================================================
+window.addEventListener('beforeunload', (event) => {
+    const isQuizActive = elements.views?.quiz && elements.views.quiz.classList.contains('active');
+    const isGenerationActive = (elements.views?.loading && elements.views.loading.classList.contains('active')) ||
+        state.aiGenerationInterval !== null || 
+        state.aiGenerationAbortController !== null;
+    const isCustomizing = isCustomizingQuizGeneration();
+
+    if (isQuizActive || isGenerationActive || isCustomizing) {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
     }
 });
 

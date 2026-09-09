@@ -1063,6 +1063,7 @@ export async function updateAuthUI() {
 
 export async function openAccountAsModal(pushHash = true) {
     if (!elements.accountModalOverlay || !elements.accountCard) return;
+    if (!await confirmLeaveCustomizeIfActive()) return;
 
     // Show the small title card header when operating inside the floating overlay
     const cardHeader = document.getElementById('account-card-header');
@@ -1089,6 +1090,8 @@ export async function openAccountAsModal(pushHash = true) {
 
 // Function for Nav Bar buttons (Shows as Full Page Dashboard)
 export async function openAccountAsView() {
+    if (!await confirmLeaveCustomizeIfActive()) return;
+
     // Hide the card header to prevent duplicate title layouts with the sticky header navbar
     const cardHeader = document.getElementById('account-card-header');
     if (cardHeader) cardHeader.classList.add('hidden');
@@ -1478,17 +1481,72 @@ export function setupScrollReactiveHeader(viewId) {
     const sentinel = document.getElementById(config.sentinelId);
     if (!header || !sentinel) return;
 
-    const existingObserver = scrollReactiveHeaderObservers.get(viewId);
-    if (existingObserver) existingObserver.disconnect();
+    const existingCleanup = scrollReactiveHeaderObservers.get(viewId);
+    if (existingCleanup) {
+        if (typeof existingCleanup === 'function') {
+            existingCleanup();
+        } else if (existingCleanup.disconnect) {
+            existingCleanup.disconnect();
+        }
+    }
 
-    header.classList.remove('is-stuck');
+    const getScrollTop = () => window.scrollY || document.documentElement.scrollTop || 0;
+    const isAtTop = () => getScrollTop() <= 5;
+    const isNearEnd = () => {
+        const scrollTop = getScrollTop();
+        const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+        const clientHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        return scrollTop > 5 && (scrollTop + clientHeight >= scrollHeight - 20);
+    };
 
+    // Set initial state based on current scroll position
+    if (isAtTop()) {
+        header.classList.remove('is-stuck');
+    }
+
+    // Hysteresis Observer:
+    // When sentinel exits view, or near end of page, stick header.
+    // When sentinel intersects, ONLY unstick if user is truly at the top (scrollTop <= 5).
+    // If the intersection is an artifact of header shrinking or lack of scroll space,
+    // PRIORITIZE THE SMALL HEADER to eliminate resize flickering loops.
     const observer = new IntersectionObserver(([entry]) => {
-        header.classList.toggle('is-stuck', !entry.isIntersecting);
+        if (!entry.isIntersecting || isNearEnd()) {
+            header.classList.add('is-stuck');
+        } else {
+            if (isAtTop()) {
+                header.classList.remove('is-stuck');
+            } else {
+                header.classList.add('is-stuck');
+            }
+        }
     }, { threshold: 0 });
 
     observer.observe(sentinel);
-    scrollReactiveHeaderObservers.set(viewId, observer);
+
+    // Passive scroll listener to enforce state stability on fast flick or bounce scrolls
+    let rafId = null;
+    const onScroll = () => {
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+            rafId = null;
+            const scrollTop = getScrollTop();
+            if (scrollTop <= 5) {
+                header.classList.remove('is-stuck');
+            } else if (scrollTop > 15 || isNearEnd()) {
+                header.classList.add('is-stuck');
+            }
+        });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    const cleanup = () => {
+        observer.disconnect();
+        window.removeEventListener('scroll', onScroll);
+        if (rafId) cancelAnimationFrame(rafId);
+    };
+
+    scrollReactiveHeaderObservers.set(viewId, cleanup);
 }
 
 export function viewToHash(viewId) {
@@ -1528,6 +1586,7 @@ export function hashToView(hash) {
         case 'history-actions': return 'history-fullscreen';
         case 'offline-modal': return (getActiveViewId() === 'downloads' ? 'downloads' : 'history-fullscreen');
         case 'account-modal': return getActiveViewId() || 'start';
+        case 'import-choice': return 'start';
         default: return 'start';
     }
 }
@@ -1535,8 +1594,10 @@ export function hashToView(hash) {
 export const SUB_STATE_HASHES = [
     '#customize',
     '#edit',
+    '#import-choice',
     '#ai-choice',
     '#ai-prompt',
+    '#paste-json',
     '#account-modal',
     '#share',
     '#share-config',
@@ -1556,11 +1617,15 @@ export function pushSubState(hash, extraState = {}) {
     state.activeSubState = hash;
     state.authorizedSubStates = state.authorizedSubStates || new Set();
     state.authorizedSubStates.add(hash);
+    if (state.preModalScrollY === null || state.preModalScrollY === undefined) {
+        state.preModalScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    }
     if (window.location.hash !== hash) {
         window.history.pushState({ 
             view: getActiveViewId(), 
             subState: hash, 
             fromApp: true, 
+            preScrollY: state.preModalScrollY,
             ...extraState 
         }, '', hash);
     }
@@ -1622,6 +1687,45 @@ export function getActiveViewId() {
         if (el && el.classList.contains('active')) return id;
     }
     return 'start';
+}
+
+export function isCustomizingQuizGeneration() {
+    if (getActiveViewId() !== 'start') return false;
+    const customizeSection = elements.customizeSection || document.getElementById('customize-section');
+    const customizeContent = elements.customizeContent || document.getElementById('customize-content');
+    const isSectionVisible = (customizeSection && !customizeSection.classList.contains('hidden')) ||
+                             (customizeContent && !customizeContent.classList.contains('hidden'));
+    const hasFiles = (state.currentFiles && state.currentFiles.length > 0) ||
+                     (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0);
+    const isSubState = state.activeSubState === '#customize' || state.activeSubState === '#edit';
+    const isHist = !!state.isCustomizingHistory || !!state.customizingQuizData;
+    return isSectionVisible || hasFiles || isSubState || isHist;
+}
+
+export async function confirmLeaveCustomizeIfActive() {
+    if (!isCustomizingQuizGeneration()) {
+        return true;
+    }
+
+    const confirmed = await customConfirm(
+        'You are currently customizing quiz generation. Leaving this page will cancel your current quiz setup and clear your selected documents.\n\nDo you want to stay or cancel generation?',
+        'Customizing Quiz Generation',
+        'Cancel Generation',
+        'Stay',
+        true
+    );
+
+    if (confirmed) {
+        clearSubState('#customize');
+        clearSubState('#edit');
+        state.isCustomizingHistory = false;
+        const { resetApp } = await import('./quiz/quizUtils.js');
+        resetApp(true);
+        showToast('Quiz customization cancelled.', 2000, 'neutral');
+        return true;
+    }
+
+    return false;
 }
 
 export function showView(id, pushHash = true) {
@@ -1742,12 +1846,40 @@ export async function handlePopState(event) {
             }
         }
 
+        // 3b. Paste JSON Modal Dismiss
+        if (elements.pasteJsonModal && !elements.pasteJsonModal.classList.contains('hidden')) {
+            if (targetHash !== '#paste-json') {
+                closePasteJsonModal(true);
+                if (targetHash === '#customize' || targetHash === '#edit') {
+                    return;
+                }
+            }
+        }
+
+        // 3c. Import Choice Modal Dismiss
+        if (elements.importChoiceModal && !elements.importChoiceModal.classList.contains('hidden')) {
+            if (targetHash !== '#import-choice') {
+                closeImportChoiceModal(true);
+                if (targetHash === '#customize' || targetHash === '#edit' || targetHash === '#paste-json') {
+                    return;
+                }
+            }
+        }
+
         // 4. Account Modal Overlay Dismiss
         if (elements.accountModalOverlay && !elements.accountModalOverlay.classList.contains('hidden')) {
             if (targetHash !== '#account-modal') {
                 elements.accountModalOverlay.classList.add('hidden');
                 clearSubState('#account-modal');
-                if (targetHash === '#home') return;
+                if (targetHash === '#home') {
+                    if (state.preModalScrollY !== null && state.preModalScrollY !== undefined) {
+                        window.scrollTo({ top: state.preModalScrollY, behavior: 'instant' });
+                        state.preModalScrollY = null;
+                    } else if (event.state?.preScrollY !== undefined) {
+                        window.scrollTo({ top: event.state.preScrollY, behavior: 'instant' });
+                    }
+                    return;
+                }
             }
         }
 
@@ -1762,7 +1894,15 @@ export async function handlePopState(event) {
                 closeHistoryActionsModal(true, false);
                 if (targetHash === '#history') {
                     const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
-                    showAllHistoryFullScreen(false);
+                    if (currentViewId !== 'history-fullscreen') {
+                        showAllHistoryFullScreen(false);
+                    }
+                    if (state.preModalScrollY !== null && state.preModalScrollY !== undefined) {
+                        window.scrollTo({ top: state.preModalScrollY, behavior: 'instant' });
+                        state.preModalScrollY = null;
+                    } else if (event.state?.preScrollY !== undefined) {
+                        window.scrollTo({ top: event.state.preScrollY, behavior: 'instant' });
+                    }
                     return;
                 }
             }
@@ -1846,16 +1986,15 @@ export async function handlePopState(event) {
         }
 
         // 7. Document Upload Customization Screen (#customize)
-        const isCustomizingDocs = (state.activeSubState === '#customize') || 
-            (!state.isCustomizingHistory && ((state.currentFiles && state.currentFiles.length > 0) || (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0)));
+        const isCustomizingDocs = isCustomizingQuizGeneration();
         if (isCustomizingDocs) {
             if (targetHash !== '#customize') {
                 window.history.pushState({ view: 'start', subState: '#customize', fromApp: true }, '', '#customize');
                 const confirmed = await customConfirm(
-                    'Are you sure you want to cancel quiz generation and return to the home screen? Any selected documents will be cleared.',
-                    'Cancel Quiz Generation',
-                    'Yes, Return Home',
-                    'Stay Here',
+                    'You are currently customizing quiz generation. Leaving this page will cancel your current quiz setup and clear your selected documents.\n\nDo you want to stay or cancel generation?',
+                    'Customizing Quiz Generation',
+                    'Cancel Generation',
+                    'Stay',
                     true
                 );
                 if (confirmed) {
@@ -1870,7 +2009,9 @@ export async function handlePopState(event) {
         }
 
         // 8. History Quiz Edit Mode (#edit)
-        const isCustomizingHist = (state.activeSubState === '#edit') || state.isCustomizingHistory;
+        const isCustomizingHist = (currentViewId === 'start') && (
+            (state.activeSubState === '#edit') || state.isCustomizingHistory
+        );
         if (isCustomizingHist) {
             if (targetHash !== '#edit') {
                 window.history.pushState({ view: 'start', subState: '#edit', fromApp: true }, '', '#edit');
@@ -1950,13 +2091,29 @@ export async function handlePopState(event) {
             return;
         }
 
+        if (targetHash === '#import-choice') {
+            openImportChoiceModal(true);
+            return;
+        }
+
         if (targetHash === '#ai-choice') {
             if (elements.aiChoiceModal) elements.aiChoiceModal.classList.remove('hidden');
             return;
         }
 
         if (targetHash === '#ai-prompt') {
-            if (elements.aiPromptModal) elements.aiPromptModal.classList.remove('hidden');
+            if (elements.aiPromptModal) {
+                elements.aiPromptModal.classList.remove('hidden');
+                const noticeEl = elements.aiServiceNotice || document.getElementById('ai-service-notice');
+                if (noticeEl) {
+                    noticeEl.classList.toggle('hidden', !state.aiPromptShowNotice);
+                }
+            }
+            return;
+        }
+
+        if (targetHash === '#paste-json') {
+            openPasteJsonModal(true);
             return;
         }
 
@@ -1964,14 +2121,33 @@ export async function handlePopState(event) {
         const targetViewId = hashToView(targetHash);
 
         if (targetViewId === 'start') {
-            showView('start', false);
+            const wasStart = currentViewId === 'start';
+            if (!wasStart) {
+                showView('start', false);
+            }
             refreshHistory();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (state.preModalScrollY !== null && state.preModalScrollY !== undefined) {
+                window.scrollTo({ top: state.preModalScrollY, behavior: 'instant' });
+                state.preModalScrollY = null;
+            } else if (event.state?.preScrollY !== undefined) {
+                window.scrollTo({ top: event.state.preScrollY, behavior: 'instant' });
+            } else if (!wasStart) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
             updateNavHighlights('home');
         } else if (targetViewId === 'history-fullscreen') {
             state.historyOrigin = 'nav';
             const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
-            showAllHistoryFullScreen(false);
+            const wasHistory = currentViewId === 'history-fullscreen';
+            if (!wasHistory) {
+                showAllHistoryFullScreen(false);
+            }
+            if (state.preModalScrollY !== null && state.preModalScrollY !== undefined) {
+                window.scrollTo({ top: state.preModalScrollY, behavior: 'instant' });
+                state.preModalScrollY = null;
+            } else if (event.state?.preScrollY !== undefined) {
+                window.scrollTo({ top: event.state.preScrollY, behavior: 'instant' });
+            }
             updateNavHighlights('history');
         } else if (targetViewId === 'account') {
             await openAccountAsView();
@@ -2311,14 +2487,14 @@ export function refreshHistory() {
             </div>
             <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
             <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
-                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 p-1.5 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                <button class="h-7 w-7 bg-gray-700/90 hover:bg-gray-700 text-gray-200 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                         <circle cx="12" cy="5" r="2"/>
                         <circle cx="12" cy="12" r="2"/>
                         <circle cx="12" cy="19" r="2"/>
                     </svg>
                 </button>
-                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="load" title="Load Quiz">
+                <button class="h-7 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-2.5 rounded-lg inline-flex items-center justify-center gap-1 transition-colors border border-blue-500/50" data-key="${key}" data-action="load" title="Load Quiz">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
                     <span>Load</span>
                 </button>
@@ -2425,6 +2601,39 @@ export function setupCustomizeView(config, name) {
     deleteCustomizeBtn.classList.remove('hidden');
     fileActionsDiv.classList.add('hidden');
 
+    // Purge any lingering uploaded documents from previous sessions
+    if (elements.selectedFilesContainer) elements.selectedFilesContainer.classList.add('hidden');
+    document.getElementById('selected-files-container')?.classList.add('hidden');
+    if (elements.selectedFilesList) elements.selectedFilesList.innerHTML = '';
+    const selFilesListEl = document.getElementById('selected-files-list');
+    if (selFilesListEl) selFilesListEl.innerHTML = '';
+    state.currentFiles = [];
+    state.fileContent = '';
+    state.fileHash = '';
+
+    // Reset advanced options to pristine defaults before applying quiz config
+    if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = true;
+    if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = true;
+    if (summaryOnlyToggle) summaryOnlyToggle.checked = false;
+    if (elements.allowChangeToggle) elements.allowChangeToggle.checked = false;
+    if (elements.allowchangetoggle) elements.allowchangetoggle.checked = false;
+    if (elements.secondChanceToggle) elements.secondChanceToggle.checked = false;
+    document.getElementById('second-chance-options')?.classList.add('hidden');
+    if (elements.maxChancesInput) elements.maxChancesInput.value = 1;
+    if (timeLimitToggle) timeLimitToggle.checked = false;
+    timeLimitOptions?.classList.add('hidden');
+    if (elements.timerModeSelect) elements.timerModeSelect.value = 'quiz';
+    document.getElementById('quiz-time-presets-container')?.classList.remove('hidden');
+    document.getElementById('question-time-container')?.classList.add('hidden');
+    if (elements.questionTimeInput) elements.questionTimeInput.value = 30;
+    const time10m = document.getElementById('time-10m');
+    if (time10m) time10m.checked = true;
+    if (customTimeInputContainer) customTimeInputContainer.classList.add('hidden');
+    if (customTimeLimitInput) customTimeLimitInput.value = 15;
+    if (attemptLimitToggle) attemptLimitToggle.checked = false;
+    if (attemptLimitOptions) attemptLimitOptions.classList.add('hidden');
+    if (attemptLimitInput) attemptLimitInput.value = 3;
+
     elements.resumeQuizBtn.classList.add('hidden');
 
     customizeSection.classList.remove('hidden');
@@ -2452,7 +2661,6 @@ export function setupCustomizeView(config, name) {
     if (countGroup) countGroup.classList.add('hidden');
     if (diffGroup) diffGroup.classList.add('hidden');
     if (quizTypeGroup) quizTypeGroup.classList.add('hidden');
-    if (customOptionsDiv) customOptionsDiv.classList.add('hidden');
 
     // 2. Parse configuration attributes to build clean text summary labels
     const qCount = config.count || 10;
@@ -2512,6 +2720,7 @@ export function setupCustomizeView(config, name) {
         if (idInput) idInput.value = config.id || 0;
         if (enInput) enInput.value = config.en || 0;
     }
+    handleCustomTypeChange();
 
     // Set UI Mode
     const savedUiMode = config.uiMode || 'modern';
@@ -2906,7 +3115,13 @@ export function closeAiChoiceModal(fromPopState = false, skipHistoryBack = false
     });
 }
 
-export function openAiPromptModal(config, fileName) {
+export function openAiPromptModal(config, fileName, showNotice = false) {
+    state.aiPromptShowNotice = !!showNotice;
+    const noticeEl = elements.aiServiceNotice || document.getElementById('ai-service-notice');
+    if (noticeEl) {
+        noticeEl.classList.toggle('hidden', !showNotice);
+    }
+
     const promptText = buildQuizSystemPrompt(config, fileName, state.fileContent);
     
     if (elements.aiPromptTextarea) {
@@ -2953,6 +3168,51 @@ export function closeAiPromptModal(fromPopState = false) {
     });
 }
 
+export function openImportChoiceModal(fromPopState = false) {
+    const modal = elements.importChoiceModal || document.getElementById('import-choice-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    if (!fromPopState) {
+        pushSubState('#import-choice');
+    }
+}
+
+export function closeImportChoiceModal(fromPopState = false) {
+    const modal = elements.importChoiceModal || document.getElementById('import-choice-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    clearSubState('#import-choice');
+    closeModalWithAnimation(modal, () => {
+        if (!fromPopState && window.location.hash === '#import-choice') {
+            window.history.back();
+        }
+    });
+}
+
+export function openPasteJsonModal(fromPopState = false) {
+    const modal = elements.pasteJsonModal || document.getElementById('paste-json-modal');
+    const textarea = elements.pasteJsonTextarea || document.getElementById('paste-json-textarea');
+    if (!modal) return;
+    if (textarea) textarea.value = '';
+    modal.classList.remove('hidden');
+    if (!fromPopState) {
+        pushSubState('#paste-json');
+    }
+    setTimeout(() => {
+        textarea?.focus();
+    }, 100);
+}
+
+export function closePasteJsonModal(fromPopState = false) {
+    const modal = elements.pasteJsonModal || document.getElementById('paste-json-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    clearSubState('#paste-json');
+    closeModalWithAnimation(modal, () => {
+        if (!fromPopState && window.location.hash === '#paste-json') {
+            window.history.back();
+        }
+    });
+}
+
 export function initializeAudio() {
     try {
         if (typeof Tone !== 'undefined') {
@@ -2975,6 +3235,7 @@ export function attachAuthHandlers() {
                 showToast('Authentication unavailable offline.', 4000, 'warning');
                 return;
             }
+            if (!await confirmLeaveCustomizeIfActive()) return;
             if (!puter.auth.isSignedIn()) {
                 try {
                     // 1. Wait for the user to finish logging in
@@ -3001,10 +3262,20 @@ export function attachAuthHandlers() {
     const mobileNavAccount = document.getElementById('mobile-menu-account-btn');
     
     if (desktopNavAccount) {
-        desktopNavAccount.onclick = openAccountAsView;
+        desktopNavAccount.onclick = async () => {
+            if (!await confirmLeaveCustomizeIfActive()) return;
+            await openAccountAsView();
+        };
     }
     if (mobileNavAccount) {
-        mobileNavAccount.onclick = openAccountAsView;
+        mobileNavAccount.onclick = async () => {
+            if (!await confirmLeaveCustomizeIfActive()) {
+                return;
+            }
+            closeModalWithAnimation(elements.mobileMenuModal, async () => {
+                await openAccountAsView();
+            });
+        };
     }
 
     // 3. Existing action buttons inside the card

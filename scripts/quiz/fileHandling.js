@@ -1,4 +1,5 @@
 import { elements, state, constants } from '../state.js';
+import { resetAdvancedOptions } from './quizUtils.js';
 import {
     showToast,
     showView,
@@ -12,8 +13,21 @@ import {
     clearSubState,
     showLoadingOverlay,
     hideLoadingOverlay,
-    updateResumeButtonVisibility
+    updateResumeButtonVisibility,
+    handleCustomTypeChange,
+    closePasteJsonModal,
+    closeImportChoiceModal
 } from '../helpers.js';
+
+export const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
+    'pdf', 'docx', 'doc', 'pptx', 'ppt', 'txt', 'md', 'rtf', 'odt', 'csv', 'html'
+]);
+
+export function isDocumentFile(file) {
+    if (!file || !file.name) return false;
+    const ext = file.name.split('.').pop().toLowerCase();
+    return ALLOWED_DOCUMENT_EXTENSIONS.has(ext);
+}
 
 const {
     fileUploadInput,
@@ -208,6 +222,35 @@ async function extractTextFromPPTLegacy(file) {
     return cleanText;
 }
 
+// Fallback helper for legacy binary .doc files
+async function extractTextFromDocLegacy(file) {
+    const ab = await file.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+    let extracted = '';
+    let currentWord = '';
+    
+    for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        if ((b >= 32 && b <= 126) || b === 10 || b === 13 || b === 9) {
+            currentWord += String.fromCharCode(b);
+        } else {
+            if (currentWord.trim().length >= 3) {
+                extracted += currentWord.trim() + ' ';
+            }
+            currentWord = '';
+        }
+    }
+    if (currentWord.trim().length >= 3) {
+        extracted += currentWord.trim() + ' ';
+    }
+    
+    const cleanText = extracted.replace(/\s+/g, ' ').trim();
+    if (cleanText.length < 20) {
+        throw new Error('Legacy .doc file contains insufficient readable text. For best results, please save your document as .docx or export to PDF.');
+    }
+    return cleanText;
+}
+
 // In-memory text extraction cache so existing documents are resolved in 0ms when adding more files
 const fileTextCache = new WeakMap();
 
@@ -218,7 +261,7 @@ async function extractTextFromFile(file) {
     const ext = file.name.split('.').pop().toLowerCase();
     let txt = '';
 
-    if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json'].includes(ext)) {
+    if (['txt','md','html','js','css','py','java','c','cpp','cs','php','rb','go','rs','swift','kt','xml','json','rtf','odt','csv'].includes(ext)) {
         txt = await file.text();
     } else if (ext === 'docx') {
         const ab = await file.arrayBuffer();
@@ -237,6 +280,8 @@ async function extractTextFromFile(file) {
         txt = await extractTextFromPPTX(ab);
     } else if (ext === 'ppt') {
         txt = await extractTextFromPPTLegacy(file);
+    } else if (ext === 'doc') {
+        txt = await extractTextFromDocLegacy(file);
     } else {
         txt = await file.text();
     }
@@ -346,7 +391,24 @@ export async function handleFileSelect(event) {
         return;
     }
 
+    const rawFiles = Array.from(files);
+    const invalidFiles = rawFiles.filter(f => !isDocumentFile(f));
+    if (invalidFiles.length > 0) {
+        const invalidNames = invalidFiles.map(f => f.name).join(', ');
+        showToast(`Only document files are allowed (.pdf, .docx, .doc, .pptx, .ppt, .txt, .md, .rtf, .odt, .csv, .html). Skipped: ${invalidNames}`, 4500, 'warning');
+    }
+
+    const validFiles = rawFiles.filter(f => isDocumentFile(f));
+    if (validFiles.length === 0) {
+        if (event.target) event.target.value = '';
+        return;
+    }
+
     const isAddMore = event.target?.id === 'add-more-files-input';
+
+    if (!isAddMore) {
+        resetAdvancedOptions();
+    }
 
     showLoadingOverlay(
         'Processing Documents...',
@@ -354,7 +416,7 @@ export async function handleFileSelect(event) {
     );
 
     try {
-        const newFiles = Array.from(files);
+        const newFiles = validFiles;
 
         // If clicking "Add More", append new files to existing files (prevent duplicate entries)
         if (isAddMore && Array.isArray(state.currentFiles) && state.currentFiles.length > 0) {
@@ -414,6 +476,7 @@ export async function handleFileSelect(event) {
         document.getElementById('ui-mode-group')?.classList.remove('hidden');
         document.getElementById('question-count-group')?.classList.remove('hidden');
         document.getElementById('difficulty-group')?.classList.remove('hidden');
+        handleCustomTypeChange();
 
         renderSelectedFilesList();
 
@@ -437,25 +500,31 @@ export async function handleFileSelect(event) {
     }
 }
 
-function resetAppFiles() {
+export function resetAppFiles() {
     clearSubState('#customize');
     state.fileContent = '';
     state.fileHash = '';
     state.currentFileName = '';
     state.currentFiles = [];
-    fileUploadInput.value = '';
-    addMoreFilesInputLocal.value = '';
-    fileNameDisplay.textContent = 'Select Documents';
-    statusMessage.textContent = '';
-    statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
-    renameContainer.classList.add('hidden');
-    selectedFilesContainerLocal.classList.add('hidden');
-    selectedFilesListLocal.innerHTML = '';
-    fileActionsDiv.classList.remove('hidden');
+    if (fileUploadInput) fileUploadInput.value = '';
+    if (addMoreFilesInputLocal) addMoreFilesInputLocal.value = '';
+    if (fileNameDisplay) fileNameDisplay.textContent = 'Select Documents';
+    if (statusMessage) {
+        statusMessage.textContent = '';
+        statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
+    }
+    renameContainer?.classList.add('hidden');
+    selectedFilesContainerLocal?.classList.add('hidden');
+    if (elements.selectedFilesContainer) elements.selectedFilesContainer.classList.add('hidden');
+    document.getElementById('selected-files-container')?.classList.add('hidden');
+    if (selectedFilesListLocal) selectedFilesListLocal.innerHTML = '';
+    if (elements.selectedFilesList) elements.selectedFilesList.innerHTML = '';
+    fileActionsDiv?.classList.remove('hidden');
     elements.cancelCustomizeBtn?.classList.add('hidden');
     setHistoryVisibility(true);
     document.getElementById('customize-section')?.classList.add('hidden');
     document.getElementById('customize-content')?.classList.add('hidden');
+    resetAdvancedOptions();
     validateAllInputs();
     window.history.replaceState({ view: 'start' }, '', '#home');
     updateResumeButtonVisibility();
@@ -556,8 +625,10 @@ export function handleQuizImport(event) {
             state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
             state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
 
-            const { saveQuizToDB, refreshHistory, closeAiPromptModal, syncHistoryWithCloud } = await import('../helpers.js');
+            const { saveQuizToDB, refreshHistory, closeAiPromptModal, closePasteJsonModal, closeImportChoiceModal, syncHistoryWithCloud } = await import('../helpers.js');
             if (typeof closeAiPromptModal === 'function') closeAiPromptModal(true);
+            if (typeof closePasteJsonModal === 'function') closePasteJsonModal(true);
+            if (typeof closeImportChoiceModal === 'function') closeImportChoiceModal(true);
 
             saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
 
@@ -626,6 +697,151 @@ export function handleQuizImport(event) {
         importQuizInput.value = '';
     };
     reader.readAsText(file);
+}
+
+export async function importQuizFromText(rawText) {
+    if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+        showToast('Please paste valid quiz JSON text.', 3000, 'warning');
+        return false;
+    }
+
+    showLoadingOverlay('Importing Quiz...', 'Parsing pasted quiz JSON text...');
+
+    try {
+        const { cleanAndParseQuizJson } = await import('../aiService.js');
+        const data = cleanAndParseQuizJson(rawText, 'Pasted Quiz');
+        
+        if (!data?.questions?.length) {
+            throw new Error('No valid questions found in pasted JSON.');
+        }
+
+        // Check if raw text also had takes
+        let takes = [];
+        try {
+            let cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+            const firstBrace = cleaned.indexOf('{');
+            const lastBrace = cleaned.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace > firstBrace) {
+                const parsedObj = JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+                if (Array.isArray(parsedObj?.takes)) {
+                    takes = parsedObj.takes;
+                }
+            }
+        } catch (e) {}
+
+        const normalizedQuestions = data.questions;
+        const config = { ...data.config };
+        if (config.isTimed && config.totalTime) {
+            if (config.totalTime <= 120) {
+                config.totalTime = config.totalTime * 60;
+            }
+        }
+
+        if (config.tf === undefined) {
+            const tfQuestionsCount = normalizedQuestions.filter(q => 
+                q.type === 'true-or-false' || 
+                (Array.isArray(q.options) && q.options.length === 2 && q.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))
+            ).length;
+            config.tf = tfQuestionsCount;
+            if (config.mc !== undefined && config.mc >= config.tf && config.tf > 0) {
+                config.mc = config.mc - config.tf;
+            }
+        }
+
+        const importedId = data.quizId || CryptoJS.SHA256(JSON.stringify(normalizedQuestions) + JSON.stringify(config) + (data.fileName || 'Pasted Quiz')).toString();
+
+        if (state.quizHistory[importedId]) {
+            hideLoadingOverlay();
+            const importAnyway = await customConfirm(
+                'A similar quiz already exists in your history. Do you want to import it anyway? (This will overwrite the existing one)',
+                'Duplicate Detected',
+                'Overwrite & Import',
+                'Cancel'
+            );
+            
+            if (!importAnyway) {
+                statusMessage.textContent = 'Import cancelled.';
+                statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
+                return false;
+            }
+            showLoadingOverlay('Importing Quiz...', 'Saving quiz to history...');
+        }
+
+        state.questions = normalizedQuestions;
+        if (!config.uiMode) {
+            config.uiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
+        }
+        state.currentQuizConfig = config;
+        const rawImportedName = data.fileName || 'Pasted Quiz';
+        state.currentFileName = rawImportedName.length > 35 ? rawImportedName.slice(0, 35) : rawImportedName;
+        state.currentQuizKey = importedId;
+        state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
+        state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
+        state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
+        state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
+
+        const { saveQuizToDB, refreshHistory, closeAiPromptModal, closePasteJsonModal, closeImportChoiceModal, syncHistoryWithCloud } = await import('../helpers.js');
+        if (typeof closeAiPromptModal === 'function') closeAiPromptModal(true);
+        if (typeof closePasteJsonModal === 'function') closePasteJsonModal(true);
+        if (typeof closeImportChoiceModal === 'function') closeImportChoiceModal(true);
+
+        saveQuizToDB(state.currentQuizKey, { questions: state.questions, fileName: state.currentFileName, config: state.currentQuizConfig });
+
+        if (Array.isArray(takes) && takes.length > 0) {
+            const takesDbKey = constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1';
+            let allTakes = {};
+            try {
+                const raw = localStorage.getItem(takesDbKey);
+                allTakes = raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                allTakes = {};
+            }
+            const existing = Array.isArray(allTakes[state.currentQuizKey]) ? allTakes[state.currentQuizKey] : [];
+            const merged = [...existing];
+            takes.forEach(newTake => {
+                const newId = newTake.id || newTake.takeId;
+                const newTime = newTake.completedAt || newTake.timestamp;
+                const exists = merged.some(t => {
+                    const tId = t.id || t.takeId;
+                    const tTime = t.completedAt || t.timestamp;
+                    if (newId && tId && newId === tId) return true;
+                    if (newTime && tTime && newTime === tTime) return true;
+                    return false;
+                });
+                if (!exists) merged.push(newTake);
+            });
+            merged.sort((a, b) => (a.completedAt || a.timestamp || 0) - (b.completedAt || b.timestamp || 0));
+            merged.forEach((t, idx) => { t.takeNumber = idx + 1; });
+            allTakes[state.currentQuizKey] = merged;
+            localStorage.setItem(takesDbKey, JSON.stringify(allTakes));
+        }
+
+        if (typeof puter !== 'undefined' && window.puter && puter.auth && puter.auth.isSignedIn() && navigator.onLine) {
+            try {
+                await syncHistoryWithCloud(false);
+            } catch (syncErr) {
+                console.warn("Import sync warning:", syncErr);
+            }
+        }
+        refreshHistory();
+
+        state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
+        setupCustomizeView(state.currentQuizConfig, state.currentFileName);
+        showView('start', false);
+        pushSubState('#edit');
+        hideLoadingOverlay();
+        showToast(`Imported "${state.currentFileName}" successfully!`, 3000, 'success');
+        statusMessage.textContent = '';
+        return true;
+    } catch (err) {
+        console.error('Text Import Err:', err);
+        hideLoadingOverlay();
+        showView('start', false);
+        statusMessage.textContent = `Import Err: ${err.message}`;
+        statusMessage.className = 'text-center text-red-400 mt-4 text-sm h-5';
+        showToast(`Import failed: ${err.message}`, 4000, 'error');
+        return false;
+    }
 }
 
 export async function resumeQuiz(savedData) {

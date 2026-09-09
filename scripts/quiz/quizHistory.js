@@ -329,14 +329,14 @@ export function showAllHistoryFullScreen(pushHash = true) {
             </div>
             <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
             <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
-                <button class="bg-gray-700/90 hover:bg-gray-700 text-gray-200 p-1.5 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
+                <button class="h-7 w-7 bg-gray-700/90 hover:bg-gray-700 text-gray-200 rounded-lg inline-flex items-center justify-center border border-gray-600/60 transition-colors" data-key="${key}" data-action="history-submenu" title="Quiz Options" aria-label="Quiz Options">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                         <circle cx="12" cy="5" r="2"/>
                         <circle cx="12" cy="12" r="2"/>
                         <circle cx="12" cy="19" r="2"/>
                     </svg>
                 </button>
-                <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded inline-flex items-center justify-center gap-1 transition-colors" data-key="${key}" data-action="load" title="Load Quiz">
+                <button class="h-7 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-2.5 rounded-lg inline-flex items-center justify-center gap-1 transition-colors border border-blue-500/50" data-key="${key}" data-action="load" title="Load Quiz">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
                     <span>Load</span>
                 </button>

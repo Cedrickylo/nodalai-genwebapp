@@ -83,7 +83,7 @@ export function displayExplanation(qData, isCorrect) {
 
 export async function showResults() {
     const { stopQuizTimer } = await import('./quizExecution.js');
-    stopQuizTimer();
+    stopQuizTimer(true);
     clearInProgressQuiz();
     showView('results');
 

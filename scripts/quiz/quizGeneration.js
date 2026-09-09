@@ -252,7 +252,7 @@ export async function startNodalAiGeneration(config, fileName) {
             false
         );
         if (userChosePrompt) {
-            cancelNodalAiGenerationAndCopyPrompt(config, fileName);
+            cancelNodalAiGenerationAndCopyPrompt(config, fileName, true);
         }
         return;
     }
@@ -385,7 +385,7 @@ export async function startNodalAiGeneration(config, fileName) {
                 state.aiGenerationAbortController.abort();
             }
             showToast('Generation timed out after 10 minutes. Switched to manual prompt copy.', 6000, 'warning');
-            cancelNodalAiGenerationAndCopyPrompt(config, fileName);
+            cancelNodalAiGenerationAndCopyPrompt(config, fileName, true);
         }
     }, 100);
 
@@ -579,7 +579,7 @@ ${state.fileContent || ''}`;
         );
 
         if (userChoseCopy) {
-            cancelNodalAiGenerationAndCopyPrompt(config, fileName);
+            cancelNodalAiGenerationAndCopyPrompt(config, fileName, true);
         } else {
             showView('start', false);
             window.history.replaceState({ view: 'start' }, '', '#home');
@@ -600,7 +600,7 @@ export function cancelNodalAiGeneration() {
     window.history.replaceState({ view: 'start' }, '', '#home');
 }
 
-export function cancelNodalAiGenerationAndCopyPrompt(config = state.currentQuizConfig, fileName = state.currentFileName) {
+export function cancelNodalAiGenerationAndCopyPrompt(config = state.currentQuizConfig, fileName = state.currentFileName, showNotice = false) {
     if (state.aiGenerationInterval) {
         clearInterval(state.aiGenerationInterval);
         state.aiGenerationInterval = null;
@@ -611,5 +611,5 @@ export function cancelNodalAiGenerationAndCopyPrompt(config = state.currentQuizC
     }
     showView('start', false);
     window.history.replaceState({ view: 'start' }, '', '#home');
-    openAiPromptModal(config, fileName);
+    openAiPromptModal(config, fileName, showNotice);
 }

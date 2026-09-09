@@ -36,7 +36,8 @@ import {
     extractShareId,
     closeModalWithAnimation,
     updateResumeButtonVisibility,
-    getGenerationCooldownWarning
+    getGenerationCooldownWarning,
+    confirmLeaveCustomizeIfActive
 } from './helpers.js';
 
 // Import modules
@@ -209,6 +210,9 @@ export function attachQuizEventListeners() {
     // AI Choice Modal Event Listeners
     elements.closeAiChoiceModalBtn?.addEventListener('click', () => closeAiChoiceModal());
     elements.closeAiChoiceFooterBtn?.addEventListener('click', () => closeAiChoiceModal());
+    elements.aiChoiceModal?.addEventListener('click', (e) => {
+        if (e.target === elements.aiChoiceModal) closeAiChoiceModal();
+    });
     elements.aiChoiceNodalBtn?.addEventListener('click', () => {
         const warning = getGenerationCooldownWarning();
         if (warning) {
@@ -219,12 +223,12 @@ export function attachQuizEventListeners() {
     });
     elements.aiChoiceOtherBtn?.addEventListener('click', () => {
         closeAiChoiceModal(false, true);
-        openAiPromptModal(state.currentQuizConfig, state.currentFileName);
+        openAiPromptModal(state.currentQuizConfig, state.currentFileName, false);
     });
 
     // Loading View Cancel Buttons
     elements.loadingCancelCopyBtn?.addEventListener('click', () => {
-        cancelNodalAiGenerationAndCopyPrompt(state.currentQuizConfig, state.currentFileName);
+        cancelNodalAiGenerationAndCopyPrompt(state.currentQuizConfig, state.currentFileName, false);
     });
     elements.loadingCancelBtn?.addEventListener('click', () => {
         cancelNodalAiGeneration();
@@ -233,6 +237,9 @@ export function attachQuizEventListeners() {
     // AI Prompt Modal Event Listeners
     elements.closeAiPromptModalBtn?.addEventListener('click', closeAiPromptModal);
     elements.closeAiPromptFooterBtn?.addEventListener('click', closeAiPromptModal);
+    elements.aiPromptModal?.addEventListener('click', (e) => {
+        if (e.target === elements.aiPromptModal) closeAiPromptModal();
+    });
     
     elements.copyAiPromptBtn?.addEventListener('click', async () => {
         if (elements.aiPromptTextarea) {
@@ -260,8 +267,103 @@ export function attachQuizEventListeners() {
     });
 
     elements.aiPromptImportBtn?.addEventListener('click', () => {
-        if (elements.importQuizInput) {
-            elements.importQuizInput.click();
+        const importInput = elements.importQuizInput || document.getElementById('import-quiz-input');
+        if (importInput) {
+            importInput.click();
+        }
+    });
+
+    // Import Choice Modal Event Listeners
+    const openImportChoiceBtn = elements.openImportChoiceBtn || document.getElementById('open-import-choice-btn');
+    const closeImportChoiceModalBtn = elements.closeImportChoiceModalBtn || document.getElementById('close-import-choice-modal-btn');
+    const closeImportChoiceFooterBtn = elements.closeImportChoiceFooterBtn || document.getElementById('close-import-choice-footer-btn');
+    const importChoiceFileBtn = elements.importChoiceFileBtn || document.getElementById('import-choice-file-btn');
+    const importChoicePasteBtn = elements.importChoicePasteBtn || document.getElementById('import-choice-paste-btn');
+
+    const importChoiceModal = elements.importChoiceModal || document.getElementById('import-choice-modal');
+    importChoiceModal?.addEventListener('click', async (e) => {
+        if (e.target === importChoiceModal) {
+            const { closeImportChoiceModal } = await import('./helpers.js');
+            closeImportChoiceModal();
+        }
+    });
+
+    openImportChoiceBtn?.addEventListener('click', async () => {
+        const { openImportChoiceModal } = await import('./helpers.js');
+        openImportChoiceModal();
+    });
+
+    closeImportChoiceModalBtn?.addEventListener('click', async () => {
+        const { closeImportChoiceModal } = await import('./helpers.js');
+        closeImportChoiceModal();
+    });
+
+    closeImportChoiceFooterBtn?.addEventListener('click', async () => {
+        const { closeImportChoiceModal } = await import('./helpers.js');
+        closeImportChoiceModal();
+    });
+
+    importChoiceFileBtn?.addEventListener('click', async () => {
+        const { closeImportChoiceModal } = await import('./helpers.js');
+        closeImportChoiceModal(true);
+        const importInput = elements.importQuizInput || document.getElementById('import-quiz-input');
+        importInput?.click();
+    });
+
+    importChoicePasteBtn?.addEventListener('click', async () => {
+        const { closeImportChoiceModal, openPasteJsonModal } = await import('./helpers.js');
+        closeImportChoiceModal(true);
+        openPasteJsonModal();
+    });
+
+    // Paste Quiz JSON Modal Event Listeners
+    const pasteJsonModal = elements.pasteJsonModal || document.getElementById('paste-json-modal');
+    pasteJsonModal?.addEventListener('click', async (e) => {
+        if (e.target === pasteJsonModal) {
+            const { closePasteJsonModal } = await import('./helpers.js');
+            closePasteJsonModal();
+        }
+    });
+
+    const openPasteJsonBtn = elements.openPasteJsonBtn || document.getElementById('open-paste-json-btn');
+    openPasteJsonBtn?.addEventListener('click', async () => {
+        const { openPasteJsonModal } = await import('./helpers.js');
+        openPasteJsonModal();
+    });
+
+    const aiPromptPasteBtn = elements.aiPromptPasteBtn || document.getElementById('ai-prompt-paste-btn');
+    aiPromptPasteBtn?.addEventListener('click', async () => {
+        const { closeAiPromptModal, openPasteJsonModal } = await import('./helpers.js');
+        closeAiPromptModal(true);
+        openPasteJsonModal();
+    });
+
+    const closePasteJsonModalBtn = elements.closePasteJsonModalBtn || document.getElementById('close-paste-json-modal-btn');
+    closePasteJsonModalBtn?.addEventListener('click', async () => {
+        const { closePasteJsonModal } = await import('./helpers.js');
+        closePasteJsonModal();
+    });
+
+    const cancelPasteJsonBtn = elements.cancelPasteJsonBtn || document.getElementById('cancel-paste-json-btn');
+    cancelPasteJsonBtn?.addEventListener('click', async () => {
+        const { closePasteJsonModal } = await import('./helpers.js');
+        closePasteJsonModal();
+    });
+
+    const submitPasteJsonBtn = elements.submitPasteJsonBtn || document.getElementById('submit-paste-json-btn');
+    submitPasteJsonBtn?.addEventListener('click', async () => {
+        const textarea = elements.pasteJsonTextarea || document.getElementById('paste-json-textarea');
+        const text = textarea?.value || '';
+        if (!text.trim()) {
+            const { showToast } = await import('./helpers.js');
+            showToast('Please paste your quiz JSON text first.', 3000, 'warning');
+            return;
+        }
+        const { importQuizFromText } = await import('./quiz/fileHandling.js');
+        const success = await importQuizFromText(text);
+        if (success) {
+            const { closePasteJsonModal } = await import('./helpers.js');
+            closePasteJsonModal(true);
         }
     });
 
@@ -269,15 +371,16 @@ export function attachQuizEventListeners() {
     if (elements.navAccountBtn) {
         elements.navAccountBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            // Call the same function that your main button uses
+            if (!await confirmLeaveCustomizeIfActive()) return;
             await openAccountAsView(); 
         });
     }
 
     // Fix: Navbar History Button
     if (elements.navHistoryBtn) {
-        elements.navHistoryBtn.addEventListener('click', (e) => {
+        elements.navHistoryBtn.addEventListener('click', async (e) => {
             e.preventDefault();
+            if (!await confirmLeaveCustomizeIfActive()) return;
             showView('start'); 
             refreshHistory();
             
@@ -410,14 +513,18 @@ export function attachQuizEventListeners() {
         }
     });
     // Mobile bottom nav
-    elements.mobileNavHomeBtn?.addEventListener('click', () => {
+    elements.mobileNavHomeBtn?.addEventListener('click', async () => {
+        if (!await confirmLeaveCustomizeIfActive()) return;
         state.historyOrigin = 'nav';
+        setMobileNavActive('home'); setDesktopNavActive('home');
         showView('start');
         // ensure we scroll to top when returning home on mobile
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-    elements.mobileNavHistoryBtn?.addEventListener('click', () => {
+    elements.mobileNavHistoryBtn?.addEventListener('click', async () => {
+        if (!await confirmLeaveCustomizeIfActive()) return;
         state.historyOrigin = 'nav';
+        setMobileNavActive('history'); setDesktopNavActive('history');
         showAllHistoryFullScreen();
     });
     // Target both Sync buttons to trigger cloud sync
@@ -512,15 +619,6 @@ export function attachQuizEventListeners() {
                 });
             }
 
-            elements.mobileNavHomeBtn?.addEventListener('click', () => {
-                setMobileNavActive('home'); setDesktopNavActive('home');
-                showView('start');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-            elements.mobileNavHistoryBtn?.addEventListener('click', () => {
-                setMobileNavActive('history'); setDesktopNavActive('history');
-                showAllHistoryFullScreen();
-            });
             // Menu open/close (mobile)
             elements.mobileNavMenuBtn?.addEventListener('click', () => {
                 if (elements.mobileMenuModal) elements.mobileMenuModal.classList.remove('hidden');
@@ -532,38 +630,73 @@ export function attachQuizEventListeners() {
                 closeModalWithAnimation(elements.mobileMenuModal);
             });
             elements.mobileMenuDownloadsBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) {
+                    return;
+                }
                 closeModalWithAnimation(elements.mobileMenuModal, async () => {
                     const { renderDownloadsView } = await import('./quiz/quizOffline.js');
                     renderDownloadsView();
                 });
             });
-            elements.mobileMenuHelpBtn?.addEventListener('click', () => {
+            elements.mobileMenuHelpBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) {
+                    return;
+                }
                 closeModalWithAnimation(elements.mobileMenuModal, () => {
                     showView('help');
                 });
             });
-            elements.mobileMenuAboutBtn?.addEventListener('click', () => {
+            elements.mobileMenuAboutBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) {
+                    return;
+                }
                 closeModalWithAnimation(elements.mobileMenuModal, () => {
                     showView('about');
                 });
             });
             elements.mobileMenuAccountBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) {
+                    return;
+                }
                 closeModalWithAnimation(elements.mobileMenuModal, async () => {
                     await openAccountAsView();
                 });
             });
 
             // Desktop nav handlers
-            elements.desktopNavHomeBtn?.addEventListener('click', () => { state.historyOrigin = 'nav'; setDesktopNavActive('home'); setMobileNavActive('home'); showView('start'); });
-            elements.desktopNavHistoryBtn?.addEventListener('click', () => { state.historyOrigin = 'nav'; setDesktopNavActive('history'); setMobileNavActive('history'); showAllHistoryFullScreen(); });
+            elements.desktopNavHomeBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) return;
+                state.historyOrigin = 'nav';
+                setDesktopNavActive('home'); setMobileNavActive('home');
+                showView('start');
+            });
+            elements.desktopNavHistoryBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) return;
+                state.historyOrigin = 'nav';
+                setDesktopNavActive('history'); setMobileNavActive('history');
+                showAllHistoryFullScreen();
+            });
             elements.desktopNavDownloadsBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) return;
                 setDesktopNavActive('downloads');
                 const { renderDownloadsView } = await import('./quiz/quizOffline.js');
                 renderDownloadsView();
             });
-            elements.desktopNavHelpBtn?.addEventListener('click', () => { setDesktopNavActive('help'); showView('help'); });
-            elements.desktopNavAboutBtn?.addEventListener('click', () => { setDesktopNavActive('about'); showView('about'); });
-            elements.desktopNavAccountBtn?.addEventListener('click', async () => { setDesktopNavActive('account'); await openAccountAsView(); });
+            elements.desktopNavHelpBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) return;
+                setDesktopNavActive('help');
+                showView('help');
+            });
+            elements.desktopNavAboutBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) return;
+                setDesktopNavActive('about');
+                showView('about');
+            });
+            elements.desktopNavAccountBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) return;
+                setDesktopNavActive('account');
+                await openAccountAsView();
+            });
 
             // Downloads Back button
             elements.downloadsBackBtn?.addEventListener('click', () => {
@@ -576,7 +709,8 @@ export function attachQuizEventListeners() {
             });
 
             // What's New Page listeners
-            elements.openWhatsNewBtn?.addEventListener('click', () => {
+            elements.openWhatsNewBtn?.addEventListener('click', async () => {
+                if (!await confirmLeaveCustomizeIfActive()) return;
                 showView('whats-new');
             });
             elements.whatsNewBackBtn?.addEventListener('click', () => {
@@ -742,10 +876,10 @@ export function attachQuizEventListeners() {
             showToast('Customization closed.', 2000, 'info');
         } else {
             const confirmed = await customConfirm(
-                'Are you sure you want to cancel quiz generation and return to the home screen? Any selected documents will be cleared.',
-                'Cancel Quiz Generation',
-                'Yes, Return Home',
-                'Stay Here',
+                'You are currently customizing quiz generation. Leaving this page will cancel your current quiz setup and clear your selected documents.\n\nDo you want to stay or cancel generation?',
+                'Customizing Quiz Generation',
+                'Cancel Generation',
+                'Stay',
                 true
             );
             if (!confirmed) return;
@@ -814,6 +948,7 @@ export function attachQuizEventListeners() {
                 document.getElementById('ui-mode-group')?.classList.remove('hidden');
                 document.getElementById('question-count-group')?.classList.remove('hidden');
                 document.getElementById('difficulty-group')?.classList.remove('hidden');
+                handleCustomTypeChange();
             }
         } else {
             prepareResumeButton();
@@ -1175,4 +1310,10 @@ import('./quiz/quizOffline.js').then(({ initQuizOfflineListeners, pruneExpiredOf
     initQuizOfflineListeners();
     pruneExpiredOfflineDownloads();
 }).catch(err => console.error('[Quiz] Failed to initialize offline module:', err));
+
+try {
+    handleCustomTypeChange();
+} catch (e) {
+    console.warn('[Quiz] Initial custom type sync error:', e);
+}
 

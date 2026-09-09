@@ -32,6 +32,7 @@ const {
     questionTextEl,
     answerAreaEl,
     explanationAreaEl,
+    timerTotalDisplayEl,
     timerDisplayEl,
     visualTimerContainer,
     visualTimerBar,
@@ -147,20 +148,19 @@ function updateHeaderMeta(qData, currentIdx, totalQ) {
             modernQuestionNumber.textContent = `Question ${currentIdx + 1} of ${totalQ}`;
         }
         
-        // Show question type badge ONLY when shuffle questions is turned OFF
-        if (state.currentQuizConfig?.randomizeQuestions === false && modernQuestionTypeBadge) {
+        if (modernQuestionTypeBadge) {
             modernQuestionTypeBadge.classList.remove('hidden');
-            const type = (qData.type || '').toString().trim().toLowerCase();
+            const type = (qData?.type || '').toString().trim().toLowerCase();
             let typeLabel = 'Multiple Choice';
             if (type === 'true-or-false') typeLabel = 'True / False';
             else if (type === 'identification') typeLabel = 'Identification';
             else if (type === 'enumeration') typeLabel = 'Enumeration';
             modernQuestionTypeBadge.textContent = typeLabel;
-        } else {
-            modernQuestionTypeBadge?.classList.add('hidden');
         }
+        checkQuizHeaderFit();
     } else {
         modernMetaContainer?.classList.add('hidden');
+        modernQuestionTypeBadge?.classList.add('hidden');
         classicProgressContainer?.classList.remove('hidden');
         if (progressEl) {
             if (state.inSkippedRound) {
@@ -169,6 +169,45 @@ function updateHeaderMeta(qData, currentIdx, totalQ) {
                 progressEl.textContent = `Q ${state.answeredOriginalIndices.size + state.skippedOriginalIndices.size + 1}/${totalQ}`;
             }
         }
+    }
+}
+
+export function checkQuizHeaderFit() {
+    const header = document.getElementById('quiz-status-header');
+    if (!header) return;
+    
+    // On mobile screens (< 640px), the CSS grid mobile 2-row layout naturally applies
+    if (window.innerWidth < 640) {
+        header.classList.remove('force-mobile-header');
+        return;
+    }
+    
+    // On desktop, check if the single-row layout fits all elements or needs the 2-row mobile layout
+    header.classList.remove('force-mobile-header');
+    const meta = header.querySelector('.quiz-header-meta');
+    const rightCluster = header.querySelector('.quiz-header-right-cluster');
+    if (meta && rightCluster) {
+        const availableWidth = header.clientWidth;
+        const neededWidth = meta.scrollWidth + rightCluster.scrollWidth + 28;
+        if (neededWidth > availableWidth) {
+            header.classList.add('force-mobile-header');
+        } else {
+            header.classList.remove('force-mobile-header');
+        }
+    }
+}
+
+let headerResizeObserver = null;
+export function initQuizHeaderFitObserver() {
+    const header = document.getElementById('quiz-status-header');
+    if (!header || headerResizeObserver) return;
+    if (typeof ResizeObserver !== 'undefined') {
+        headerResizeObserver = new ResizeObserver(() => {
+            checkQuizHeaderFit();
+        });
+        headerResizeObserver.observe(header);
+    } else {
+        window.addEventListener('resize', checkQuizHeaderFit);
     }
 }
 
@@ -335,6 +374,8 @@ export function startQuiz() {
         modernScoreStats?.classList.remove('flex');
     }
     updateAttemptDisplay();
+    initQuizHeaderFitObserver();
+    checkQuizHeaderFit();
     
     const isModern = (state.currentQuizConfig?.uiMode || 'modern') !== 'classic';
     if (isModern) {
@@ -360,6 +401,13 @@ export function startQuiz() {
 
 export function startQuizTimer(startTime) {
     timerDisplayEl?.classList.remove('hidden', 'text-red-400');
+    if (timerTotalDisplayEl) {
+        const totalDuration = state.totalQuizTime || startTime || 0;
+        const totalMins = Math.floor(totalDuration / 60);
+        const totalSecs = totalDuration % 60;
+        timerTotalDisplayEl.textContent = `${totalMins}:${totalSecs < 10 ? '0' : ''}${totalSecs}`;
+        timerTotalDisplayEl.classList.remove('hidden');
+    }
     visualTimerContainer?.classList.remove('hidden');
     if (visualTimerBar) {
         visualTimerBar.style.width = '100%';
@@ -394,14 +442,20 @@ export function updateTimerDisplay() {
     visualTimerBar?.classList.toggle('bg-blue-500', !isWarn);
 }
 
-export function stopQuizTimer() {
+export function stopQuizTimer(force = false) {
     if (state.quizTimerInterval) clearInterval(state.quizTimerInterval);
     state.quizTimerInterval = null;
-    if (state.currentQuizConfig && state.currentQuizConfig.timerMode === 'question') return;
+    if (state.questionTimerInterval) clearInterval(state.questionTimerInterval);
+    state.questionTimerInterval = null;
+    if (!force && state.currentQuizConfig && state.currentQuizConfig.timerMode === 'question') return;
     if (timerDisplayEl) {
         timerDisplayEl.classList.add('hidden');
         timerDisplayEl.classList.remove('text-red-400');
         timerDisplayEl.textContent = '';
+    }
+    if (timerTotalDisplayEl) {
+        timerTotalDisplayEl.classList.add('hidden');
+        timerTotalDisplayEl.textContent = '';
     }
     visualTimerContainer?.classList.add('hidden');
     if (visualTimerBar) {
@@ -413,6 +467,12 @@ export function stopQuizTimer() {
 
 export function startQuestionTimer(startTime) {
     timerDisplayEl?.classList.remove('hidden', 'text-red-400');
+    if (timerTotalDisplayEl) {
+        const totalMins = Math.floor(startTime / 60);
+        const totalSecs = startTime % 60;
+        timerTotalDisplayEl.textContent = `${totalMins}:${totalSecs < 10 ? '0' : ''}${totalSecs}`;
+        timerTotalDisplayEl.classList.remove('hidden');
+    }
     visualTimerContainer?.classList.remove('hidden');
     if (visualTimerBar) {
         visualTimerBar.style.width = '100%';
@@ -451,9 +511,13 @@ export function startQuestionTimer(startTime) {
 
 export function updateAttemptDisplay() {
     if (!attemptDisplayEl) return;
-    if (state.isAttemptLimited) {
+    if (state.isAttemptLimited && state.maxAttempts > 0) {
         attemptDisplayEl.classList.remove('hidden');
-        attemptDisplayEl.textContent = `Attempts: ${state.currentAttempts}/${state.maxAttempts}`;
+        attemptDisplayEl.innerHTML = `
+            <svg class="w-3.5 h-3.5 text-amber-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span class="tabular-nums">${state.currentAttempts}/${state.maxAttempts}</span>
+        `;
+        attemptDisplayEl.title = `Attempts: ${state.currentAttempts} of ${state.maxAttempts} used`;
     } else {
         attemptDisplayEl.classList.add('hidden');
     }

@@ -11,6 +11,7 @@ import {
     handleDifficultyChange,
     handleTimeToggle,
     handleAttemptToggle,
+    handleCustomTypeChange,
     validateAllInputs,
     clearSubState,
     updateResumeButtonVisibility
@@ -51,6 +52,32 @@ const {
     resultsActions,
     createRemedialBtn
 } = elements;
+
+export function resetAdvancedOptions() {
+    if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = true;
+    if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = true;
+    if (elements.summaryOnlyToggle) elements.summaryOnlyToggle.checked = false;
+    if (elements.allowChangeToggle) elements.allowChangeToggle.checked = false;
+    if (elements.allowchangetoggle) elements.allowchangetoggle.checked = false;
+    if (elements.secondChanceToggle) elements.secondChanceToggle.checked = false;
+    document.getElementById('second-chance-options')?.classList.add('hidden');
+    if (elements.maxChancesInput) elements.maxChancesInput.value = 1;
+
+    if (elements.timeLimitToggle) elements.timeLimitToggle.checked = false;
+    elements.timeLimitOptions?.classList.add('hidden');
+    if (elements.timerModeSelect) elements.timerModeSelect.value = 'quiz';
+    document.getElementById('quiz-time-presets-container')?.classList.remove('hidden');
+    document.getElementById('question-time-container')?.classList.add('hidden');
+    if (elements.questionTimeInput) elements.questionTimeInput.value = 30;
+    const time10m = document.getElementById('time-10m');
+    if (time10m) time10m.checked = true;
+    elements.customTimeInputContainer?.classList.add('hidden');
+    if (elements.customTimeLimitInput) elements.customTimeLimitInput.value = 15;
+
+    if (elements.attemptLimitToggle) elements.attemptLimitToggle.checked = false;
+    elements.attemptLimitOptions?.classList.add('hidden');
+    if (elements.attemptLimitInput) elements.attemptLimitInput.value = 3;
+}
 
 export function resetApp(clearProg = true) {
     if (clearProg) clearInProgressQuiz();
@@ -98,18 +125,7 @@ export function resetApp(clearProg = true) {
         statusMessage.className = 'text-center text-gray-400 mt-4 text-sm h-5';
     }
     
-    if (timeLimitToggle) timeLimitToggle.checked = false;
-    timeLimitOptions?.classList.add('hidden');
-    
-    const time10m = document.getElementById('time-10m');
-    if (time10m) time10m.checked = true;
-    
-    customTimeInputContainer?.classList.add('hidden');
-    if (customTimeLimitInput) customTimeLimitInput.value = 15;
-    if (attemptLimitToggle) attemptLimitToggle.checked = false;
-    attemptLimitOptions?.classList.add('hidden');
-    if (attemptLimitInput) attemptLimitInput.value = 3;
-    if (summaryOnlyToggle) summaryOnlyToggle.checked = false;
+    resetAdvancedOptions();
     
     const diffEasy = document.getElementById('difficulty-easy');
     if (diffEasy) diffEasy.checked = true;
@@ -140,11 +156,14 @@ export function resetStartViewUI(preserveFileName = false) {
 
     if (startSubtitle) startSubtitle.textContent = 'Transform your documents into tailored assessments instantly.';
     
-    //  Safeguarded UI element assignments against undefined references
     renameContainer?.classList.add('hidden');
     selectedFilesContainer?.classList.add('hidden');
+    document.getElementById('selected-files-container')?.classList.add('hidden');
     if (selectedFilesList) selectedFilesList.innerHTML = '';
+    const selListEl = document.getElementById('selected-files-list');
+    if (selListEl) selListEl.innerHTML = '';
     if (addMoreFilesInput) addMoreFilesInput.value = '';
+    if (fileUploadInput) fileUploadInput.value = '';
     if (editQuizNameInput) editQuizNameInput.value = ''; 
     
     document.getElementById('customize-section')?.classList.add('hidden');
@@ -174,7 +193,7 @@ export function resetStartViewUI(preserveFileName = false) {
             if (radio) radio.checked = (idx === 0); 
         });
     }
-    if (customQuestionTypeSelect) customQuestionTypeSelect.value = 'multiple-choice';
+    if (customQuestionTypeSelect) customQuestionTypeSelect.value = 'mixed';
     
     const mcInput = document.getElementById('mc-count');
     const tfInput = document.getElementById('tf-count');
@@ -185,15 +204,12 @@ export function resetStartViewUI(preserveFileName = false) {
     if (idInput) idInput.value = '2';
     if (enInput) enInput.value = '2';
     
-    if (timeLimitToggle) timeLimitToggle.checked = false;
-    if (attemptLimitToggle) attemptLimitToggle.checked = false;
-    if (summaryOnlyToggle) summaryOnlyToggle.checked = false;
-    if (customTimeLimitInput) customTimeLimitInput.value = '';
-    if (attemptLimitInput) attemptLimitInput.value = '';
+    resetAdvancedOptions();
 
     handleTimeToggle();
     handleAttemptToggle();
     handleDifficultyChange();
+    handleCustomTypeChange();
     validateAllInputs();
     
     document.getElementById('quiz-custom-summary-banner')?.remove();
