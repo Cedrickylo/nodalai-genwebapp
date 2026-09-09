@@ -532,7 +532,7 @@
                         </svg>
                         <span>Back</span>
                     </button>                        
-                    <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Quiz History</h2>
+                    <h2 class="text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-2 min-w-0">Quiz History</h2>
                         <button id="full-history-sync-btn" class="global-sync-btn flex items-center justify-end text-xs font-medium transition-colors cursor-pointer outline-none justify-self-end" title="Click to sync with cloud">
                             <span class="sync-icon-done hidden text-green-500 flex items-center gap-1 hover:text-green-400">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><polyline points="9 16 12 19 19 12"/></svg>
@@ -599,7 +599,7 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 id="statistics-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">Quiz Statistics</h2>
+                        <h2 id="statistics-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-2 min-w-0">Quiz Statistics</h2>
                         <button id="statistics-sync-btn" class="global-sync-btn flex items-center justify-end text-xs font-medium transition-colors cursor-pointer outline-none justify-self-end" title="Click to sync with cloud">
                             <span class="sync-icon-done hidden text-green-500 flex items-center gap-1 hover:text-green-400">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/><polyline points="9 16 12 19 19 12"/></svg>
@@ -676,7 +676,7 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 id="review-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">Review Test</h2>
+                        <h2 id="review-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-2 min-w-0">Review Test</h2>
                         <span class="w-14 justify-self-end" aria-hidden="true"></span>
                     </div>
 
@@ -714,7 +714,7 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Help</h2>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-2 min-w-0">Help</h2>
                         <span class="header-spacer md:hidden" aria-hidden="true"></span>
                     </div>
 
@@ -785,7 +785,7 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">About</h2>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-2 min-w-0">About</h2>
                         <span class="header-spacer md:hidden" aria-hidden="true"></span>
                     </div>
 
@@ -922,7 +922,7 @@
         </div>
 
         <div id="quiz-view" class="view w-full max-w-4xl mx-auto">
-             <div class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl relative flex flex-col min-h-[75vh] md:min-h-[600px]">
+             <div class="bg-gray-800 p-4 sm:p-6 md:p-8 rounded-xl shadow-2xl relative flex flex-col min-h-[75vh] md:min-h-[600px]">
                 
                 <div id="visual-timer-container" class="hidden flex items-center gap-2.5 mb-4 w-full flex-shrink-0">
                     <div id="timer-total-display" class="hidden text-xs font-semibold text-gray-400 tabular-nums px-2 py-0.5 bg-gray-800/90 border border-gray-700/80 rounded-md transition-colors shadow-sm whitespace-nowrap" title="Total Duration"></div>
@@ -940,9 +940,12 @@
                             <div id="progress" class="text-sm font-medium text-gray-300"></div>
                         </div>
                         <!-- Modern Meta Container: Readable Question Number -->
-                        <div id="modern-meta-container" class="hidden flex items-center gap-2.5 flex-wrap">
-                            <span id="modern-question-number" class="text-sm sm:text-base font-bold text-blue-300 bg-blue-950/70 border border-blue-600/40 px-3 py-1 rounded-lg shadow-sm">
+                        <div id="modern-meta-container" class="hidden flex items-center gap-2.5 flex-nowrap whitespace-nowrap">
+                            <span id="modern-question-number" class="text-sm sm:text-base font-bold text-blue-300 bg-blue-950/70 border border-blue-600/40 px-3 py-1 rounded-lg shadow-sm flex-shrink-0 whitespace-nowrap">
                                 Question 1 of 10
+                            </span>
+                            <span id="modern-question-type-badge-desktop" class="modern-question-type-badge modern-question-type-badge-desktop hidden text-[11px] sm:text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50 whitespace-nowrap shadow-sm flex-shrink-0">
+                                Multiple Choice
                             </span>
                         </div>
                     </div>
@@ -971,7 +974,7 @@
 
                         <!-- Row 2 Left (Mobile): Question Type Badge First, Cloud Sync Indicator After -->
                         <div class="quiz-header-sync flex items-center gap-2">
-                            <span id="modern-question-type-badge" class="hidden text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50 whitespace-nowrap">
+                            <span id="modern-question-type-badge" class="modern-question-type-badge modern-question-type-badge-mobile hidden text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50 whitespace-nowrap">
                                 Multiple Choice
                             </span>
                             <div id="quiz-sync-indicator" class="flex items-center text-xs font-medium" title="Cloud Status">
@@ -1167,7 +1170,7 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0">Account</h2>
+                        <h2 class="text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-2 min-w-0">Account</h2>
                         <span class="header-spacer md:hidden" aria-hidden="true"></span>
                     </div>
 
@@ -1192,7 +1195,7 @@
                             </svg>
                             <span>Back</span>
                         </button>
-                        <h2 id="whats-new-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 truncate px-2">New to the website</h2>
+                        <h2 id="whats-new-title" class="text-xl sm:text-2xl font-bold text-blue-400 text-center mt-0 break-words whitespace-normal px-2 min-w-0">New to the website</h2>
                         <span id="whats-new-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 justify-self-end whitespace-nowrap">Changelog</span>
                     </div>
 

@@ -282,6 +282,7 @@ export const elements = {
     modernMetaContainer: document.getElementById('modern-meta-container'),
     modernQuestionNumber: document.getElementById('modern-question-number'),
     modernQuestionTypeBadge: document.getElementById('modern-question-type-badge'),
+    modernQuestionTypeBadgeDesktop: document.getElementById('modern-question-type-badge-desktop'),
     modernScoreStats: document.getElementById('modern-score-stats'),
     modernStatCorrectCount: document.getElementById('modern-stat-correct-count'),
     modernStatWrongCount: document.getElementById('modern-stat-wrong-count'),

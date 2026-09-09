@@ -137,10 +137,12 @@ export function updateScoreAndStatsDisplay() {
             if (scoreEl) scoreEl.textContent = `Score: ${state.score}`;
         }
     }
+    checkQuizHeaderFit(true);
 }
 
 function updateHeaderMeta(qData, currentIdx, totalQ) {
     const isModern = state.currentQuizConfig?.uiMode !== 'classic';
+    const typeBadges = document.querySelectorAll('.modern-question-type-badge');
     if (isModern) {
         classicProgressContainer?.classList.add('hidden');
         modernMetaContainer?.classList.remove('hidden');
@@ -148,19 +150,22 @@ function updateHeaderMeta(qData, currentIdx, totalQ) {
             modernQuestionNumber.textContent = `Question ${currentIdx + 1} of ${totalQ}`;
         }
         
-        if (modernQuestionTypeBadge) {
-            modernQuestionTypeBadge.classList.remove('hidden');
-            const type = (qData?.type || '').toString().trim().toLowerCase();
-            let typeLabel = 'Multiple Choice';
-            if (type === 'true-or-false') typeLabel = 'True / False';
-            else if (type === 'identification') typeLabel = 'Identification';
-            else if (type === 'enumeration') typeLabel = 'Enumeration';
-            modernQuestionTypeBadge.textContent = typeLabel;
-        }
-        checkQuizHeaderFit();
+        const type = (qData?.type || '').toString().trim().toLowerCase();
+        let typeLabel = 'Multiple Choice';
+        if (type === 'true-or-false') typeLabel = 'True / False';
+        else if (type === 'identification') typeLabel = 'Identification';
+        else if (type === 'enumeration') typeLabel = 'Enumeration';
+
+        typeBadges.forEach(badge => {
+            badge.classList.remove('hidden');
+            badge.textContent = typeLabel;
+        });
+        checkQuizHeaderFit(true);
     } else {
         modernMetaContainer?.classList.add('hidden');
-        modernQuestionTypeBadge?.classList.add('hidden');
+        typeBadges.forEach(badge => {
+            badge.classList.add('hidden');
+        });
         classicProgressContainer?.classList.remove('hidden');
         if (progressEl) {
             if (state.inSkippedRound) {
@@ -172,24 +177,66 @@ function updateHeaderMeta(qData, currentIdx, totalQ) {
     }
 }
 
-export function checkQuizHeaderFit() {
+let lastObservedHeaderWidth = 0;
+
+export function checkQuizHeaderFit(force = false) {
     const header = document.getElementById('quiz-status-header');
     if (!header) return;
     
     // On mobile screens (< 640px), the CSS grid mobile 2-row layout naturally applies
     if (window.innerWidth < 640) {
         header.classList.remove('force-mobile-header');
+        lastObservedHeaderWidth = 0;
         return;
     }
     
-    // On desktop, check if the single-row layout fits all elements or needs the 2-row mobile layout
+    const currentWidth = header.clientWidth;
+    // Guard against running before view layout has been computed
+    if (currentWidth <= 0) {
+        requestAnimationFrame(() => checkQuizHeaderFit(force));
+        return;
+    }
+
+    // Guard against ResizeObserver loop when width has not changed
+    if (!force && lastObservedHeaderWidth > 0 && Math.abs(currentWidth - lastObservedHeaderWidth) < 2) {
+        return;
+    }
+    lastObservedHeaderWidth = currentWidth;
+    
+    // Ensure force-mobile-header is removed so elements can be measured in single-row layout
     header.classList.remove('force-mobile-header');
     const meta = header.querySelector('.quiz-header-meta');
     const rightCluster = header.querySelector('.quiz-header-right-cluster');
     if (meta && rightCluster) {
-        const availableWidth = header.clientWidth;
-        const neededWidth = meta.scrollWidth + rightCluster.scrollWidth + 28;
-        if (neededWidth > availableWidth) {
+        let metaWidth = meta.scrollWidth;
+        const qNum = document.getElementById('modern-question-number');
+        const badgeDesktop = document.getElementById('modern-question-type-badge-desktop');
+        const isModern = (state.currentQuizConfig?.uiMode || 'modern') !== 'classic';
+
+        if (isModern && qNum && badgeDesktop && !badgeDesktop.classList.contains('hidden')) {
+            const metaGap = parseFloat(getComputedStyle(meta).gap) || 8;
+            metaWidth = Math.max(metaWidth, qNum.offsetWidth + badgeDesktop.offsetWidth + metaGap);
+        }
+
+        // Measure right cluster children directly to avoid display:contents reflow quirks
+        const stats = header.querySelector('.quiz-header-stats');
+        const sync = header.querySelector('.quiz-header-sync');
+        const actions = header.querySelector('.quiz-header-actions');
+        const rcGap = parseFloat(getComputedStyle(rightCluster).gap) || 12;
+
+        let rightChildrenWidth = 0;
+        let visibleCount = 0;
+        [sync, stats, actions].forEach(el => {
+            if (el && el.offsetWidth > 0) {
+                rightChildrenWidth += el.offsetWidth;
+                visibleCount++;
+            }
+        });
+        const rightWidth = rightChildrenWidth + Math.max(0, visibleCount - 1) * rcGap;
+
+        // 16px buffer ensures adequate clearance before transitioning to mobile 2-row
+        const neededWidth = metaWidth + rightWidth + 16;
+        if (neededWidth > currentWidth) {
             header.classList.add('force-mobile-header');
         } else {
             header.classList.remove('force-mobile-header');
@@ -207,7 +254,7 @@ export function initQuizHeaderFitObserver() {
         });
         headerResizeObserver.observe(header);
     } else {
-        window.addEventListener('resize', checkQuizHeaderFit);
+        window.addEventListener('resize', () => checkQuizHeaderFit());
     }
 }
 
@@ -375,7 +422,7 @@ export function startQuiz() {
     }
     updateAttemptDisplay();
     initQuizHeaderFitObserver();
-    checkQuizHeaderFit();
+    requestAnimationFrame(() => checkQuizHeaderFit(true));
     
     const isModern = (state.currentQuizConfig?.uiMode || 'modern') !== 'classic';
     if (isModern) {
