@@ -239,8 +239,8 @@ export function attachQuizEventListeners() {
     });
 
     // AI Prompt Modal Event Listeners
-    elements.closeAiPromptModalBtn?.addEventListener('click', closeAiPromptModal);
-    elements.closeAiPromptFooterBtn?.addEventListener('click', closeAiPromptModal);
+    elements.closeAiPromptModalBtn?.addEventListener('click', () => closeAiPromptModal());
+    elements.closeAiPromptFooterBtn?.addEventListener('click', () => closeAiPromptModal());
     elements.aiPromptModal?.addEventListener('click', (e) => {
         if (e.target === elements.aiPromptModal) closeAiPromptModal();
     });

@@ -1632,6 +1632,23 @@ export function pushSubState(hash, extraState = {}) {
     }
 }
 
+export function replaceSubState(hash, extraState = {}) {
+    if (!state.authorizedSubStates) {
+        state.authorizedSubStates = new Set();
+    }
+    state.authorizedSubStates.add(hash);
+    if (state.preModalScrollY === null || state.preModalScrollY === undefined) {
+        state.preModalScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    }
+    window.history.replaceState({ 
+        view: getActiveViewId(), 
+        subState: hash, 
+        fromApp: true, 
+        preScrollY: state.preModalScrollY,
+        ...extraState 
+    }, '', hash);
+}
+
 export function clearSubState(hash) {
     if (state.authorizedSubStates) {
         state.authorizedSubStates.delete(hash);
@@ -1663,7 +1680,12 @@ export function isSubStateAuthorized(hash, eventState = null) {
         return !!state.isCustomizingHistory && !!state.customizingQuizData;
     }
     if (hash === '#ai-choice' || hash === '#ai-prompt') {
-        return (state.currentFiles && state.currentFiles.length > 0) || (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0) || (!!state.isCustomizingHistory && !!state.customizingQuizData);
+        return (state.currentFiles && state.currentFiles.length > 0) || 
+            (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0) || 
+            (!!state.isCustomizingHistory && !!state.customizingQuizData) ||
+            !!state.currentQuizConfig?.isRemedial ||
+            !!(state.incorrectQuestionsForRemedial && state.incorrectQuestionsForRemedial.length > 0) ||
+            !!state.currentQuizConfig;
     }
     if (hash === '#account-modal') {
         return true;
@@ -1870,6 +1892,10 @@ export async function handlePopState(event) {
                     return;
                 }
                 if (targetHash === '#customize' || targetHash === '#edit') {
+                    return;
+                }
+                if (targetHash === '#ai-choice') {
+                    if (elements.aiChoiceModal) elements.aiChoiceModal.classList.remove('hidden');
                     return;
                 }
             }
@@ -2340,11 +2366,23 @@ export async function restoreRouteFromHash(hash) {
         const { openMigrationModal } = await import('./quiz/quizMigration.js');
         openMigrationModal('import', false);
     } else if (clean === 'remedial-setup') {
-        showView('results', false);
-        const { openRemedialSetupModal } = await import('./quiz/quizResults.js');
-        openRemedialSetupModal(false, true);
+        if (!state.questions || state.questions.length === 0) {
+            const redirectHash = state.preQuizHash || sessionStorage.getItem('nodal_pre_quiz_hash') || '#home';
+            window.history.replaceState({ view: hashToView(redirectHash) }, '', redirectHash);
+            await restoreRouteFromHash(redirectHash);
+        } else {
+            showView('results', false);
+            const { openRemedialSetupModal } = await import('./quiz/quizResults.js');
+            openRemedialSetupModal(false, true);
+        }
     } else if (clean === 'results') {
-        showView('results', false);
+        if (!state.questions || state.questions.length === 0) {
+            const redirectHash = state.preQuizHash || sessionStorage.getItem('nodal_pre_quiz_hash') || '#home';
+            window.history.replaceState({ view: hashToView(redirectHash) }, '', redirectHash);
+            await restoreRouteFromHash(redirectHash);
+        } else {
+            showView('results', false);
+        }
     } else if (clean === 'quiz' || clean === 'loading') {
         if (state.isQuizCompleted || !state.questions || state.questions.length === 0) {
             const redirectHash = state.preQuizHash || sessionStorage.getItem('nodal_pre_quiz_hash') || '#home';
@@ -3242,7 +3280,12 @@ export function openAiPromptModal(config, fileName, showNotice = false) {
 
     if (elements.aiPromptModal) {
         elements.aiPromptModal.classList.remove('hidden');
-        pushSubState('#ai-prompt');
+        if (window.location.hash === '#ai-choice') {
+            clearSubState('#ai-choice');
+            replaceSubState('#ai-prompt');
+        } else {
+            pushSubState('#ai-prompt');
+        }
     }
 }
 
@@ -3282,7 +3325,12 @@ export function openPasteJsonModal(fromPopState = false) {
     if (textarea) textarea.value = '';
     modal.classList.remove('hidden');
     if (!fromPopState) {
-        pushSubState('#paste-json');
+        if (window.location.hash === '#ai-prompt') {
+            clearSubState('#ai-prompt');
+            replaceSubState('#paste-json');
+        } else {
+            pushSubState('#paste-json');
+        }
     }
     setTimeout(() => {
         textarea?.focus();
