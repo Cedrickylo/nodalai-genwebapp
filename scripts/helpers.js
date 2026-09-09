@@ -1594,6 +1594,7 @@ export function hashToView(hash) {
 export const SUB_STATE_HASHES = [
     '#customize',
     '#edit',
+    '#remedial-setup',
     '#import-choice',
     '#ai-choice',
     '#ai-prompt',
@@ -1652,6 +1653,9 @@ export function isSubStateAuthorized(hash, eventState = null) {
     }
 
     // Prerequisite context checks for privacy and state safety
+    if (hash === '#remedial-setup') {
+        return !!(state.incorrectQuestionsForRemedial && state.incorrectQuestionsForRemedial.length > 0) || !!state.currentQuizConfig?.isRemedial;
+    }
     if (hash === '#customize') {
         return (state.currentFiles && state.currentFiles.length > 0) || (typeof state.fileContent === 'string' && state.fileContent.trim().length > 0);
     }
@@ -1738,6 +1742,8 @@ export function showView(id, pushHash = true) {
         document.body.classList.add('quiz-active');
     } else {
         document.body.classList.remove('quiz-active');
+        state.preQuizHash = viewToHash(id);
+        try { sessionStorage.setItem('nodal_pre_quiz_hash', state.preQuizHash); } catch(e) {}
     }
 
     // 3. Reset scroll position to topmost of the page immediately upon navigation
@@ -1788,6 +1794,7 @@ export async function handlePopState(event) {
 
     try {
         const targetHash = window.location.hash || '#home';
+        const targetViewId = hashToView(targetHash);
         const currentViewId = getActiveViewId();
 
         // 0. DIRECT URL ACCESS GUARD
@@ -1830,7 +1837,24 @@ export async function handlePopState(event) {
         if (elements.aiChoiceModal && !elements.aiChoiceModal.classList.contains('hidden')) {
             if (targetHash !== '#ai-choice') {
                 closeAiChoiceModal(true);
+                if (targetHash === '#remedial-setup') {
+                    const { openRemedialSetupModal } = await import('./quiz/quizResults.js');
+                    openRemedialSetupModal(false, true);
+                    return;
+                }
                 if (targetHash === '#customize' || targetHash === '#edit') {
+                    return;
+                }
+            }
+        }
+
+        // 2d. Remedial Setup Modal Dismiss
+        const remedialModal = elements.remedialSetupModal || document.getElementById('remedial-setup-modal');
+        if (remedialModal && !remedialModal.classList.contains('hidden')) {
+            if (targetHash !== '#remedial-setup') {
+                const { closeRemedialSetupModal } = await import('./quiz/quizResults.js');
+                closeRemedialSetupModal(true);
+                if (targetHash === '#results') {
                     return;
                 }
             }
@@ -1840,6 +1864,11 @@ export async function handlePopState(event) {
         if (elements.aiPromptModal && !elements.aiPromptModal.classList.contains('hidden')) {
             if (targetHash !== '#ai-prompt') {
                 closeAiPromptModal(true);
+                if (targetHash === '#remedial-setup') {
+                    const { openRemedialSetupModal } = await import('./quiz/quizResults.js');
+                    openRemedialSetupModal(false, true);
+                    return;
+                }
                 if (targetHash === '#customize' || targetHash === '#edit') {
                     return;
                 }
@@ -1955,6 +1984,27 @@ export async function handlePopState(event) {
         if (netlifyGuide && !netlifyGuide.classList.contains('hidden')) {
             const { closeNetlifyMigrationGuideModal } = await import('./quiz/quizMigration.js');
             closeNetlifyMigrationGuideModal();
+        }
+
+        // 5g. Post-Quiz Navigation Guard:
+        // Case 1: Browser Back button pressed while viewing quiz results
+        if (currentViewId === 'results') {
+            if (targetHash !== '#results' && targetHash !== '#remedial-setup') {
+                const redirectHash = state.preQuizHash || sessionStorage.getItem('nodal_pre_quiz_hash') || '#home';
+                console.log(`[Router] Back navigation from results view. Redirecting to pre-quiz page: ${redirectHash}`);
+                window.history.replaceState({ view: hashToView(redirectHash) }, '', redirectHash);
+                await restoreRouteFromHash(redirectHash);
+                return;
+            }
+        }
+
+        // Case 2: Block entering or returning to #quiz or #loading once a quiz has completed
+        if (state.isQuizCompleted && (targetHash === '#quiz' || targetHash === '#loading' || targetViewId === 'quiz')) {
+            const redirectHash = state.preQuizHash || sessionStorage.getItem('nodal_pre_quiz_hash') || '#home';
+            console.log(`[Router] Access to ${targetHash} blocked after quiz completion. Redirecting to ${redirectHash}`);
+            window.history.replaceState({ view: hashToView(redirectHash) }, '', redirectHash);
+            await restoreRouteFromHash(redirectHash);
+            return;
         }
 
         // 6. Active Quiz (#quiz) - Prompt before leaving
@@ -2117,9 +2167,15 @@ export async function handlePopState(event) {
             return;
         }
 
-        // 10. Standard View Navigation (#home, #history, #help, #about, #account, #results, #statistics, #review, #whats-new)
-        const targetViewId = hashToView(targetHash);
+        if (targetHash === '#remedial-setup') {
+            const baseView = event.state?.view || 'results';
+            showView(baseView, false);
+            const { openRemedialSetupModal } = await import('./quiz/quizResults.js');
+            openRemedialSetupModal(false, true);
+            return;
+        }
 
+        // 10. Standard View Navigation (#home, #history, #help, #about, #account, #results, #statistics, #review, #whats-new)
         if (targetViewId === 'start') {
             const wasStart = currentViewId === 'start';
             if (!wasStart) {
@@ -2283,6 +2339,20 @@ export async function restoreRouteFromHash(hash) {
         showView('start', false);
         const { openMigrationModal } = await import('./quiz/quizMigration.js');
         openMigrationModal('import', false);
+    } else if (clean === 'remedial-setup') {
+        showView('results', false);
+        const { openRemedialSetupModal } = await import('./quiz/quizResults.js');
+        openRemedialSetupModal(false, true);
+    } else if (clean === 'results') {
+        showView('results', false);
+    } else if (clean === 'quiz' || clean === 'loading') {
+        if (state.isQuizCompleted || !state.questions || state.questions.length === 0) {
+            const redirectHash = state.preQuizHash || sessionStorage.getItem('nodal_pre_quiz_hash') || '#home';
+            window.history.replaceState({ view: hashToView(redirectHash) }, '', redirectHash);
+            await restoreRouteFromHash(redirectHash);
+        } else {
+            showView('quiz', false);
+        }
     } else {
         showView('start', false);
         updateNavHighlights('home');
@@ -2951,8 +3021,25 @@ export function buildQuizSystemPrompt(config, fileName, fileContent = '') {
         distributionText = `${mcCount} Multiple Choice, ${tfCount} True or False, ${idCount} Identification, and ${enCount} Enumeration questions.`;
     }
 
-    const sourceSection = fileContent && fileContent.trim().length > 0 
-        ? `\n\n----------------------------------------\nSource Text / Reviewer:\n${fileContent.trim()}`
+    let effectiveContent = fileContent && fileContent.trim().length > 0 ? fileContent.trim() : '';
+    let remedialFocusText = '';
+    if (config.isRemedial) {
+        if (state.incorrectQuestionsForRemedial && state.incorrectQuestionsForRemedial.length > 0) {
+            const missedItemsText = state.incorrectQuestionsForRemedial.map((q, idx) => {
+                const ans = Array.isArray(q.answer) ? q.answer.join(', ') : q.answer;
+                return `[Missed Item ${idx + 1}]\nQuestion: ${q.question}\nCorrect Answer: ${ans}\nExplanation: ${q.explanation || 'N/A'}`;
+            }).join('\n\n');
+            if (effectiveContent) {
+                effectiveContent = `${effectiveContent}\n\n========================================\nQuestions Previously Answered Incorrectly by Student (Remedial Focus):\n${missedItemsText}`;
+            } else {
+                effectiveContent = `Questions Previously Answered Incorrectly by Student (Remedial Focus):\n${missedItemsText}`;
+            }
+        }
+        remedialFocusText = '\nRemedial Focus: This is a remedial quiz designed for targeted practice based on questions the student previously answered incorrectly. Prioritize testing and reinforcing the core concepts, knowledge, and problem patterns behind these missed items.\n';
+    }
+
+    const sourceSection = effectiveContent.length > 0 
+        ? `\n\n----------------------------------------\nSource Text / Reviewer:\n${effectiveContent}`
         : `\n\n----------------------------------------\nSource Text / Reviewer:\n[PASTE YOUR SOURCE TEXT / REVIEWER MATERIAL HERE]`;
 
     return `System Prompt: JSON Quiz Generator
@@ -2969,7 +3056,7 @@ Content Requirements:
 Total Items: ${totalCount} questions.
 
 ${diffGuidance}
-
+${remedialFocusText}
 Distribution: ${distributionText}
 
 Coverage: Distribute the questions evenly across all topics provided in the source text.
@@ -3023,9 +3110,9 @@ questions (Multiple Choice - Standard): Format each object as follows:
 
 "explanation": A specific, factual explanation drawn directly from the text detailing why the answer is correct.
 
-questions (Multiple Choice - True/False): Format each object as follows:
+questions (True or False): Format each object as follows:
 
-"type": "multiple-choice"
+"type": "true-or-false"
 
 "question": The true or false statement.
 

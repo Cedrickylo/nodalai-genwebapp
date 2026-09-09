@@ -77,8 +77,12 @@ import {
     displayExplanation,
     showResults,
     setupRemedialView,
+    openRemedialSetupModal,
+    closeRemedialSetupModal,
     handleRemedialDifficultyChange,
     handleRemedialCustomTypeChange,
+    handleRemedialTimerModeChange,
+    handleRemedialSecondChanceToggle,
     handleRemedialTimeToggle,
     handleRemedialAttemptToggle,
     handleRemedialTimePresetChange,
@@ -144,6 +148,7 @@ export function attachQuizEventListeners() {
         cancelCustomizeBtn,
         deleteCustomizeBtn,
         createRemedialBtn,
+        closeRemedialSetupModalBtn,
         cancelRemedialBtn,
         generateRemedialQuizBtn,
         remedialDifficultyRadios,
@@ -158,7 +163,6 @@ export function attachQuizEventListeners() {
         remedialCustomTimeInputContainer,
         remedialTimeLimitOptions,
         remedialAttemptLimitOptions,
-        remedialOptionsView,
         resultsActions,
         allowChangeToggle,
         prevQuestionBtn,
@@ -958,40 +962,36 @@ export function attachQuizEventListeners() {
         }
     });
 
-    createRemedialBtn.addEventListener('click', setupRemedialView);
-    cancelRemedialBtn.addEventListener('click', () => {
-        remedialOptionsView.classList.add('hidden');
-        resultsActions.classList.remove('hidden');
-        
-        // FIXED: Changed .add('hidden') to .remove('hidden') so button returns safely
-        createRemedialBtn.classList.remove('hidden'); 
+    createRemedialBtn?.addEventListener('click', () => openRemedialSetupModal(true));
+    closeRemedialSetupModalBtn?.addEventListener('click', () => closeRemedialSetupModal());
+    cancelRemedialBtn?.addEventListener('click', () => closeRemedialSetupModal());
+    elements.remedialSetupModal?.addEventListener('click', (e) => {
+        if (e.target === elements.remedialSetupModal) closeRemedialSetupModal();
     });
-    generateRemedialQuizBtn.addEventListener('click', () => handleQuizGeneration(true, false));
-    remedialDifficultyRadios.forEach(r => r.addEventListener('change', handleRemedialDifficultyChange));
-    remedialCustomQuestionTypeSelect.addEventListener('change', handleRemedialCustomTypeChange);
-    remedialCustomCountInputs.forEach(i => i.addEventListener('input', validateRemedialInputs));
-    remedialQuestionCountInput.addEventListener('input', validateRemedialInputs);
-    remedialTimeLimitToggle.addEventListener('change', () => {
-        remedialTimeLimitOptions.classList.toggle('hidden', !remedialTimeLimitToggle.checked);
-        if (remedialTimeLimitToggle.checked) {
-            const sel = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
-            remedialCustomTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
-        } else {
-            remedialCustomTimeInputContainer.classList.add('hidden');
+    generateRemedialQuizBtn?.addEventListener('click', () => {
+        if (elements.remedialSetupModal) {
+            elements.remedialSetupModal.classList.add('hidden');
         }
-        validateRemedialInputs();
+        handleQuizGeneration(true, false);
     });
-    remedialAttemptLimitToggle.addEventListener('change', () => {
-        remedialAttemptLimitOptions.classList.toggle('hidden', !remedialAttemptLimitToggle.checked);
-        validateRemedialInputs();
-    });
-    remedialTimePresetRadios.forEach(r => r.addEventListener('change', () => {
-        const sel = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
-        remedialCustomTimeInputContainer.classList.toggle('hidden', sel !== 'custom');
-        validateRemedialInputs();
-    }));
-    remedialCustomTimeLimitInput.addEventListener('input', validateRemedialInputs);
-    remedialAttemptLimitInput.addEventListener('input', validateRemedialInputs);
+    remedialDifficultyRadios.forEach(r => r.addEventListener('change', handleRemedialDifficultyChange));
+    remedialCustomQuestionTypeSelect?.addEventListener('change', handleRemedialCustomTypeChange);
+    remedialCustomCountInputs.forEach(i => i.addEventListener('input', validateRemedialInputs));
+    remedialQuestionCountInput?.addEventListener('input', validateRemedialInputs);
+    remedialTimeLimitToggle?.addEventListener('change', handleRemedialTimeToggle);
+    remedialAttemptLimitToggle?.addEventListener('change', handleRemedialAttemptToggle);
+    remedialTimePresetRadios.forEach(r => r.addEventListener('change', handleRemedialTimePresetChange));
+    remedialCustomTimeLimitInput?.addEventListener('input', validateRemedialInputs);
+    remedialAttemptLimitInput?.addEventListener('input', validateRemedialInputs);
+    elements.remedialTimerModeSelect?.addEventListener('change', handleRemedialTimerModeChange);
+    elements.remedialSecondChanceToggle?.addEventListener('change', handleRemedialSecondChanceToggle);
+    elements.remedialQuestionTimeInput?.addEventListener('input', validateRemedialInputs);
+    elements.remedialMaxChancesInput?.addEventListener('change', validateRemedialInputs);
+    elements.remedialAllowChangeToggle?.addEventListener('change', validateRemedialInputs);
+    elements.remedialShuffleQuestionsToggle?.addEventListener('change', validateRemedialInputs);
+    elements.remedialShuffleChoicesToggle?.addEventListener('change', validateRemedialInputs);
+    elements.remedialQuizNameInput?.addEventListener('input', validateRemedialInputs);
+    document.querySelectorAll('input[name="remedial_ui_mode"]').forEach(r => r.addEventListener('change', validateRemedialInputs));
 
     // --- Advanced Customization Interface Event Handlers ---
     if (elements.timerModeSelect) {

@@ -182,14 +182,30 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     state.maxAttempts = state.isAttemptLimited ? (parseInt(isRemedial ? elements.remedialAttemptLimitInput.value : attemptLimitInput.value, 10) || 1) : 0;
 
     const showAnswersInSummaryOnly = summaryToggle ? summaryToggle.checked : false;
-    const timerMode = elements.timerModeSelect ? elements.timerModeSelect.value : 'quiz';
-    const questionTime = elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30;
-    const enableSecondChance = elements.secondChanceToggle ? elements.secondChanceToggle.checked : false;
-    const maxChances = elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1;
-    const randomizeQuestions = elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true;
-    const randomizeChoices = elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true;
-    const allowChangeSelection = document.getElementById('allow-change-toggle')?.checked || false;
-    const uiMode = document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern';
+    const timerMode = isRemedial
+        ? (elements.remedialTimerModeSelect?.value || 'quiz')
+        : (elements.timerModeSelect ? elements.timerModeSelect.value : 'quiz');
+    const questionTime = isRemedial
+        ? (parseInt(elements.remedialQuestionTimeInput?.value, 10) || 30)
+        : (elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30);
+    const enableSecondChance = isRemedial
+        ? (elements.remedialSecondChanceToggle?.checked || false)
+        : (elements.secondChanceToggle ? elements.secondChanceToggle.checked : false);
+    const maxChances = isRemedial
+        ? (parseInt(elements.remedialMaxChancesInput?.value, 10) || 1)
+        : (elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1);
+    const randomizeQuestions = isRemedial
+        ? (elements.remedialShuffleQuestionsToggle?.checked ?? true)
+        : (elements.shuffleQuestionsToggle ? elements.shuffleQuestionsToggle.checked : true);
+    const randomizeChoices = isRemedial
+        ? (elements.remedialShuffleChoicesToggle?.checked ?? true)
+        : (elements.shuffleChoicesToggle ? elements.shuffleChoicesToggle.checked : true);
+    const allowChangeSelection = isRemedial
+        ? (elements.remedialAllowChangeToggle?.checked || false)
+        : (document.getElementById('allow-change-toggle')?.checked || false);
+    const uiMode = isRemedial
+        ? (document.querySelector('input[name="remedial_ui_mode"]:checked')?.value || 'modern')
+        : (document.querySelector('input[name="ui_mode"]:checked')?.value || 'modern');
 
     if (timerMode === 'question') state.isTimedQuiz = true;
 
@@ -596,6 +612,12 @@ export function cancelNodalAiGeneration() {
         try { state.aiGenerationAbortController.abort(); } catch (e) {}
         state.aiGenerationAbortController = null;
     }
+    if (state.currentQuizConfig?.isRemedial) {
+        showView('results', false);
+        window.history.replaceState({ view: 'results' }, '', '#results');
+        import('./quizResults.js').then(m => m.openRemedialSetupModal(false, false));
+        return;
+    }
     showView('start', false);
     window.history.replaceState({ view: 'start' }, '', '#home');
 }
@@ -609,7 +631,12 @@ export function cancelNodalAiGenerationAndCopyPrompt(config = state.currentQuizC
         try { state.aiGenerationAbortController.abort(); } catch (e) {}
         state.aiGenerationAbortController = null;
     }
-    showView('start', false);
-    window.history.replaceState({ view: 'start' }, '', '#home');
+    if (config?.isRemedial) {
+        showView('results', false);
+        window.history.replaceState({ view: 'results' }, '', '#results');
+    } else {
+        showView('start', false);
+        window.history.replaceState({ view: 'start' }, '', '#home');
+    }
     openAiPromptModal(config, fileName, showNotice);
 }

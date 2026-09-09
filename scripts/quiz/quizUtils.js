@@ -48,7 +48,6 @@ const {
     deleteCustomizeBtn,
     generateQuizBtn,
     resumeQuizBtn,
-    remedialOptionsView,
     resultsActions,
     createRemedialBtn
 } = elements;
@@ -135,11 +134,13 @@ export function resetApp(clearProg = true) {
     handleDifficultyChange();
     refreshHistory();
     
-    remedialOptionsView?.classList.add('hidden');
+    elements.remedialSetupModal?.classList.add('hidden');
+    clearSubState('#remedial-setup');
     resultsActions?.classList.remove('hidden');
     createRemedialBtn?.classList.add('hidden');
     
     state.incorrectQuestionsForRemedial = [];
+    state.isQuizCompleted = false;
     showView('start');
 }
 

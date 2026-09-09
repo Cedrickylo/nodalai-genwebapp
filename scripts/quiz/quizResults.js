@@ -4,7 +4,10 @@ import {
     clearInProgressQuiz,
     saveInProgressQuiz,
     getQuizTakes,
-    saveQuizTake
+    saveQuizTake,
+    pushSubState,
+    clearSubState,
+    closeModalWithAnimation
 } from '../helpers.js';
 
 const {
@@ -12,11 +15,13 @@ const {
     nextQuestionBtn,
     skipQuestionBtn,
     summaryOnlyToggle,
-    remedialOptionsView,
     resultsActions,
     createRemedialBtn,
+    remedialSetupModal,
+    closeRemedialSetupModalBtn,
     cancelRemedialBtn,
     generateRemedialQuizBtn,
+    remedialQuizNameInput,
     remedialQuestionCountInput,
     remedialDifficultyRadios,
     remedialCustomOptionsDiv,
@@ -26,12 +31,25 @@ const {
     remedialCustomTotalFeedback,
     remedialTimeLimitToggle,
     remedialTimeLimitOptions,
+    remedialTimerModeSelect,
+    remedialQuizTimePresetsContainer,
+    remedialQuestionTimeContainer,
+    remedialQuestionTimeInput,
     remedialTimePresetRadios,
     remedialCustomTimeInputContainer,
     remedialCustomTimeLimitInput,
     remedialAttemptLimitToggle,
     remedialAttemptLimitOptions,
-    remedialAttemptLimitInput
+    remedialAttemptLimitInput,
+    remedialSummaryOnlyToggle,
+    remedialSecondChanceToggle,
+    remedialSecondChanceOptions,
+    remedialMaxChancesInput,
+    remedialAllowChangeToggle,
+    remedialShuffleQuestionsToggle,
+    remedialShuffleChoicesToggle,
+    remedialUiModeModern,
+    remedialUiModeClassic
 } = elements;
 
 export function displayExplanation(qData, isCorrect) {
@@ -85,7 +103,9 @@ export async function showResults() {
     const { stopQuizTimer } = await import('./quizExecution.js');
     stopQuizTimer(true);
     clearInProgressQuiz();
-    showView('results');
+    state.isQuizCompleted = true;
+    showView('results', false);
+    window.history.replaceState({ view: 'results' }, '', '#results');
 
     const totalQ = state.questions.length;
     const perc = totalQ > 0 ? Math.round((state.score / totalQ) * 100) : 0;
@@ -133,10 +153,13 @@ export async function showResults() {
 
     if (state.incorrectQuestionsForRemedial.length > 0) {
         createRemedialBtn.classList.remove('hidden');
+        createRemedialBtn.onclick = () => openRemedialSetupModal(true);
     } else {
         createRemedialBtn.classList.add('hidden');
     }
-    remedialOptionsView.classList.add('hidden');
+    if (elements.remedialSetupModal) {
+        elements.remedialSetupModal.classList.add('hidden');
+    }
     resultsActions.classList.remove('hidden');
 
     // Persist completed take separately in nodal_quiz_takes_v1
@@ -182,46 +205,93 @@ export async function showResults() {
     }
 }
 
-export function setupRemedialView() {
-    resultsActions.classList.add('hidden');
-    remedialOptionsView.classList.remove('hidden');
-    createRemedialBtn.classList.add('hidden');
+export function openRemedialSetupModal(isNew = true, fromPopState = false) {
+    if (!elements.remedialSetupModal) return;
 
-    elements.remedialQuizNameInput.value = (state.currentFileName || 'Quiz') + ' - Remedial';
+    if (isNew) {
+        if (elements.remedialQuizNameInput) {
+            elements.remedialQuizNameInput.value = ((state.currentFileName || 'Quiz') + ' - Remedial').slice(0, 35);
+        }
 
-    const defaultTotal = Math.min(10, state.incorrectQuestionsForRemedial.length * 2);
-    remedialQuestionCountInput.value = defaultTotal;
-    remedialQuestionCountInput.max = state.incorrectQuestionsForRemedial.length * 3;
+        const incorrectLen = state.incorrectQuestionsForRemedial?.length || 1;
+        const defaultTotal = Math.min(10, Math.max(5, incorrectLen * 2));
+        if (remedialQuestionCountInput) {
+            remedialQuestionCountInput.value = defaultTotal;
+            remedialQuestionCountInput.max = Math.max(10, incorrectLen * 3);
+        }
 
-    const defaultMC = Math.round(defaultTotal * 0.4);
-    const defaultTF = Math.round(defaultTotal * 0.2);
-    const defaultID = Math.round(defaultTotal * 0.2);
-    const defaultEN = Math.max(0, defaultTotal - defaultMC - defaultTF - defaultID);
+        const defaultMC = Math.round(defaultTotal * 0.4);
+        const defaultTF = Math.round(defaultTotal * 0.2);
+        const defaultID = Math.round(defaultTotal * 0.2);
+        const defaultEN = Math.max(0, defaultTotal - defaultMC - defaultTF - defaultID);
 
-    document.getElementById('remedial-difficulty-easy').checked = true;
-    remedialCustomQuestionTypeSelect.value = 'mixed';
-    const rMc = document.getElementById('remedial-mc-count');
-    const rTf = document.getElementById('remedial-tf-count');
-    const rId = document.getElementById('remedial-id-count');
-    const rEn = document.getElementById('remedial-en-count');
-    if (rMc) rMc.value = defaultMC;
-    if (rTf) rTf.value = defaultTF;
-    if (rId) rId.value = defaultID;
-    if (rEn) rEn.value = defaultEN;
+        const rEasy = document.getElementById('remedial-difficulty-easy');
+        if (rEasy) rEasy.checked = true;
 
-    remedialTimeLimitToggle.checked = false;
-    remedialAttemptLimitToggle.checked = false;
-    document.getElementById('remedial-summary-only-toggle').checked = false;
-    remedialTimeLimitOptions.classList.add('hidden');
-    remedialAttemptLimitOptions.classList.add('hidden');
-    remedialCustomTimeInputContainer.classList.add('hidden');
-    document.getElementById('remedial-time-10m').checked = true;
-    remedialCustomTimeLimitInput.value = 15;
-    remedialAttemptLimitInput.value = 3;
+        if (remedialCustomQuestionTypeSelect) {
+            remedialCustomQuestionTypeSelect.value = 'mixed';
+        }
 
-    handleRemedialDifficultyChange();
+        const rMc = document.getElementById('remedial-mc-count');
+        const rTf = document.getElementById('remedial-tf-count');
+        const rId = document.getElementById('remedial-id-count');
+        const rEn = document.getElementById('remedial-en-count');
+        if (rMc) rMc.value = defaultMC;
+        if (rTf) rTf.value = defaultTF;
+        if (rId) rId.value = defaultID;
+        if (rEn) rEn.value = defaultEN;
+
+        if (elements.remedialUiModeModern) elements.remedialUiModeModern.checked = true;
+
+        if (remedialTimeLimitToggle) remedialTimeLimitToggle.checked = false;
+        if (elements.remedialTimerModeSelect) elements.remedialTimerModeSelect.value = 'quiz';
+        const rTime10m = document.getElementById('remedial-time-10m');
+        if (rTime10m) rTime10m.checked = true;
+        if (remedialCustomTimeLimitInput) remedialCustomTimeLimitInput.value = 15;
+        if (elements.remedialQuestionTimeInput) elements.remedialQuestionTimeInput.value = 30;
+
+        if (remedialAttemptLimitToggle) remedialAttemptLimitToggle.checked = false;
+        if (remedialAttemptLimitInput) remedialAttemptLimitInput.value = 3;
+
+        if (elements.remedialSummaryOnlyToggle) elements.remedialSummaryOnlyToggle.checked = false;
+
+        if (elements.remedialSecondChanceToggle) elements.remedialSecondChanceToggle.checked = false;
+        if (elements.remedialMaxChancesInput) elements.remedialMaxChancesInput.value = '1';
+
+        if (elements.remedialAllowChangeToggle) elements.remedialAllowChangeToggle.checked = false;
+
+        if (elements.remedialShuffleQuestionsToggle) elements.remedialShuffleQuestionsToggle.checked = true;
+        if (elements.remedialShuffleChoicesToggle) elements.remedialShuffleChoicesToggle.checked = true;
+    }
+
+    // Refresh sub-container visibility
+    handleRemedialCustomTypeChange();
+    handleRemedialTimeToggle();
+    handleRemedialTimerModeChange();
+    handleRemedialAttemptToggle();
+    handleRemedialSecondChanceToggle();
     validateRemedialInputs();
+
+    elements.remedialSetupModal.classList.remove('hidden');
+
+    if (!fromPopState) {
+        pushSubState('#remedial-setup', { view: 'results' });
+    }
 }
+
+export function closeRemedialSetupModal(fromPopState = false) {
+    clearSubState('#remedial-setup');
+    const modal = elements.remedialSetupModal || document.getElementById('remedial-setup-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+
+    closeModalWithAnimation(modal, () => {
+        if (!fromPopState && window.location.hash === '#remedial-setup') {
+            window.history.back();
+        }
+    });
+}
+
+export const setupRemedialView = () => openRemedialSetupModal(true);
 
 export function handleRemedialDifficultyChange() {
     validateRemedialInputs();
@@ -229,23 +299,57 @@ export function handleRemedialDifficultyChange() {
 
 export function handleRemedialCustomTypeChange() {
     const sel = remedialCustomQuestionTypeSelect?.value || 'mixed';
-    remedialCustomMixedCountsDiv.classList.toggle('hidden', sel !== 'mixed');
+    if (elements.remedialCustomMixedCountsDiv) {
+        elements.remedialCustomMixedCountsDiv.classList.toggle('hidden', sel !== 'mixed');
+    }
+    validateRemedialInputs();
+}
+
+export function handleRemedialTimerModeChange() {
+    const isQuestionMode = elements.remedialTimerModeSelect?.value === 'question';
+    if (elements.remedialQuizTimePresetsContainer) {
+        elements.remedialQuizTimePresetsContainer.classList.toggle('hidden', isQuestionMode);
+    }
+    if (elements.remedialQuestionTimeContainer) {
+        elements.remedialQuestionTimeContainer.classList.toggle('hidden', !isQuestionMode);
+    }
+    validateRemedialInputs();
+}
+
+export function handleRemedialSecondChanceToggle() {
+    if (elements.remedialSecondChanceOptions) {
+        elements.remedialSecondChanceOptions.classList.toggle('hidden', !elements.remedialSecondChanceToggle?.checked);
+    }
     validateRemedialInputs();
 }
 
 export function handleRemedialTimeToggle() {
-    remedialTimeLimitOptions.classList.toggle('hidden', !remedialTimeLimitToggle.checked);
+    const isEnabled = !!remedialTimeLimitToggle?.checked;
+    if (remedialTimeLimitOptions) {
+        remedialTimeLimitOptions.classList.toggle('hidden', !isEnabled);
+    }
+    if (isEnabled) {
+        handleRemedialTimerModeChange();
+        const selPreset = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
+        if (remedialCustomTimeInputContainer) {
+            remedialCustomTimeInputContainer.classList.toggle('hidden', selPreset !== 'custom');
+        }
+    }
     validateRemedialInputs();
 }
 
 export function handleRemedialAttemptToggle() {
-    remedialAttemptLimitOptions.classList.toggle('hidden', !remedialAttemptLimitToggle.checked);
+    if (remedialAttemptLimitOptions) {
+        remedialAttemptLimitOptions.classList.toggle('hidden', !remedialAttemptLimitToggle?.checked);
+    }
     validateRemedialInputs();
 }
 
 export function handleRemedialTimePresetChange() {
     const selected = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
-    remedialCustomTimeInputContainer.classList.toggle('hidden', selected !== 'custom');
+    if (remedialCustomTimeInputContainer) {
+        remedialCustomTimeInputContainer.classList.toggle('hidden', selected !== 'custom');
+    }
     validateRemedialInputs();
 }
 
@@ -253,39 +357,61 @@ export function validateRemedialInputs() {
     const selCustType = remedialCustomQuestionTypeSelect?.value || 'mixed';
     let custOk = true;
     if (selCustType === 'mixed') {
-        const totalQ = parseInt(remedialQuestionCountInput.value, 10);
+        const totalQ = parseInt(remedialQuestionCountInput?.value, 10) || 0;
         const mc = parseInt(document.getElementById('remedial-mc-count')?.value, 10) || 0;
         const tf = parseInt(document.getElementById('remedial-tf-count')?.value, 10) || 0;
         const id = parseInt(document.getElementById('remedial-id-count')?.value, 10) || 0;
         const en = parseInt(document.getElementById('remedial-en-count')?.value, 10) || 0;
         const sum = mc + tf + id + en;
         if (sum !== totalQ || totalQ <= 0) {
-            remedialCustomTotalFeedback.textContent = `Total: ${sum} / ${totalQ} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
-            remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
+            if (remedialCustomTotalFeedback) {
+                remedialCustomTotalFeedback.textContent = `Total: ${sum} / ${totalQ} (MC: ${mc}, T/F: ${tf}, ID: ${id}, EN: ${en})`;
+                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-red-400 font-medium';
+            }
             custOk = false;
         } else {
-            remedialCustomTotalFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalQ}`;
-            remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
+            if (remedialCustomTotalFeedback) {
+                remedialCustomTotalFeedback.textContent = `Counts match: ${mc} MC + ${tf} T/F + ${id} ID + ${en} EN = ${totalQ}`;
+                remedialCustomTotalFeedback.className = 'text-xs text-center mt-3 h-4 text-green-400 font-medium';
+            }
         }
     } else {
-        remedialCustomTotalFeedback.textContent = '';
+        if (remedialCustomTotalFeedback) {
+            remedialCustomTotalFeedback.textContent = '';
+        }
     }
 
-    const qCountOk = parseInt(remedialQuestionCountInput.value, 10) > 0;
+    const qCount = parseInt(remedialQuestionCountInput?.value, 10);
+    const qCountOk = Number.isInteger(qCount) && qCount >= constants.MIN_QUIZ_QUESTIONS && qCount <= constants.MAX_QUIZ_QUESTIONS;
+
     let timeOk = true;
-    if (remedialTimeLimitToggle.checked) {
-        const selPreset = document.querySelector('input[name="remedial_time_preset"]:checked').value;
-        if (selPreset === 'custom') {
-            const timeVal = parseInt(remedialCustomTimeLimitInput.value, 10);
-            timeOk = timeVal > 0;
+    if (remedialTimeLimitToggle?.checked) {
+        const timerMode = elements.remedialTimerModeSelect?.value || 'quiz';
+        if (timerMode === 'question') {
+            const qTime = parseInt(elements.remedialQuestionTimeInput?.value, 10);
+            timeOk = Number.isInteger(qTime) && qTime >= 5;
+        } else {
+            const selPreset = document.querySelector('input[name="remedial_time_preset"]:checked')?.value;
+            if (selPreset === 'custom') {
+                const timeVal = parseInt(remedialCustomTimeLimitInput?.value, 10);
+                timeOk = Number.isInteger(timeVal) && timeVal > 0;
+            }
         }
     }
 
     let attOk = true;
-    if (remedialAttemptLimitToggle.checked) {
-        const attVal = parseInt(remedialAttemptLimitInput.value, 10);
-        attOk = attVal > 0;
+    if (remedialAttemptLimitToggle?.checked) {
+        const attVal = parseInt(remedialAttemptLimitInput?.value, 10);
+        attOk = Number.isInteger(attVal) && attVal > 0;
     }
 
-    generateRemedialQuizBtn.disabled = !(custOk && qCountOk && timeOk && attOk);
+    let chanceOk = true;
+    if (elements.remedialSecondChanceToggle?.checked) {
+        const chanceVal = parseInt(elements.remedialMaxChancesInput?.value, 10);
+        chanceOk = Number.isInteger(chanceVal) && chanceVal > 0;
+    }
+
+    if (generateRemedialQuizBtn) {
+        generateRemedialQuizBtn.disabled = !(custOk && qCountOk && timeOk && attOk && chanceOk);
+    }
 }

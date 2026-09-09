@@ -151,10 +151,15 @@ function updateHeaderMeta(qData, currentIdx, totalQ) {
         }
         
         const type = (qData?.type || '').toString().trim().toLowerCase();
+        const isTF = type === 'true-or-false' || type === 'tf' || (
+            Array.isArray(qData?.options) &&
+            qData.options.length === 2 &&
+            qData.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase()))
+        );
         let typeLabel = 'Multiple Choice';
-        if (type === 'true-or-false') typeLabel = 'True / False';
-        else if (type === 'identification') typeLabel = 'Identification';
-        else if (type === 'enumeration') typeLabel = 'Enumeration';
+        if (isTF) typeLabel = 'True / False';
+        else if (type === 'identification' || type === 'id') typeLabel = 'Identification';
+        else if (type === 'enumeration' || type === 'en') typeLabel = 'Enumeration';
 
         typeBadges.forEach(badge => {
             badge.classList.remove('hidden');
@@ -411,6 +416,7 @@ export function startQuiz() {
 
     persistQuizProgress();
 
+    state.isQuizCompleted = false;
     showView('quiz');
     const isSummaryOnly = !!state.currentQuizConfig?.showAnswersInSummaryOnly;
     if (elements.muteSoundBtn) {

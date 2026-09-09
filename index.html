@@ -1063,96 +1063,6 @@
                     <button id="create-remedial-btn" class="hidden w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg transition">Create Remedial Quiz from Incorrect Answers</button>
                 </div>
 
-                <div id="remedial-options-view" class="hidden mt-8 pt-6 border-t border-gray-700">
-                    <h3 class="text-2xl font-bold mb-4 text-center text-yellow-400">Remedial Quiz Setup</h3>
-                     <p class="text-gray-400 mb-6 text-center text-sm">Generating a new quiz based on the topics of the questions you answered incorrectly.</p>
-
-                    <div id="remedial-rename-container" class="mb-6">
-                        <label for="remedial-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Remedial Quiz Name</label>
-                        <input type="text" id="remedial-quiz-name" maxlength="35" class="w-full bg-gray-700 border border-yellow-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Enter remedial quiz name (max 35 chars)...">
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label for="remedial-question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>
-                            <input type="number" id="remedial-question-count" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" value="10" min="5" max="100">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
-                            <div class="grid grid-cols-3 gap-2" id="remedial-difficulty-group">
-                                <div><input type="radio" id="remedial-difficulty-easy" name="remedial_difficulty" value="easy" class="hidden peer" checked><label for="remedial-difficulty-easy" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Easy</label></div>
-                                <div><input type="radio" id="remedial-difficulty-medium" name="remedial_difficulty" value="medium" class="hidden peer"><label for="remedial-difficulty-medium" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Medium</label></div>
-                                <div><input type="radio" id="remedial-difficulty-hard" name="remedial_difficulty" value="hard" class="hidden peer"><label for="remedial-difficulty-hard" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Hard</label></div>
-                            </div>
-                        </div>
-                    </div>
-                     
-                     <div id="remedial-custom-options" class="bg-gray-700/50 p-4 rounded-lg mb-6 space-y-4">
-                         <div id="remedial-custom-type-group">
-                            <label for="remedial-custom-question-type" class="block text-sm font-medium text-gray-300 mb-2">Quiz Type</label>
-                            <select id="remedial-custom-question-type" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                                <option value="mixed" selected>Mixed</option>
-                                <option value="multiple-choice">Multiple Choice</option>
-                                <option value="true-or-false">True / False</option>
-                                <option value="identification">Identification</option>
-                                <option value="enumeration">Enumeration</option>
-                            </select>
-                        </div>
-                        <div id="remedial-custom-mixed-counts" class="hidden">
-                            <p class="text-sm font-medium text-gray-300 mb-3 text-center">Specify counts for mixed type:</p>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div><label for="remedial-mc-count" class="block text-xs text-gray-400">Multiple Choice</label><input type="number" id="remedial-mc-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="4" min="0"></div>
-                                <div><label for="remedial-tf-count" class="block text-xs text-gray-400">True / False</label><input type="number" id="remedial-tf-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="2" min="0"></div>
-                                <div><label for="remedial-id-count" class="block text-xs text-gray-400">Identification</label><input type="number" id="remedial-id-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="2" min="0"></div>
-                                <div><label for="remedial-en-count" class="block text-xs text-gray-400">Enumeration</label><input type="number" id="remedial-en-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="2" min="0"></div>
-                            </div>
-                            <p id="remedial-custom-total-feedback" class="text-xs text-center mt-3 h-4"></p>
-                        </div>
-                    </div>
-
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="remedial-time-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600">
-                                <label for="remedial-time-limit-toggle" class="font-medium text-gray-300">Enable Timed Quiz</label>
-                            </div>
-                            <div id="remedial-time-limit-options" class="hidden space-y-3 pt-2">
-                                <label class="block text-sm font-medium text-gray-300">Select Duration:</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <div><input type="radio" id="remedial-time-5m" name="remedial_time_preset" value="5" class="hidden peer"><label for="remedial-time-5m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">5m</label></div>
-                                    <div><input type="radio" id="remedial-time-10m" name="remedial_time_preset" value="10" class="hidden peer" checked><label for="remedial-time-10m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">10m</label></div>
-                                    <div><input type="radio" id="remedial-time-30m" name="remedial_time_preset" value="30" class="hidden peer"><label for="remedial-time-30m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">30m</label></div>
-                                    <div><input type="radio" id="remedial-time-1h" name="remedial_time_preset" value="60" class="hidden peer"><label for="remedial-time-1h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">1h</label></div>
-                                    <div><input type="radio" id="remedial-time-2h" name="remedial_time_preset" value="120" class="hidden peer"><label for="remedial-time-2h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">2h</label></div>
-                                    <div><input type="radio" id="remedial-time-custom" name="remedial_time_preset" value="custom" class="hidden peer"><label for="remedial-time-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition-colors duration-150 text-sm font-medium">Custom</label></div>
-                                </div>
-                                <div id="remedial-custom-time-input-container" class="hidden flex items-center gap-2 pt-2">
-                                    <input type="number" id="remedial-custom-time-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="15" min="1">
-                                    <label for="remedial-custom-time-limit-input" class="text-sm text-gray-400">minutes</label>
-                                </div>
-                            </div>
-                            </div>
-                        <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="remedial-attempt-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600">
-                                <label for="remedial-attempt-limit-toggle" class="font-medium text-gray-300">Enable Attempt Limit</label>
-                            </div>
-                            <div id="remedial-attempt-limit-options" class="hidden">
-                                <div class="flex items-center gap-2 pt-2">
-                                    <label for="remedial-attempt-limit-input" class="text-sm font-medium text-gray-300">Max Attempts:</label>
-                                    <input type="number" id="remedial-attempt-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1" value="3" min="1">
-                                </div>
-                            </div>
-                            </div>
-                    </div>
-                    <div class="bg-gray-700/50 p-4 rounded-lg space-y-3 mb-6">
-                        <div class="flex items-center gap-2"><input type="checkbox" id="remedial-summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer"><label for="remedial-summary-only-toggle" class="font-medium text-gray-300 cursor-pointer">Don't auto-validate answers (Show in Summary Only)</label></div>
-                    </div>
-                     <div class="flex gap-4 mt-6">
-                        <button id="cancel-remedial-btn" class="w-1/3 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg transition">Cancel</button>
-                        <button id="generate-remedial-quiz-btn" class="flex-grow bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg transition" disabled>Generate Remedial Quiz</button>
-                     </div>
-                </div>
             </div>
         </div>
 <div id="account-view" class="view w-full max-w-5xl self-start">
@@ -2523,6 +2433,222 @@
                 <span>Load Quiz</span>
             </button>
             <button id="cancel-paste-json-btn" type="button" class="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl transition-colors text-sm">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Remedial Quiz Setup Popup Modal -->
+<div id="remedial-setup-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 transition-opacity duration-300">
+    <div class="bg-gray-800 w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300 flex flex-col max-h-[92vh]">
+        
+        <!-- Modal Header -->
+        <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800/90 relative">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-yellow-500/20 text-yellow-400 rounded-xl border border-yellow-500/30">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white leading-tight">Remedial Quiz Setup</h3>
+                    <p class="text-xs text-gray-400">Targeted practice based on questions you answered incorrectly</p>
+                </div>
+            </div>
+            <button id="close-remedial-setup-modal-btn" type="button" class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <!-- Modal Scrollable Body -->
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-5">
+            <!-- Quiz Name -->
+            <div>
+                <label for="remedial-quiz-name" class="block text-sm font-medium text-gray-300 mb-2">Remedial Quiz Name</label>
+                <input type="text" id="remedial-quiz-name" maxlength="35" class="w-full bg-gray-700 border border-yellow-500 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Enter remedial quiz name (max 35 chars)...">
+            </div>
+
+            <!-- Question Count & Difficulty -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="remedial-question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>
+                    <input type="number" id="remedial-question-count" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" value="10" min="5" max="100">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
+                    <div class="grid grid-cols-3 gap-2" id="remedial-difficulty-group">
+                        <div><input type="radio" id="remedial-difficulty-easy" name="remedial_difficulty" value="easy" class="hidden peer" checked><label for="remedial-difficulty-easy" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition font-medium text-sm">Easy</label></div>
+                        <div><input type="radio" id="remedial-difficulty-medium" name="remedial_difficulty" value="medium" class="hidden peer"><label for="remedial-difficulty-medium" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition font-medium text-sm">Medium</label></div>
+                        <div><input type="radio" id="remedial-difficulty-hard" name="remedial_difficulty" value="hard" class="hidden peer"><label for="remedial-difficulty-hard" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition font-medium text-sm">Hard</label></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Type & Mode of Interaction Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-700/50 p-4 rounded-lg space-y-2">
+                    <label for="remedial-custom-question-type" class="block text-sm font-medium text-gray-300">Quiz Type</label>
+                    <select id="remedial-custom-question-type" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        <option value="mixed" selected>Mixed Types</option>
+                        <option value="multiple-choice">Multiple Choice Only</option>
+                        <option value="true-or-false">True / False Only</option>
+                        <option value="identification">Identification Only</option>
+                        <option value="enumeration">Enumeration Only</option>
+                    </select>
+                    <span class="text-[11px] text-gray-400 block">Choose specific question format or a mix of types.</span>
+                </div>
+
+                <div class="bg-gray-700/50 p-4 rounded-lg space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">Mode of Interaction</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <input type="radio" id="remedial-ui-mode-modern" name="remedial_ui_mode" value="modern" class="hidden peer" checked>
+                            <label for="remedial-ui-mode-modern" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition font-medium text-sm">Modern</label>
+                        </div>
+                        <div>
+                            <input type="radio" id="remedial-ui-mode-classic" name="remedial_ui_mode" value="classic" class="hidden peer">
+                            <label for="remedial-ui-mode-classic" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition font-medium text-sm">Classic</label>
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-gray-400 block">Modern UI includes Back button, readable counters, and review tools.</span>
+                </div>
+
+                <!-- Mixed Counts Breakdown (automatically visible by default for Mixed type) -->
+                <div id="remedial-custom-mixed-counts" class="md:col-span-2 bg-gray-700/50 p-4 rounded-lg space-y-4">
+                    <p class="text-sm font-medium text-gray-300 mb-3 text-center">Specify counts for mixed type:</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div><label for="remedial-mc-count" class="block text-xs text-gray-400">Multiple Choice</label><input type="number" id="remedial-mc-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="4" min="0"></div>
+                        <div><label for="remedial-tf-count" class="block text-xs text-gray-400">True / False</label><input type="number" id="remedial-tf-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="2" min="0"></div>
+                        <div><label for="remedial-id-count" class="block text-xs text-gray-400">Identification</label><input type="number" id="remedial-id-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="2" min="0"></div>
+                        <div><label for="remedial-en-count" class="block text-xs text-gray-400">Enumeration</label><input type="number" id="remedial-en-count" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 remedial-custom-count" value="2" min="0"></div>
+                    </div>
+                    <p id="remedial-custom-total-feedback" class="text-xs text-center mt-3 h-4"></p>
+                </div>
+            </div>
+
+            <!-- Timed Quiz & Attempt Limits Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Timed Quiz Configurations Block -->
+                <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="remedial-time-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer">
+                        <label for="remedial-time-limit-toggle" class="font-medium text-gray-300 cursor-pointer">Enable Timed Quiz</label>
+                    </div>
+                    <div id="remedial-time-limit-options" class="hidden space-y-4 pt-2 border-t border-gray-600/30">
+                        <div class="space-y-1">
+                            <label for="remedial-timer-mode-select" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Timer Style</label>
+                            <select id="remedial-timer-mode-select" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 cursor-pointer">
+                                <option value="quiz" selected>Quiz-Wide (Total Time Limit)</option>
+                                <option value="question">Per-Question (Individual Time Limit)</option>
+                            </select>
+                        </div>
+
+                        <!-- Quiz-Wide Selection Block -->
+                        <div id="remedial-quiz-time-presets-container" class="space-y-2">
+                            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Select Total Duration</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><input type="radio" id="remedial-time-5m" name="remedial_time_preset" value="5" class="hidden peer"><label for="remedial-time-5m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition text-sm font-medium">5m</label></div>
+                                <div><input type="radio" id="remedial-time-10m" name="remedial_time_preset" value="10" class="hidden peer" checked><label for="remedial-time-10m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition text-sm font-medium">10m</label></div>
+                                <div><input type="radio" id="remedial-time-30m" name="remedial_time_preset" value="30" class="hidden peer"><label for="remedial-time-30m" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition text-sm font-medium">30m</label></div>
+                                <div><input type="radio" id="remedial-time-1h" name="remedial_time_preset" value="60" class="hidden peer"><label for="remedial-time-1h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition text-sm font-medium">1h</label></div>
+                                <div><input type="radio" id="remedial-time-2h" name="remedial_time_preset" value="120" class="hidden peer"><label for="remedial-time-2h" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition text-sm font-medium">2h</label></div>
+                                <div><input type="radio" id="remedial-time-custom" name="remedial_time_preset" value="custom" class="hidden peer"><label for="remedial-time-custom" class="block w-full text-center cursor-pointer p-2 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 peer-checked:bg-yellow-600 peer-checked:border-yellow-700 peer-checked:text-gray-900 transition text-sm font-medium">Custom</label></div>
+                            </div>
+                            <div id="remedial-custom-time-input-container" class="hidden flex items-center gap-2 pt-2">
+                                <input type="number" id="remedial-custom-time-limit-input" class="w-20 bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-white text-sm" value="15" min="1">
+                                <label for="remedial-custom-time-limit-input" class="text-xs text-gray-400">minutes total</label>
+                            </div>
+                        </div>
+
+                        <!-- Per-Question Selection Block -->
+                        <div id="remedial-question-time-container" class="hidden space-y-1">
+                            <label for="remedial-question-time-input" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Question Timeout Duration</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="remedial-question-time-input" class="w-20 bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-white text-sm focus:outline-none" value="30" min="5">
+                                <span class="text-xs text-gray-400">seconds per question</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attempt Limit Block -->
+                <div class="bg-gray-700/50 p-4 rounded-lg space-y-3">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="remedial-attempt-limit-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer">
+                        <label for="remedial-attempt-limit-toggle" class="font-medium text-gray-300 cursor-pointer">Enable Attempt Limit</label>
+                    </div>
+                    <div id="remedial-attempt-limit-options" class="hidden">
+                        <div class="flex items-center gap-2 pt-2">
+                            <label for="remedial-attempt-limit-input" class="text-sm font-medium text-gray-300">Max Attempts:</label>
+                            <input type="number" id="remedial-attempt-limit-input" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-white" value="3" min="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary & Auto-Validation Toggle -->
+            <div class="bg-gray-700/50 p-4 rounded-lg space-y-2">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="remedial-summary-only-toggle" class="h-5 w-5 rounded bg-gray-700 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer">
+                    <label for="remedial-summary-only-toggle" class="font-medium text-gray-300 cursor-pointer">Don't auto-validate answers (Show in Summary Only)</label>
+                </div>
+            </div>
+
+            <!-- Advanced & Randomization Options Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-700/50">
+                <!-- Advanced Features -->
+                <div class="bg-gray-700/50 p-4 rounded-lg space-y-4">
+                    <h4 class="text-sm font-semibold text-yellow-400 uppercase tracking-wider mb-2">Advanced Options</h4>
+                    <div class="space-y-2 pt-2 border-t border-gray-800/60">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="remedial-second-chance-toggle" class="h-4 w-4 rounded bg-gray-800 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer">
+                            <label for="remedial-second-chance-toggle" class="text-sm font-medium text-gray-300 cursor-pointer">Enable Second Chance</label>
+                        </div>
+                        <div id="remedial-second-chance-options" class="hidden flex items-center gap-2 pl-6">
+                            <label for="remedial-max-chances-input" class="text-xs text-gray-400">Max extra chances:</label>
+                            <select id="remedial-max-chances-input" class="bg-gray-800 border border-gray-600 rounded-lg px-2 py-1 text-xs text-white">
+                                <option value="1" selected>1 Chance</option>
+                                <option value="2">2 Chances</option>
+                                <option value="3">3 Chances</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="space-y-2 pt-2 border-t border-gray-800/60">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="remedial-allow-change-toggle" class="h-4 w-4 rounded bg-gray-800 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer">
+                            <div class="flex flex-col">
+                                <label for="remedial-allow-change-toggle" class="text-sm font-medium text-gray-300 cursor-pointer">Allow changing selections before advancing</label>
+                                <span class="text-[11px] text-gray-400 leading-tight">Allows updating choices freely. Input locks only after hitting Next Question.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Randomization Settings -->
+                <div class="bg-gray-700/50 p-4 rounded-lg space-y-4">
+                    <h4 class="text-sm font-semibold text-yellow-400 uppercase tracking-wider mb-2">Randomization Settings</h4>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="remedial-shuffle-questions-toggle" class="h-5 w-5 rounded bg-gray-800 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer" checked>
+                        <div class="flex flex-col">
+                            <label for="remedial-shuffle-questions-toggle" class="text-sm font-medium text-gray-200 cursor-pointer">Shuffle Question Order</label>
+                            <span class="text-xs text-gray-400">Randomizes the sequence of questions served.</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 pt-3 border-t border-gray-800/60">
+                        <input type="checkbox" id="remedial-shuffle-choices-toggle" class="h-5 w-5 rounded bg-gray-800 border-gray-600 text-yellow-500 focus:ring-yellow-600 cursor-pointer" checked>
+                        <div class="flex flex-col">
+                            <label for="remedial-shuffle-choices-toggle" class="text-sm font-medium text-gray-200 cursor-pointer">Shuffle Multiple-Choice Options</label>
+                            <span class="text-xs text-gray-400">Randomizes choice layout order on every load.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer Buttons -->
+        <div class="p-4 sm:p-5 border-t border-gray-700 bg-gray-800/90 flex gap-3">
+            <button id="cancel-remedial-btn" type="button" class="w-1/3 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition cursor-pointer">Cancel</button>
+            <button id="generate-remedial-quiz-btn" type="button" class="flex-grow bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg disabled:bg-gray-600 disabled:cursor-not-allowed cursor-pointer" disabled>Generate Remedial Quiz</button>
         </div>
     </div>
 </div>
