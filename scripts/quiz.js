@@ -433,7 +433,7 @@ export function attachQuizEventListeners() {
                 await syncHistoryWithCloud();
                 refreshHistory();
                 hideLoadingOverlay();
-                closeShareModal(true);
+                closeShareModal(false);
                 showToast('Sharing disabled.', 3000, 'info');
             } catch (err) {
                 console.error('Disable Error:', err);
@@ -450,8 +450,37 @@ export function attachQuizEventListeners() {
         const { closeShareModal } = await import('./helpers.js');
         closeShareModal();
     };
+    elements.shareModal?.addEventListener('click', async (e) => {
+        if (e.target === elements.shareModal) {
+            const { closeShareModal } = await import('./helpers.js');
+            closeShareModal();
+        }
+    });
     elements.shareMenuLinkBtn.onclick = async () => {
-        const { navigateToShareStep, showToast, customConfirm, updateAuthUI, syncHistoryWithCloud } = await import('./helpers.js');
+        const { 
+            navigateToShareStep, 
+            showToast, 
+            customConfirm, 
+            loginToPuter, 
+            isQuizShareActive, 
+            updateShareLinkDisplay 
+        } = await import('./helpers.js');
+
+        const key = state.currentShareQuizKey;
+        const quiz = state.quizHistory && state.quizHistory[key];
+
+        // If an active, unexpired link already exists, resume share-live directly
+        if (isQuizShareActive(quiz)) {
+            updateShareLinkDisplay(quiz);
+            if (quiz.share.expiryTimestamp) {
+                const daysLeft = Math.ceil((quiz.share.expiryTimestamp - Date.now()) / (1000 * 60 * 60 * 24));
+                elements.shareExpiryDisplay.textContent = daysLeft > 0 ? `Active for ${daysLeft} more days` : 'Expired';
+                elements.shareExpiryDisplay.className = daysLeft > 0 ? 'text-xs text-blue-300 mt-1' : 'text-xs text-red-400 mt-1 font-bold';
+            }
+            navigateToShareStep('manage');
+            return;
+        }
+
         if (!navigator.onLine) {
             showToast('Cannot generate a new share link while offline. Please connect to the internet.', 4000, 'warning');
             return;
@@ -467,13 +496,9 @@ export function attachQuizEventListeners() {
                 false
             );
             if (wantsToLogin) {
-                try {
-                    await puter.auth.signIn();
-                    await updateAuthUI();
-                    syncHistoryWithCloud();
+                const loggedIn = await loginToPuter();
+                if (loggedIn) {
                     navigateToShareStep('config');
-                } catch (err) {
-                    console.error('Sign in failed during link sharing', err);
                 }
             }
             return;
@@ -1088,14 +1113,24 @@ export function attachQuizEventListeners() {
         });
     }
     if (elements.historySubmenuShareBtn) {
-        elements.historySubmenuShareBtn.addEventListener('click', () => {
+        elements.historySubmenuShareBtn.addEventListener('click', async () => {
             const key = state.activeHistoryMenuKey;
-            if (elements.historyActionsModal) {
-                elements.historyActionsModal.classList.add('hidden');
-            }
+            const { closeHistoryActionsModal, openShareModal, getActiveViewId, viewToHash } = await import('./helpers.js');
+            const originHash = state.historyMenuOriginHash || window.location.hash || '#home';
+            const originView = state.historyMenuOriginView || getActiveViewId();
+            const preScrollY = state.historyMenuPreScrollY ?? (window.scrollY || 0);
+
+            // Cleanly dismiss history actions modal and clear its sub-state
+            closeHistoryActionsModal(false, false);
+
+            state.shareOriginHash = originHash;
+            state.shareOriginView = originView;
+            state.shareOriginScrollY = preScrollY;
+
             if (key) {
                 state.lastHistoryMenuKey = key;
-                handleHistoryClick({ target: { closest: () => ({ dataset: { key, action: 'share' } }) } });
+                state.currentShareQuizKey = key;
+                openShareModal(key, true);
             }
         });
     }

@@ -1,6 +1,6 @@
 import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter, isCustomizingQuizGeneration } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
-import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing } from './helpers.js';
+import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing, cleanupExpiredSharedQuizzes } from './helpers.js';
 import { initNetlifyMigrationBannerAndNotice } from './quiz/quizMigration.js';
 import { elements, state } from './state.js';
 
@@ -111,6 +111,11 @@ async function initApp() {
             setSyncing('offline');
         });
 
+        // Proactively clean up any expired shared links from Puter disk and update local status
+        cleanupExpiredSharedQuizzes().catch((cleanupErr) => {
+            console.warn('Non-fatal expired share link cleanup error:', cleanupErr);
+        });
+
         prepareSavedProgress();
         initWelcomeModal();
         await initRouter();
@@ -126,20 +131,20 @@ async function initApp() {
         }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v40)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v41)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW v40] ServiceWorker registered with scope:', reg.scope);
+                    console.log('[SW v41] ServiceWorker registered with scope:', reg.scope);
 
                     // Proactively check for updates immediately
                     reg.update().catch(() => {});
 
                     // Check if an update is already waiting to activate
                     if (reg.waiting && navigator.serviceWorker.controller) {
-                        console.log('[SW v40] Existing waiting worker found, activating...');
+                        console.log('[SW v41] Existing waiting worker found, activating...');
                         sessionStorage.setItem('nodal_is_updating', 'true');
                         showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
                         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -149,13 +154,13 @@ async function initApp() {
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         if (newWorker && navigator.serviceWorker.controller) {
-                            console.log('[SW v40] Service worker update found, displaying update loader...');
+                            console.log('[SW v41] Service worker update found, displaying update loader...');
                             sessionStorage.setItem('nodal_is_updating', 'true');
                             showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
 
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed') {
-                                    console.log('[SW v40] New version installed, triggering skipWaiting...');
+                                    console.log('[SW v41] New version installed, triggering skipWaiting...');
                                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                                 } else if (newWorker.state === 'redundant') {
                                     sessionStorage.removeItem('nodal_is_updating');
@@ -165,7 +170,7 @@ async function initApp() {
                         }
                     });
                 } catch (swErr) {
-                    console.warn('[SW v40] ServiceWorker registration failed:', swErr);
+                    console.warn('[SW v41] ServiceWorker registration failed:', swErr);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
@@ -175,7 +180,7 @@ async function initApp() {
 
             // When new SW takes controller claim
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('[SW v40] Controller changed - new version active');
+                console.log('[SW v41] Controller changed - new version active');
                 if (sessionStorage.getItem('nodal_is_updating') === 'true') {
                     // Reload so new code boots cleanly with the pre-update loader active
                     window.location.reload();
@@ -187,7 +192,7 @@ async function initApp() {
 
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'SW_ACTIVATED') {
-                    console.log('[SW v40] Active version:', event.data.version);
+                    console.log('[SW v41] Active version:', event.data.version);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }

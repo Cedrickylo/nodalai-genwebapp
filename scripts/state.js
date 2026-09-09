@@ -432,6 +432,8 @@ export const state = {
     activeShareStep: 'menu',
     currentShareQuizKey: null,
     shareOriginView: 'start',
+    shareOriginHash: '#home',
+    shareOriginScrollY: null,
     editOriginView: 'start',
     deletedQuizKeys: JSON.parse(localStorage.getItem('nodal_deleted_quiz_keys') || '{}'),
     // --- ADVANCED RUNTIME STATE ---
@@ -442,6 +444,8 @@ export const state = {
     activeHistoryMenuKey: null,
     pendingSharedQuiz: null,
     historyMenuOriginHash: '#history',
+    historyMenuOriginView: 'history-fullscreen',
+    historyMenuPreScrollY: null,
     currentStatsQuizKey: null,
     currentReviewTake: null,
     reviewOrigin: 'statistics',

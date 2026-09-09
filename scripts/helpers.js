@@ -141,6 +141,33 @@ export function customConfirm(message, title = 'Confirm', acceptText = 'OK', can
     });
 }
 
+export function customAlert(message, title = 'Alert', acceptText = 'OK') {
+    return new Promise((resolve) => {
+        confirmTitle.textContent = title;
+        confirmMessage.innerHTML = message.replace(/\n/g, '<br>'); 
+        acceptConfirmBtn.textContent = acceptText;
+
+        // Hide cancel button for single-action alert dialog
+        cancelConfirmBtn.classList.add('hidden');
+
+        acceptConfirmBtn.classList.replace('bg-red-600', 'bg-blue-600');
+        acceptConfirmBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+
+        confirmModal.classList.remove('hidden');
+
+        const cleanup = () => {
+            closeModalWithAnimation(confirmModal, () => {
+                cancelConfirmBtn.classList.remove('hidden');
+                acceptConfirmBtn.removeEventListener('click', onAccept);
+                resolve(true);
+            });
+        };
+
+        const onAccept = () => { cleanup(); };
+        acceptConfirmBtn.addEventListener('click', onAccept);
+    });
+}
+
 export function toggleContainerVisibility(containerId, isVisible) {
     const el = document.getElementById(containerId);
     if (el) {
@@ -1353,7 +1380,13 @@ export function showLoadingOverlay(title = 'Please wait...', message = 'Processi
     const titleEl = elements.loadingOverlayTitle || document.getElementById('loading-overlay-title');
     const msgEl = elements.loadingOverlayMessage || document.getElementById('loading-overlay-message');
     if (titleEl) titleEl.textContent = title;
-    if (msgEl) msgEl.textContent = message;
+    if (msgEl) {
+        if (typeof message === 'string' && (message.includes('<') || message.includes('\n'))) {
+            msgEl.innerHTML = message.replace(/\n/g, '<br>');
+        } else {
+            msgEl.textContent = message;
+        }
+    }
     if (overlay) {
         overlay.classList.remove('hidden');
     }
@@ -1950,19 +1983,20 @@ export async function handlePopState(event) {
         if (elements.historyActionsModal && !elements.historyActionsModal.classList.contains('hidden')) {
             if (targetHash !== '#history-actions') {
                 closeHistoryActionsModal(true, false);
-                if (targetHash === '#history') {
-                    const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
-                    if (currentViewId !== 'history-fullscreen') {
-                        showAllHistoryFullScreen(false);
-                    }
-                    if (state.preModalScrollY !== null && state.preModalScrollY !== undefined) {
-                        window.scrollTo({ top: state.preModalScrollY, behavior: 'instant' });
-                        state.preModalScrollY = null;
-                    } else if (event.state?.preScrollY !== undefined) {
-                        window.scrollTo({ top: event.state.preScrollY, behavior: 'instant' });
-                    }
-                    return;
+                const returnView = event.state?.view || state.historyMenuOriginView || hashToView(targetHash);
+                if (returnView && currentViewId !== returnView) {
+                    showView(returnView, false);
                 }
+                const scrollY = state.historyMenuPreScrollY ?? state.preModalScrollY ?? event.state?.preScrollY;
+                if (scrollY !== null && scrollY !== undefined) {
+                    window.scrollTo({ top: scrollY, behavior: 'instant' });
+                    requestAnimationFrame(() => {
+                        window.scrollTo({ top: scrollY, behavior: 'instant' });
+                    });
+                    state.historyMenuPreScrollY = null;
+                    state.preModalScrollY = null;
+                }
+                return;
             }
         }
 
@@ -2127,10 +2161,22 @@ export async function handlePopState(event) {
         // 9. Re-open Modals when popping back into them
         if (targetHash === '#history-actions') {
             const quizKey = event.state?.quizKey || state.activeHistoryMenuKey || state.lastHistoryMenuKey || state.currentStatsQuizKey || localStorage.getItem('nodal_last_stats_key');
-            state.historyOrigin = 'nav';
-            const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
-            showAllHistoryFullScreen(false);
-            updateNavHighlights('history');
+            const originView = event.state?.view || state.historyMenuOriginView || (state.historyMenuOriginHash === '#downloads' ? 'downloads' : (state.historyMenuOriginHash === '#home' ? 'start' : 'history-fullscreen'));
+            if (originView === 'history-fullscreen') {
+                state.historyOrigin = 'nav';
+                const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
+                showAllHistoryFullScreen(false);
+                updateNavHighlights('history');
+            } else if (originView === 'downloads') {
+                const { renderDownloadsView } = await import('./quiz/quizOffline.js');
+                renderDownloadsView(false);
+                updateNavHighlights('downloads');
+            } else if (originView === 'start') {
+                showView('start', false);
+                updateNavHighlights('home');
+            } else {
+                showView(originView, false);
+            }
             if (quizKey && state.quizHistory && state.quizHistory[quizKey]) {
                 state.activeHistoryMenuKey = quizKey;
                 state.lastHistoryMenuKey = quizKey;
@@ -2632,7 +2678,7 @@ export function refreshHistory() {
         const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
         const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
         
-        const isShared = data.share && data.share.isShared;
+        const isShared = data.share && data.share.isShared && (!data.share.expiryTimestamp || data.share.expiryTimestamp > Date.now());
         const shareIconHTML = isShared ? `
             <span class="text-blue-400 bg-blue-500/10 p-1 rounded inline-flex items-center flex-shrink-0" title="Currently sharing via link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
@@ -3444,6 +3490,83 @@ export function initializeAudio() {
     }
 }
 
+export async function loginToPuter() {
+    if (typeof puter === 'undefined' || !window.puter || !puter.auth) {
+        showToast('Authentication unavailable offline.', 4000, 'warning');
+        return false;
+    }
+
+    try {
+        showLoadingOverlay(
+            'Puter Authentication',
+            'Logging in to Puter...<br><span class="text-xs text-gray-400">Please complete the sign-in prompt in the Puter window</span>'
+        );
+        await puter.auth.signIn();
+    } catch (e) {
+        console.warn('Puter sign in cancelled or failed:', e);
+    } finally {
+        hideLoadingOverlay();
+    }
+
+    if (puter.auth.isSignedIn()) {
+        await updateAuthUI();
+        syncHistoryWithCloud();
+        showToast('Signed in to Puter successfully!', 3000, 'success');
+        return true;
+    } else {
+        await customAlert(
+            'Logging in to Puter was cancelled or failed.<br><br>Please click the login button again to retry.',
+            'Sign In Cancelled or Failed',
+            'Try Again'
+        );
+        return false;
+    }
+}
+
+export async function cleanupExpiredSharedQuizzes() {
+    if (!state.quizHistory || typeof state.quizHistory !== 'object') return;
+
+    let hasExpired = false;
+    const now = Date.now();
+    const deletePromises = [];
+
+    for (const [key, quiz] of Object.entries(state.quizHistory)) {
+        if (quiz && quiz.share && quiz.share.isShared && quiz.share.expiryTimestamp && quiz.share.expiryTimestamp <= now) {
+            hasExpired = true;
+            const shareIdToDelete = quiz.share.shareId;
+
+            quiz.share = { isShared: false };
+            quiz.timestamp = now;
+
+            if (shareIdToDelete && typeof puter !== 'undefined' && window.puter?.fs && puter.auth?.isSignedIn() && navigator.onLine) {
+                deletePromises.push(
+                    puter.fs.delete(shareIdToDelete).catch((delErr) => {
+                        console.warn(`[Cleanup] Failed to delete expired share file ${shareIdToDelete}:`, delErr);
+                    })
+                );
+            }
+        }
+    }
+
+    if (hasExpired) {
+        try {
+            localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+            localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
+        } catch (storageErr) {
+            console.warn('[Cleanup] Failed to persist expired quiz state to localStorage:', storageErr);
+        }
+
+        refreshHistory();
+
+        if (deletePromises.length > 0) {
+            Promise.all(deletePromises).catch(() => {});
+        }
+        if (typeof puter !== 'undefined' && window.puter?.auth?.isSignedIn() && navigator.onLine) {
+            syncHistoryWithCloud().catch(() => {});
+        }
+    }
+}
+
 export function attachAuthHandlers() {
     // 1. Home Screen Auth Button (Shows as Popup)
     if (authBtn) {
@@ -3455,19 +3578,7 @@ export function attachAuthHandlers() {
             }
             if (!await confirmLeaveCustomizeIfActive()) return;
             if (!puter.auth.isSignedIn()) {
-                try {
-                    // 1. Wait for the user to finish logging in
-                    await puter.auth.signIn();
-                    
-                    // 2. Wait for the UI to update with their username and credits
-                    await updateAuthUI(); 
-                    
-                    // 3. Immediately pull their saved quizzes from the cloud!
-                    syncHistoryWithCloud(); 
-                    
-                } catch (e) {
-                    console.error("Sign in failed", e);
-                }
+                await loginToPuter();
             } else {
                 // If they are already signed in, just open the popup dashboard
                 openAccountAsModal();
@@ -3517,13 +3628,9 @@ export function attachAuthHandlers() {
     const accountLoginBtn = document.getElementById('account-login-btn');
     if (accountLoginBtn) {
         accountLoginBtn.onclick = async () => {
-            try {
-                await puter.auth.signIn();
-                await updateAuthUI(); 
-                syncHistoryWithCloud();
+            const success = await loginToPuter();
+            if (success) {
                 await populateAccountData(); // Refresh the account view immediately
-            } catch (e) {
-                console.error("Sign in failed", e);
             }
         };
     }
@@ -3701,15 +3808,28 @@ export function toggleShareLinkFormat() {
     }
 }
 
-export function openShareModal(quizKey) {
+export function isQuizShareActive(quiz) {
+    return Boolean(
+        quiz &&
+        quiz.share &&
+        quiz.share.isShared &&
+        quiz.share.expiryTimestamp &&
+        quiz.share.expiryTimestamp > Date.now()
+    );
+}
+
+export function openShareModal(quizKey, replaceHash = false) {
     state.currentShareQuizKey = quizKey;
     const quiz = state.quizHistory[quizKey];
     
     // Show the modal backdrop
     elements.shareModal.classList.remove('hidden');
     
-    // Check if this quiz is already shared
-    if (quiz && quiz.share && quiz.share.isShared) {
+    // If opened from history actions modal or explicit replaceHash, replace #history-actions so it is eliminated from history
+    const shouldReplace = replaceHash || window.location.hash === '#history-actions';
+
+    // Check if this quiz already has an active, unexpired share link
+    if (isQuizShareActive(quiz)) {
         // Populate the existing share details with short/full format handling
         updateShareLinkDisplay(quiz);
         
@@ -3720,10 +3840,30 @@ export function openShareModal(quizKey) {
             elements.shareExpiryDisplay.className = daysLeft > 0 ? 'text-xs text-blue-300 mt-1' : 'text-xs text-red-400 mt-1 font-bold';
         }
         
-        navigateToShareStep('manage');
+        if (shouldReplace) {
+            replaceSubState('#share-live', { 
+                quizKey, 
+                originHash: state.shareOriginHash, 
+                originView: state.shareOriginView, 
+                preScrollY: state.shareOriginScrollY 
+            });
+            navigateToShareStep('manage', false);
+        } else {
+            navigateToShareStep('manage');
+        }
     } else {
-        // Not shared yet, show the main menu
-        navigateToShareStep('menu');
+        if (shouldReplace) {
+            replaceSubState('#share', { 
+                quizKey, 
+                originHash: state.shareOriginHash, 
+                originView: state.shareOriginView, 
+                preScrollY: state.shareOriginScrollY 
+            });
+            navigateToShareStep('menu', false);
+        } else {
+            // Not shared yet, show the main menu
+            navigateToShareStep('menu');
+        }
     }
 }
 
@@ -3733,6 +3873,10 @@ export function closeShareModal(fromPopState = false) {
     clearSubState('#share-live');
     clearSubState('#share-manage');
 
+    const originHash = state.shareOriginHash || viewToHash(state.shareOriginView) || '#home';
+    const originView = state.shareOriginView || hashToView(originHash) || 'start';
+    const originScrollY = state.shareOriginScrollY;
+
     closeModalWithAnimation(elements.shareModal, () => {
         const shareOverlay = document.getElementById('share-modal-overlay');
         if (shareOverlay) {
@@ -3740,15 +3884,26 @@ export function closeShareModal(fromPopState = false) {
         }
         
         if (!fromPopState && window.location.hash.startsWith('#share')) {
-            if (state.shareOriginView === 'history-fullscreen') {
-                window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
-                showView('history-fullscreen', false);
-            } else {
-                window.history.back();
+            window.history.replaceState({ view: originView }, '', originHash);
+            showView(originView, false);
+            if (originScrollY !== null && originScrollY !== undefined) {
+                window.scrollTo({ top: originScrollY, behavior: 'instant' });
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: originScrollY, behavior: 'instant' });
+                });
             }
-        } else if (fromPopState && state.shareOriginView === 'history-fullscreen' && (!window.location.hash || window.location.hash === '#home' || window.location.hash === '#history')) {
-            window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
-            showView('history-fullscreen', false);
+        } else if (fromPopState) {
+            if (!window.location.hash.startsWith('#share')) {
+                if (originView && getActiveViewId() !== originView) {
+                    showView(originView, false);
+                }
+                if (originScrollY !== null && originScrollY !== undefined) {
+                    window.scrollTo({ top: originScrollY, behavior: 'instant' });
+                    requestAnimationFrame(() => {
+                        window.scrollTo({ top: originScrollY, behavior: 'instant' });
+                    });
+                }
+            }
         }
     });
 }
@@ -3853,7 +4008,13 @@ export async function openHistoryActionsModal(quizKey, pushHash = true) {
 
     state.activeHistoryMenuKey = quizKey;
     state.lastHistoryMenuKey = quizKey;
-    state.historyMenuOriginHash = window.location.hash || '#history';
+    
+    const originView = getActiveViewId();
+    const originHash = window.location.hash || viewToHash(originView) || '#home';
+    state.historyMenuOriginView = originView;
+    state.historyMenuOriginHash = originHash;
+    state.historyMenuPreScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+
     const db = getQuizDB();
     const item = db[quizKey];
     const title = (item && item.fileName) ? item.fileName : (quizKey ? quizKey.replace(/_/g, ' ') : 'Quiz Options');
@@ -3863,7 +4024,12 @@ export async function openHistoryActionsModal(quizKey, pushHash = true) {
     updateHistorySubmenuOfflineButton(quizKey);
     elements.historyActionsModal.classList.remove('hidden');
     if (pushHash) {
-        pushSubState('#history-actions', { quizKey, view: 'history-fullscreen' });
+        pushSubState('#history-actions', { 
+            quizKey, 
+            view: originView, 
+            originHash, 
+            preScrollY: state.historyMenuPreScrollY 
+        });
     } else {
         state.activeSubState = '#history-actions';
         state.authorizedSubStates = state.authorizedSubStates || new Set();
@@ -3874,14 +4040,19 @@ export async function openHistoryActionsModal(quizKey, pushHash = true) {
 export function closeHistoryActionsModal(isFromPopState = false, popHistory = true) {
     if (!elements.historyActionsModal || elements.historyActionsModal.classList.contains('hidden')) return;
     clearSubState('#history-actions');
-    const originHash = state.historyMenuOriginHash || '#history';
+    const originHash = state.historyMenuOriginHash || viewToHash(state.historyMenuOriginView) || '#home';
+    const originView = state.historyMenuOriginView || hashToView(originHash) || 'start';
+    const originScrollY = state.historyMenuPreScrollY;
 
     closeModalWithAnimation(elements.historyActionsModal, () => {
         if (!isFromPopState && window.location.hash === '#history-actions') {
-            if (popHistory) {
-                window.history.back();
-            } else {
-                window.history.replaceState({ view: hashToView(originHash) }, '', originHash);
+            window.history.replaceState({ view: originView }, '', originHash);
+            showView(originView, false);
+            if (originScrollY !== null && originScrollY !== undefined) {
+                window.scrollTo({ top: originScrollY, behavior: 'instant' });
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: originScrollY, behavior: 'instant' });
+                });
             }
         }
     });

@@ -22,7 +22,8 @@ import {
     extractShareId,
     getQuizTakes,
     getQuizTypeLabel,
-    updateShareLinkDisplay
+    updateShareLinkDisplay,
+    viewToHash
 } from '../helpers.js';
 
 const {
@@ -240,7 +241,11 @@ export async function handleHistoryClick(e) {
         showView('start', false);
         pushSubState('#edit');
     } else if (action === 'share') {
-        state.shareOriginView = getActiveViewId();
+        const originView = getActiveViewId();
+        const originHash = window.location.hash || viewToHash(originView) || '#home';
+        state.shareOriginView = originView;
+        state.shareOriginHash = originHash;
+        state.shareOriginScrollY = window.scrollY || document.documentElement.scrollTop || 0;
         // Store the key of the quiz we are currently interacting with
         state.currentShareQuizKey = key;
         
@@ -326,7 +331,7 @@ export function showAllHistoryFullScreen(pushHash = true) {
         const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
         const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
 
-        const isShared = data.share && data.share.isShared;
+        const isShared = data.share && data.share.isShared && (!data.share.expiryTimestamp || data.share.expiryTimestamp > Date.now());
         const shareIconHTML = isShared ? `
             <span class="text-blue-400 bg-blue-500/10 p-1 rounded inline-flex items-center flex-shrink-0" title="Currently sharing via link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>

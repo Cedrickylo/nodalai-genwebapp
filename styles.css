@@ -1061,6 +1061,7 @@
 /* Prevent Tailwind transition property conflicts with keyframes */
 #account-modal-overlay,
 #share-modal,
+#share-modal > div,
 #migration-modal,
 #migration-error-modal,
 #ai-choice-modal,
@@ -1082,44 +1083,44 @@
 }
 
 /* Modal Overlays & Backdrops - Entrance */
-#account-modal-overlay:not(.hidden),
-#share-modal:not(.hidden),
-#migration-modal:not(.hidden),
-#migration-error-modal:not(.hidden),
-#netlify-migration-notice-modal:not(.hidden),
-#netlify-migration-guide-modal:not(.hidden),
-#ai-choice-modal:not(.hidden),
-#ai-prompt-modal:not(.hidden),
-#unanswered-modal:not(.hidden),
-#custom-confirm-modal:not(.hidden),
-#welcome-modal-overlay:not(.hidden),
-#offline-modal:not(.hidden),
-#shared-quiz-modal:not(.hidden),
-#loading-overlay:not(.hidden),
-#import-choice-modal:not(.hidden),
-#remedial-setup-modal:not(.hidden),
-#paste-json-modal:not(.hidden) {
+#account-modal-overlay:not(.hidden):not(.modal-closing),
+#share-modal:not(.hidden):not(.modal-closing),
+#migration-modal:not(.hidden):not(.modal-closing),
+#migration-error-modal:not(.hidden):not(.modal-closing),
+#netlify-migration-notice-modal:not(.hidden):not(.modal-closing),
+#netlify-migration-guide-modal:not(.hidden):not(.modal-closing),
+#ai-choice-modal:not(.hidden):not(.modal-closing),
+#ai-prompt-modal:not(.hidden):not(.modal-closing),
+#unanswered-modal:not(.hidden):not(.modal-closing),
+#custom-confirm-modal:not(.hidden):not(.modal-closing),
+#welcome-modal-overlay:not(.hidden):not(.modal-closing),
+#offline-modal:not(.hidden):not(.modal-closing),
+#shared-quiz-modal:not(.hidden):not(.modal-closing),
+#loading-overlay:not(.hidden):not(.modal-closing),
+#import-choice-modal:not(.hidden):not(.modal-closing),
+#remedial-setup-modal:not(.hidden):not(.modal-closing),
+#paste-json-modal:not(.hidden):not(.modal-closing) {
     animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Modal Content Cards - Pop-In Entrance */
-#account-modal-overlay:not(.hidden) > #account-card,
-#share-modal:not(.hidden) > div,
-#migration-modal:not(.hidden) > div,
-#migration-error-modal:not(.hidden) > div,
-#netlify-migration-notice-modal:not(.hidden) > div,
-#netlify-migration-guide-modal:not(.hidden) > div,
-#ai-choice-modal:not(.hidden) > div,
-#ai-prompt-modal:not(.hidden) > div,
-#unanswered-modal:not(.hidden) > div,
-#custom-confirm-modal:not(.hidden) > div,
-#welcome-modal-overlay:not(.hidden) > div,
-#offline-modal:not(.hidden) > div,
-#shared-quiz-modal:not(.hidden) > div,
-#loading-overlay:not(.hidden) > div,
-#import-choice-modal:not(.hidden) > div,
-#remedial-setup-modal:not(.hidden) > div,
-#paste-json-modal:not(.hidden) > div {
+#account-modal-overlay:not(.hidden):not(.modal-closing) > #account-card,
+#share-modal:not(.hidden):not(.modal-closing) > div,
+#migration-modal:not(.hidden):not(.modal-closing) > div,
+#migration-error-modal:not(.hidden):not(.modal-closing) > div,
+#netlify-migration-notice-modal:not(.hidden):not(.modal-closing) > div,
+#netlify-migration-guide-modal:not(.hidden):not(.modal-closing) > div,
+#ai-choice-modal:not(.hidden):not(.modal-closing) > div,
+#ai-prompt-modal:not(.hidden):not(.modal-closing) > div,
+#unanswered-modal:not(.hidden):not(.modal-closing) > div,
+#custom-confirm-modal:not(.hidden):not(.modal-closing) > div,
+#welcome-modal-overlay:not(.hidden):not(.modal-closing) > div,
+#offline-modal:not(.hidden):not(.modal-closing) > div,
+#shared-quiz-modal:not(.hidden):not(.modal-closing) > div,
+#loading-overlay:not(.hidden):not(.modal-closing) > div,
+#import-choice-modal:not(.hidden):not(.modal-closing) > div,
+#remedial-setup-modal:not(.hidden):not(.modal-closing) > div,
+#paste-json-modal:not(.hidden):not(.modal-closing) > div {
     animation: modalContentPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
