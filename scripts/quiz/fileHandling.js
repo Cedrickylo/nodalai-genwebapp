@@ -559,8 +559,8 @@ export function handleQuizImport(event) {
                 let type = q.type || 'multiple-choice';
                 let options = Array.isArray(q.options) ? [...q.options] : [];
 
-                if (type === 'true-or-false' || (options.length === 2 && options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))) {
-                    type = 'multiple-choice';
+                if (type === 'true-or-false' || type === 'tf' || (options.length === 2 && options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))) {
+                    type = 'true-or-false';
                     options = ['True', 'False'];
                 }
 
@@ -729,7 +729,30 @@ export async function importQuizFromText(rawText) {
             }
         } catch (e) {}
 
-        const normalizedQuestions = data.questions;
+        const normalizedQuestions = (data.questions || []).map(q => {
+            let answer = q.answer;
+            if (typeof answer === 'boolean') {
+                answer = answer ? 'True' : 'False';
+            } else if (typeof answer === 'string') {
+                answer = answer.trim();
+            }
+
+            let type = (q.type || 'multiple-choice').toString().trim().toLowerCase();
+            let options = Array.isArray(q.options) ? [...q.options] : [];
+
+            if (type === 'true-or-false' || type === 'tf' || (options.length === 2 && options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))) {
+                type = 'true-or-false';
+                options = ['True', 'False'];
+            }
+
+            return {
+                ...q,
+                type,
+                options,
+                answer,
+                explanation: q.explanation || ''
+            };
+        });
         const config = { ...data.config };
         if (config.isTimed && config.totalTime) {
             if (config.totalTime <= 120) {
@@ -874,6 +897,7 @@ export async function resumeQuiz(savedData) {
     state.currentQuestionIndex = savedData.currentQuestionIndex !== undefined ? savedData.currentQuestionIndex : (savedData.shuffledIndexPos || 0);
     state.isReviewingUnanswered = savedData.isReviewingUnanswered || false;
     
+    state.isQuizCompleted = false;
     showView('quiz');
     const isSummaryOnly = !!state.currentQuizConfig?.showAnswersInSummaryOnly;
     if (elements.muteSoundBtn) {

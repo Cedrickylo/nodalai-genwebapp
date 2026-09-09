@@ -312,12 +312,17 @@ export function renderTestReview(takeData) {
             const userAnsObj = userAnswers.find(a => a.originalIndex === origIdx);
             const isCorrect = userAnsObj ? !!userAnsObj.isCorrect : false;
             const qType = (qData.type || 'multiple-choice').toLowerCase();
+            const isTF = qType === 'true-or-false' || qType === 'tf' || (
+                Array.isArray(qData?.options) &&
+                qData.options.length === 2 &&
+                qData.options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase()))
+            );
 
             // Question Type Label
             let typeLabel = 'Multiple Choice';
-            if (qType === 'true-or-false') typeLabel = 'True / False';
-            else if (qType === 'identification') typeLabel = 'Identification';
-            else if (qType === 'enumeration') typeLabel = 'Enumeration';
+            if (isTF) typeLabel = 'True / False';
+            else if (qType === 'identification' || qType === 'id') typeLabel = 'Identification';
+            else if (qType === 'enumeration' || qType === 'en') typeLabel = 'Enumeration';
 
             // User Answer Text formatting
             let userAnsRaw = userAnsObj ? userAnsObj.userAnswer : null;

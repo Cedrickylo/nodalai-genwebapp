@@ -147,8 +147,8 @@ export function cleanAndParseQuizJson(rawText, fallbackFileName = 'Custom Quiz',
         }
 
         // True or False normalization
-        if (type === 'true-or-false' || (options.length === 2 && options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))) {
-            type = 'multiple-choice';
+        if (type === 'true-or-false' || type === 'tf' || (options.length === 2 && options.every(o => typeof o === 'string' && ['true', 'false'].includes(o.trim().toLowerCase())))) {
+            type = 'true-or-false';
             options = ['True', 'False'];
             if (typeof rawAnswer === 'string') {
                 rawAnswer = rawAnswer.toLowerCase() === 'true' ? 'True' : 'False';

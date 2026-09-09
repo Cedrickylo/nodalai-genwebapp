@@ -1061,6 +1061,7 @@
 #shared-quiz-modal:not(.hidden),
 #loading-overlay:not(.hidden),
 #import-choice-modal:not(.hidden),
+#remedial-setup-modal:not(.hidden),
 #paste-json-modal:not(.hidden) {
     animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -1081,6 +1082,7 @@
 #shared-quiz-modal:not(.hidden) > div,
 #loading-overlay:not(.hidden) > div,
 #import-choice-modal:not(.hidden) > div,
+#remedial-setup-modal:not(.hidden) > div,
 #paste-json-modal:not(.hidden) > div {
     animation: modalContentPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -1138,6 +1140,7 @@ body.has-netlify-banner {
 #shared-quiz-modal.modal-closing,
 #loading-overlay.modal-closing,
 #import-choice-modal.modal-closing,
+#remedial-setup-modal.modal-closing,
 #paste-json-modal.modal-closing {
     animation: modalBackdropFadeOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
@@ -1156,6 +1159,7 @@ body.has-netlify-banner {
 #shared-quiz-modal.modal-closing > div,
 #loading-overlay.modal-closing > div,
 #import-choice-modal.modal-closing > div,
+#remedial-setup-modal.modal-closing > div,
 #paste-json-modal.modal-closing > div {
     animation: modalContentPopOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
