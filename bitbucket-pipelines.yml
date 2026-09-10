@@ -9,6 +9,6 @@ pipelines:
           clone:
             enabled: false
           script:
-            - git clone --bare git@bitbucket.org:your-org/bitbucket-repo.git
-            - cd bitbucket-repo.git
-            - git push --mirror git@github.com:your-org/github-repo.git
+            - git clone --bare git@bitbucket.org:cedrickylo/nodalai-genwebapp.git
+            - cd nodalai-genwebapp.git
+            - git push --mirror git@github.com:Cedrickylo/nodalai-genwebapp.git
