@@ -93,18 +93,41 @@
 
     <!-- Netlify to Vercel Migration Banner (Shown ONLY on cedrickylo-nodal.netlify.app) -->
     <div id="netlify-migration-banner" class="hidden fixed top-0 left-0 right-0 z-[150] bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white py-2.5 px-4 shadow-xl border-b border-amber-400/40 flex items-center justify-between gap-3 text-xs sm:text-sm backdrop-blur-md transition-all duration-300">
-        <div class="flex items-center gap-2.5 overflow-hidden">
-            <span class="text-base sm:text-lg flex-shrink-0 animate-bounce">🚀</span>
-            <div class="truncate">
-                <strong class="font-bold text-amber-100">We've moved to Vercel!</strong>
-                <span class="hidden sm:inline text-amber-100/90 ml-1">This Netlify website will be retired soon. Migrate your quizzes to avoid data loss.</span>
+        <!-- Default Pre-Migration Banner Content -->
+        <div id="netlify-banner-default-content" class="flex items-center justify-between gap-3 w-full">
+            <div class="flex items-center gap-2.5 overflow-hidden">
+                <span class="text-base sm:text-lg flex-shrink-0 animate-bounce">🚀</span>
+                <div class="truncate">
+                    <strong class="font-bold text-amber-100">We've moved to Vercel!</strong>
+                    <span class="hidden sm:inline text-amber-100/90 ml-1">This Netlify website will be retired soon. Migrate your quizzes to avoid data loss.</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button id="netlify-banner-migrate-btn" type="button" class="bg-white hover:bg-amber-50 text-gray-900 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-colors shadow-md cursor-pointer flex items-center gap-1.5">
+                    <span>Migrate Now</span>
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
             </div>
         </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-            <button id="netlify-banner-migrate-btn" type="button" class="bg-white hover:bg-amber-50 text-gray-900 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-colors shadow-md cursor-pointer flex items-center gap-1.5">
-                <span>Migrate Now</span>
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
+
+        <!-- Active Scheduled Deletion Countdown Content (Hidden by default) -->
+        <div id="netlify-banner-countdown-content" class="hidden flex items-center justify-between gap-3 w-full">
+            <div class="flex items-center gap-2 overflow-hidden">
+                <span class="text-base sm:text-lg flex-shrink-0">⏳</span>
+                <div class="truncate">
+                    <strong class="font-bold text-amber-200">Netlify Profile Deletion Scheduled:</strong>
+                    <span id="netlify-banner-timer-display" class="font-mono font-bold text-white ml-1.5 bg-black/30 px-2 py-0.5 rounded border border-white/20">--d --h --m remaining</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button id="netlify-banner-force-delete-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-md cursor-pointer flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Delete Now</span>
+                </button>
+                <button id="netlify-banner-cancel-countdown-btn" type="button" class="bg-gray-800/80 hover:bg-gray-700 text-gray-200 font-medium px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer" title="Cancel scheduled deletion">
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1139,7 +1162,7 @@
                                             <h3 class="text-base sm:text-lg font-bold text-white">September 10, 2026</h3>
                                             <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-0.5">Comprehensive Update: Device Orientation Lock Check & Auto-Rotation Prevention, Terms of Use Direct Linking, Complete Architectural Documentation & Contributing Guide</p>
+                                        <p class="text-xs text-gray-400 mt-0.5">Comprehensive Update: Delete Nodal Profile with Typing Confirmation, Device Orientation Lock Check & Auto-Rotation Prevention, Terms of Use Direct Linking, Complete Documentation Suite</p>
                                     </div>
                                 </div>
                                 <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -1150,6 +1173,14 @@
                                 <div>
                                     <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
                                     <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Delete Nodal Profile &amp; Complete Data Erasure (Signed-In &amp; Signed-Out):</strong> Added a dedicated, destructive "Delete Nodal Profile" option in the Account dashboard for both authenticated Puter users and signed-out guests. For signed-in users, it deletes all Puter cloud files and Key-Value records, wipes local/session storage and browser offline caches, signs out, and severs website association. For guests, it skips cloud deletion and cleanly purges all local quiz history, attempts, offline downloads, preferences, and caches. Protected by a two-tier safety gate requiring explicit typing of <code>CONFIRM</code> before execution.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Netlify Post-Migration Profile Deletion &amp; 1-Week Grace Countdown:</strong> On the legacy Netlify deployment (strictly excluded from Vercel), users confirming successful account migration can now choose to either permanently wipe their Netlify profile right away or activate a 1-week scheduled countdown with real-time banner tracking, giving a 7-day safety fallback before automated local and cloud data erasure.</span>
+                                        </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
                                             <span><strong>Device Orientation Lock Check & Auto-Rotation Prevention:</strong> Integrated an automatic device orientation check that respects the user's operating system orientation lock. Removed the PWA manifest orientation override (<code>"orientation": "any"</code>) that previously caused Chromium on Android and other mobile browsers to bypass system lock and auto-rotate. Added a runtime sensor-assisted orientation guard (<code>initDeviceOrientationLockCheck</code>) that checks whether the device has orientation lock enabled and prevents the website from auto-rotating, preserving a rock-solid, stable layout.</span>
@@ -1164,7 +1195,7 @@
                                         </li>
                                         <li class="flex items-start gap-2.5">
                                             <span class="text-blue-400 font-bold">•</span>
-                                            <span><strong>Service Worker &amp; Offline Cache Upgrade:</strong> Updated service worker cache to v42 (<code>nodal-ai-cache-v42</code>), guaranteeing automatic cache eviction, smooth asset synchronization, and immediate activation of new manifest and orientation settings across all client devices.</span>
+                                            <span><strong>Service Worker &amp; Offline Cache Upgrade:</strong> Updated service worker cache to v44 (<code>nodal-ai-cache-v44</code>), guaranteeing automatic cache eviction, smooth asset synchronization, and immediate activation of new profile deletion and migration features across all client devices.</span>
                                         </li>
                                     </ul>
                                 </div>
@@ -1711,21 +1742,41 @@
                 </div>
                 <input type="checkbox" id="reduce-motion-toggle" class="h-5 w-5 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0">
             </div>
-            <button id="open-migration-btn" class="w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer">
-                <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="9"/><polyline points="17 14 12 9 7 14"/></svg>
-                <span>Migrate Data (Import / Export)</span>
-            </button>
-            <button id="logout-btn" class="w-full bg-red-600/10 hover:bg-red-600/30 text-red-400 hover:text-white border border-red-500/20 hover:border-transparent font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">                <svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                <span>Sign Out</span>
-            </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <button id="open-migration-btn" class="w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer">
+                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="9"/><polyline points="17 14 12 9 7 14"/></svg>
+                    <span>Migrate Data (Import / Export)</span>
+                </button>
+                <button id="logout-btn" class="w-full bg-red-600/10 hover:bg-red-600/30 text-red-400 hover:text-white border border-red-500/20 hover:border-transparent font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm cursor-pointer">
+                    <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span>Sign Out</span>
+                </button>
+            </div>
+
+            <!-- Danger Zone for Account Deletion -->
+            <div class="bg-red-950/20 border border-red-900/30 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 mt-2">
+                <div class="text-left w-full sm:w-auto">
+                    <p class="text-xs font-semibold text-red-300">Danger Zone</p>
+                    <p class="text-[11px] text-gray-400">Permanently delete your profile and cloud data.</p>
+                </div>
+                <button id="delete-profile-btn" class="w-full sm:w-auto shrink-0 bg-red-950/60 hover:bg-red-900/80 text-red-300 hover:text-white border border-red-800/50 hover:border-red-600 font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer" title="Permanently delete your profile and all associated data">
+                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    <span>Delete Nodal Profile</span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <div id="account-logged-out-content" class="hidden p-6 sm:p-8 text-center space-y-6 overflow-y-auto flex-1">
+    <div id="account-logged-out-content" class="hidden p-6 sm:p-8 text-center space-y-6 overflow-y-auto flex-1 w-full max-w-md mx-auto">
         <svg class="mx-auto w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
         <div class="space-y-2">
             <h4 class="text-lg font-bold text-white">Login Required</h4>
@@ -1748,6 +1799,17 @@
                 <svg class="w-4 h-4 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span>Migrate Data (Import / Export)</span>
             </button>
+            <div class="pt-2">
+                <button id="delete-profile-logged-out-btn" class="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/40 hover:border-red-700/60 font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer" title="Permanently delete all local data, quizzes, and preferences on this device">
+                    <svg class="w-4 h-4 flex-shrink-0 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    <span>Delete Nodal Profile (Clear Local Data)</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -2236,6 +2298,48 @@
                     <span>Open nodal-gamma.vercel.app & Restore Data</span>
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
                 </a>
+            </div>
+
+            <!-- Step 3 Card: Confirm Migration & Remove Netlify Profile -->
+            <div id="netlify-step3-container" class="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 space-y-3 mt-2">
+                <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                    <span class="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xs">3</span>
+                    <span>Step 3: Confirm Migration &amp; Remove Netlify Profile</span>
+                </div>
+                <p class="text-xs text-gray-300 leading-relaxed">
+                    Once you have successfully imported your quizzes into the new website, confirm your migration below. You can schedule a 1-week deletion countdown (as a safety fallback) or delete your profile immediately.
+                </p>
+
+                <!-- State A: Pre-confirmation button -->
+                <div id="netlify-migration-actions-pre" class="space-y-2 pt-1">
+                    <button id="netlify-confirm-migrated-btn" type="button" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-4 rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>I Have Successfully Migrated My Data</span>
+                    </button>
+                </div>
+
+                <!-- State B: Active Countdown Display (Hidden by default) -->
+                <div id="netlify-migration-actions-countdown" class="hidden bg-red-950/40 border border-red-800/40 rounded-xl p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-red-400 flex items-center gap-1.5">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <span>Scheduled Deletion Active</span>
+                        </span>
+                        <span id="netlify-guide-countdown-timer" class="text-xs font-mono font-bold text-amber-300 bg-black/40 px-2 py-0.5 rounded border border-amber-500/30">--d --h --m remaining</span>
+                    </div>
+                    <p class="text-[11px] text-gray-300 leading-relaxed">
+                        Your Netlify profile and local data will be permanently wiped when the 7-day countdown reaches zero.
+                    </p>
+                    <div class="flex gap-2 pt-1">
+                        <button id="netlify-guide-force-delete-btn" type="button" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition shadow cursor-pointer flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            <span>Delete Profile Now</span>
+                        </button>
+                        <button id="netlify-guide-cancel-countdown-btn" type="button" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium rounded-lg text-xs transition cursor-pointer">
+                            Cancel Countdown
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -2735,7 +2839,11 @@
         <div class="bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300">
             <div class="p-6">
                 <h3 class="text-xl font-bold text-white mb-3" id="confirm-title">Confirm</h3>
-                <p id="confirm-message" class="text-gray-300 text-sm leading-relaxed mb-6"></p>
+                <p id="confirm-message" class="text-gray-300 text-sm leading-relaxed mb-4"></p>
+                <div id="confirm-input-container" class="hidden mb-5">
+                    <label id="confirm-input-label" for="confirm-input" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Type "CONFIRM" to proceed</label>
+                    <input type="text" id="confirm-input" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white outline-none focus:border-red-500 text-sm transition font-mono" placeholder="CONFIRM" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                </div>
                 <div class="flex gap-3 justify-end">
                     <button id="cancel-confirm-btn" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-lg transition-colors">Cancel</button>
                     <button id="accept-confirm-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition shadow-lg">OK</button>

@@ -58,9 +58,14 @@ const {
     displayNameInput,
     saveDisplayNameBtn,
     logoutBtn,
+    deleteProfileBtn,
+    deleteProfileLoggedOutBtn,
     confirmModal,
     confirmTitle,
     confirmMessage,
+    confirmInputContainer,
+    confirmInputLabel,
+    confirmInput,
     acceptConfirmBtn,
     cancelConfirmBtn,
     accountModalOverlay,
@@ -73,6 +78,9 @@ const {
 } = elements;
 
 const { DB_NAME, CLOUD_SYNC_KEY, IN_PROGRESS_QUIZ_KEY, GENERATION_LOG_LOCAL_KEY, GENERATION_LOG_CLOUD_KEY, GENERATION_WINDOW_MS, MAX_GENERATIONS_PER_WINDOW, MIN_QUIZ_QUESTIONS, MAX_QUIZ_QUESTIONS, WELCOME_DISMISSED_KEY } = constants;
+
+const PUTER_FS_SYNC_FILE = 'nodal_quiz_sync_v4.json';
+const PUTER_FS_BACKUP_FILE = 'nodal_quiz_sync_backup.json';
 
 // Add this to helpers.js
 const setVisibility = (element, isVisible) => {
@@ -107,6 +115,11 @@ export function closeModalWithAnimation(modal, onClosed) {
 
 export function customConfirm(message, title = 'Confirm', acceptText = 'OK', cancelText = 'Cancel', isDestructive = false) {
     return new Promise((resolve) => {
+        const inputContainer = confirmInputContainer || document.getElementById('confirm-input-container');
+        if (inputContainer) inputContainer.classList.add('hidden');
+        acceptConfirmBtn.disabled = false;
+        acceptConfirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
         confirmTitle.textContent = title;
         // Replace newlines with <br> for HTML rendering
         confirmMessage.innerHTML = message.replace(/\n/g, '<br>'); 
@@ -141,8 +154,97 @@ export function customConfirm(message, title = 'Confirm', acceptText = 'OK', can
     });
 }
 
+export function customTypingConfirm(message, title = 'Confirm Action', expectedText = 'CONFIRM', acceptText = 'Proceed', cancelText = 'Cancel') {
+    return new Promise((resolve) => {
+        confirmTitle.textContent = title;
+        // Replace newlines with <br> for HTML rendering
+        confirmMessage.innerHTML = message.replace(/\n/g, '<br>');
+
+        acceptConfirmBtn.textContent = acceptText;
+        cancelConfirmBtn.textContent = cancelText;
+
+        // Apply destructive styling (red)
+        acceptConfirmBtn.classList.replace('bg-blue-600', 'bg-red-600');
+        acceptConfirmBtn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+
+        const inputContainer = confirmInputContainer || document.getElementById('confirm-input-container');
+        const inputField = confirmInput || document.getElementById('confirm-input');
+        const inputLabel = confirmInputLabel || document.getElementById('confirm-input-label');
+
+        if (inputContainer) inputContainer.classList.remove('hidden');
+        if (inputLabel) inputLabel.textContent = `Type "${expectedText}" to proceed`;
+        if (inputField) {
+            inputField.value = '';
+            inputField.placeholder = expectedText;
+        }
+
+        // Disable accept button until typed text strictly matches expectedText
+        acceptConfirmBtn.disabled = true;
+        acceptConfirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        const handleInput = () => {
+            if (!inputField) return;
+            const matches = inputField.value.trim() === expectedText;
+            acceptConfirmBtn.disabled = !matches;
+            if (matches) {
+                acceptConfirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                acceptConfirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        };
+
+        const handleKeydown = (e) => {
+            if (e.key === 'Enter' && !acceptConfirmBtn.disabled) {
+                e.preventDefault();
+                onAccept();
+            }
+        };
+
+        if (inputField) {
+            inputField.addEventListener('input', handleInput);
+            inputField.addEventListener('keydown', handleKeydown);
+        }
+
+        confirmModal.classList.remove('hidden');
+        if (inputField) {
+            setTimeout(() => {
+                inputField.focus();
+            }, 60);
+        }
+
+        const cleanup = (result) => {
+            closeModalWithAnimation(confirmModal, () => {
+                if (inputField) {
+                    inputField.removeEventListener('input', handleInput);
+                    inputField.removeEventListener('keydown', handleKeydown);
+                    inputField.value = '';
+                }
+                if (inputContainer) {
+                    inputContainer.classList.add('hidden');
+                }
+                acceptConfirmBtn.disabled = false;
+                acceptConfirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                acceptConfirmBtn.removeEventListener('click', onAccept);
+                cancelConfirmBtn.removeEventListener('click', onCancel);
+                resolve(result);
+            });
+        };
+
+        const onAccept = () => { cleanup(true); };
+        const onCancel = () => { cleanup(false); };
+
+        acceptConfirmBtn.addEventListener('click', onAccept);
+        cancelConfirmBtn.addEventListener('click', onCancel);
+    });
+}
+
 export function customAlert(message, title = 'Alert', acceptText = 'OK') {
     return new Promise((resolve) => {
+        const inputContainer = confirmInputContainer || document.getElementById('confirm-input-container');
+        if (inputContainer) inputContainer.classList.add('hidden');
+        acceptConfirmBtn.disabled = false;
+        acceptConfirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
         confirmTitle.textContent = title;
         confirmMessage.innerHTML = message.replace(/\n/g, '<br>'); 
         acceptConfirmBtn.textContent = acceptText;
@@ -262,6 +364,182 @@ export async function handleLogout() {
     }
 }
 
+export async function handleDeleteProfile() {
+    const isSignedIn = typeof puter !== 'undefined' && window.puter && puter.auth?.isSignedIn();
+
+    // 1. Warning confirmation dialog
+    const warningMsg = isSignedIn
+        ? 'This will <strong>permanently delete</strong> your entire Nodal AI profile and wipe all data:\n\n' +
+          '• All quiz library history, scores, and retake records\n' +
+          '• All offline downloaded quizzes and cached materials\n' +
+          '• All Puter cloud storage files and sync records for this site\n' +
+          '• All custom preferences, saved settings, and session data\n\n' +
+          '<strong>This action is completely irreversible.</strong>'
+        : 'This will <strong>permanently delete</strong> all local Nodal AI data on this device:\n\n' +
+          '• All local quiz library history, scores, and retake records\n' +
+          '• All offline downloaded quizzes and cached materials\n' +
+          '• All custom preferences, saved settings, and session data\n\n' +
+          '<strong>This action is completely irreversible.</strong>';
+
+    const firstConfirm = await customConfirm(
+        warningMsg,
+        'Delete Nodal Profile',
+        'Continue',
+        'Cancel',
+        true
+    );
+    if (!firstConfirm) return;
+
+    // 2. Typing confirmation requiring exact "CONFIRM"
+    const typingMsg = isSignedIn
+        ? 'Are you absolutely sure you want to permanently delete your Nodal AI profile? All local and cloud records for this website will be permanently destroyed.\n\nPlease type <strong>CONFIRM</strong> to proceed.'
+        : 'Are you absolutely sure you want to permanently delete all your local Nodal AI data on this device? This cannot be recovered.\n\nPlease type <strong>CONFIRM</strong> to proceed.';
+
+    const secondConfirm = await customTypingConfirm(
+        typingMsg,
+        'Final Confirmation',
+        'CONFIRM',
+        'Permanently Delete',
+        'Cancel'
+    );
+    if (!secondConfirm) return;
+
+    // Immediately close the account modal overlay
+    if (elements.accountModalOverlay) elements.accountModalOverlay.classList.add('hidden');
+
+    try {
+        // 3. Puter Cloud Cleanup (Filesystem and Key-Value records)
+        if (typeof puter !== 'undefined' && window.puter && puter.auth?.isSignedIn() && navigator.onLine) {
+            // Delete all app files in Puter FS
+            try {
+                if (puter.fs && typeof puter.fs.readdir === 'function') {
+                    const items = await puter.fs.readdir('./').catch(() => []);
+                    if (Array.isArray(items)) {
+                        for (const item of items) {
+                            const fileName = item?.name || item?.path || (typeof item === 'string' ? item : null);
+                            if (fileName) {
+                                try {
+                                    if (typeof puter.fs.delete === 'function') {
+                                        await puter.fs.delete(fileName).catch(() => {});
+                                    } else if (typeof puter.fs.unlink === 'function') {
+                                        await puter.fs.unlink(fileName).catch(() => {});
+                                    }
+                                } catch (fileDelErr) {
+                                    console.warn('Failed to delete Puter FS file:', fileName, fileDelErr);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (fsErr) {
+                console.warn('Puter FS directory cleanup error:', fsErr);
+            }
+
+            // Explicitly delete known sync and backup files if any remain
+            try {
+                if (puter.fs) {
+                    const knownFiles = [PUTER_FS_SYNC_FILE, PUTER_FS_BACKUP_FILE];
+                    for (const kf of knownFiles) {
+                        try {
+                            if (typeof puter.fs.delete === 'function') {
+                                await puter.fs.delete(kf).catch(() => {});
+                            } else if (typeof puter.fs.unlink === 'function') {
+                                await puter.fs.unlink(kf).catch(() => {});
+                            }
+                        } catch (e) {}
+                    }
+                }
+            } catch (e) {}
+
+            // Delete Puter KV keys
+            try {
+                if (puter.kv) {
+                    const kvKeys = [
+                        CLOUD_SYNC_KEY,
+                        GENERATION_LOG_CLOUD_KEY,
+                        'custom_display_name'
+                    ];
+                    for (const key of kvKeys) {
+                        try {
+                            if (typeof puter.kv.del === 'function') {
+                                await puter.kv.del(key).catch(() => {});
+                            } else if (typeof puter.kv.delete === 'function') {
+                                await puter.kv.delete(key).catch(() => {});
+                            } else if (typeof puter.kv.set === 'function') {
+                                await puter.kv.set(key, '').catch(() => {});
+                            }
+                        } catch (kvErr) {
+                            console.warn('Failed to delete Puter KV key:', key, kvErr);
+                        }
+                    }
+                }
+            } catch (kvErr) {
+                console.warn('Puter KV cleanup error:', kvErr);
+            }
+
+            // Sign out of Puter
+            try {
+                await puter.auth.signOut();
+            } catch (signOutErr) {
+                console.warn('Puter signOut error:', signOutErr);
+            }
+        }
+
+        // 4. Wipe Local Storage and Session Storage completely
+        try {
+            localStorage.clear();
+        } catch (lsErr) {
+            console.warn('localStorage.clear error:', lsErr);
+        }
+        try {
+            sessionStorage.clear();
+        } catch (ssErr) {
+            console.warn('sessionStorage.clear error:', ssErr);
+        }
+
+        // 5. Delete all Cache API caches
+        try {
+            if (typeof caches !== 'undefined' && caches.keys) {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) {
+                    await caches.delete(name).catch(() => {});
+                }
+            }
+        } catch (cacheErr) {
+            console.warn('Cache API cleanup error:', cacheErr);
+        }
+
+        // 6. Reset in-memory application state
+        state.quizHistory = {};
+        state.generationLog = [];
+        state.savedProgress = null;
+        state.questions = [];
+        state.userAnswers = [];
+        state.score = 0;
+        state.fileContent = '';
+        state.currentFiles = [];
+        state.currentFileName = '';
+        state.currentQuizKey = '';
+        state.isDeviceOrientationLocked = false;
+        state.isReduceMotion = false;
+        state.deletedQuizKeys = {};
+
+        // 7. Update UI to fresh guest state
+        refreshHistory();
+        clearInProgressQuiz();
+        updateAuthUI();
+        showView('start');
+
+        showToast('Your Nodal AI profile and all data have been permanently deleted.', 5000, 'neutral');
+
+    } catch (err) {
+        console.error('Delete profile general error:', err);
+        showToast('Profile deletion completed with warnings.', 4000, 'warning');
+        updateAuthUI();
+        showView('start');
+    }
+}
+
 export async function clearHistory() {
     const isConfirmed = await customConfirm('Are you sure you want to clear all history? This cannot be undone.', 'Clear History', 'Clear All', 'Cancel', true);
     if (isConfirmed) {
@@ -329,9 +607,6 @@ export function setSyncing(status) {
     if (quizLoad) quizLoad.classList.toggle('hidden', finalStatus !== 'syncing');
     if (quizOffline) quizOffline.classList.toggle('hidden', finalStatus !== 'offline');
 }
-
-const PUTER_FS_SYNC_FILE = 'nodal_quiz_sync_v4.json';
-const PUTER_FS_BACKUP_FILE = 'nodal_quiz_sync_backup.json';
 
 async function parsePuterFSFile(fileItem) {
     if (!fileItem) return null;
@@ -1140,14 +1415,24 @@ export async function populateAccountData() {
     if (cb1) cb1.checked = rm;
     if (cb2) cb2.checked = rm;
 
+    const accountCard = document.getElementById('account-card') || (typeof elements !== 'undefined' ? elements.accountCard : null);
+
     if (typeof puter === 'undefined' || !window.puter || !puter.auth.isSignedIn()) {
         if (loggedInContent) loggedInContent.classList.add('hidden');
         if (loggedOutContent) loggedOutContent.classList.remove('hidden');
+        if (accountCard) {
+            accountCard.classList.remove('account-card-wide');
+            accountCard.classList.add('account-card-compact');
+        }
         return;
     }
 
     if (loggedInContent) loggedInContent.classList.remove('hidden');
     if (loggedOutContent) loggedOutContent.classList.add('hidden');
+    if (accountCard) {
+        accountCard.classList.remove('account-card-compact');
+        accountCard.classList.add('account-card-wide');
+    }
 
     try {
         let username = 'User';
@@ -3694,6 +3979,8 @@ export function attachAuthHandlers() {
     }
     
     if (logoutBtn) logoutBtn.onclick = handleLogout;
+    if (deleteProfileBtn) deleteProfileBtn.onclick = handleDeleteProfile;
+    if (deleteProfileLoggedOutBtn) deleteProfileLoggedOutBtn.onclick = handleDeleteProfile;
 
     // 4. Smart Close Button for the Card
     if (closeAccountBtn) {

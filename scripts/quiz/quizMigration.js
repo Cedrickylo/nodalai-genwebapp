@@ -6,7 +6,9 @@ import {
     refreshHistory,
     syncHistoryWithCloud,
     getQuizTakes,
-    closeModalWithAnimation
+    closeModalWithAnimation,
+    handleDeleteProfile,
+    customConfirm
 } from '../helpers.js';
 import { getExportableOfflineDownloads } from './quizOffline.js';
 
@@ -870,4 +872,254 @@ export function initNetlifyMigrationBannerAndNotice() {
             showToast('Backup downloaded again!', 2500, 'info');
         };
     }
+
+    // 6. Wire Step 3 & Banner Confirmation and Deletion Buttons
+    const confirmMigratedBtn = document.getElementById('netlify-confirm-migrated-btn');
+    if (confirmMigratedBtn) {
+        confirmMigratedBtn.onclick = handleNetlifyConfirmMigration;
+    }
+
+    const guideForceDeleteBtn = document.getElementById('netlify-guide-force-delete-btn');
+    if (guideForceDeleteBtn) {
+        guideForceDeleteBtn.onclick = forceDeleteNetlifyProfileNow;
+    }
+
+    const guideCancelCountdownBtn = document.getElementById('netlify-guide-cancel-countdown-btn');
+    if (guideCancelCountdownBtn) {
+        guideCancelCountdownBtn.onclick = cancelNetlifyScheduledDeletion;
+    }
+
+    const bannerForceDeleteBtn = document.getElementById('netlify-banner-force-delete-btn');
+    if (bannerForceDeleteBtn) {
+        bannerForceDeleteBtn.onclick = forceDeleteNetlifyProfileNow;
+    }
+
+    const bannerCancelCountdownBtn = document.getElementById('netlify-banner-cancel-countdown-btn');
+    if (bannerCancelCountdownBtn) {
+        bannerCancelCountdownBtn.onclick = cancelNetlifyScheduledDeletion;
+    }
+
+    // 7. Check if a 1-week scheduled deletion is currently active or expired
+    checkNetlifyScheduledDeletion();
+}
+
+// ==================================================================
+// NETLIFY POST-MIGRATION PROFILE DELETION & COUNTDOWN SYSTEM
+// ==================================================================
+const NETLIFY_SCHEDULED_DELETION_KEY = 'nodal_netlify_scheduled_deletion_ts';
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+let netlifyCountdownTimerInterval = null;
+
+/**
+ * Formats milliseconds remaining into a readable string: e.g. "6d 23h 45m"
+ */
+function formatRemainingTime(ms) {
+    if (ms <= 0) return '0d 0h 0m';
+    const totalSeconds = Math.floor(ms / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return `${days}d ${hours}h ${minutes}m`;
+}
+
+/**
+ * Updates all countdown displays on the Netlify banner and guide modal.
+ */
+function updateNetlifyCountdownDisplay(remainingMs) {
+    const formatted = formatRemainingTime(remainingMs);
+    const bannerTimer = document.getElementById('netlify-banner-timer-display');
+    if (bannerTimer) {
+        bannerTimer.textContent = `${formatted} remaining`;
+    }
+    const guideTimer = document.getElementById('netlify-guide-countdown-timer');
+    if (guideTimer) {
+        guideTimer.textContent = `${formatted} remaining`;
+    }
+}
+
+/**
+ * Toggles the banner and guide modal between default migration state and active countdown state.
+ */
+function setNetlifyCountdownUIActive(isActive) {
+    const defaultBannerContent = document.getElementById('netlify-banner-default-content');
+    const countdownBannerContent = document.getElementById('netlify-banner-countdown-content');
+    const banner = document.getElementById('netlify-migration-banner');
+
+    if (defaultBannerContent && countdownBannerContent) {
+        defaultBannerContent.classList.toggle('hidden', isActive);
+        countdownBannerContent.classList.toggle('hidden', !isActive);
+    }
+
+    if (banner) {
+        if (isActive) {
+            banner.classList.remove('from-amber-600', 'via-orange-600', 'to-amber-700', 'border-amber-400/40');
+            banner.classList.add('from-red-700', 'via-rose-700', 'to-amber-700', 'border-red-400/40');
+        } else {
+            banner.classList.remove('from-red-700', 'via-rose-700', 'to-amber-700', 'border-red-400/40');
+            banner.classList.add('from-amber-600', 'via-orange-600', 'to-amber-700', 'border-amber-400/40');
+        }
+    }
+
+    const preActions = document.getElementById('netlify-migration-actions-pre');
+    const countdownActions = document.getElementById('netlify-migration-actions-countdown');
+    if (preActions && countdownActions) {
+        preActions.classList.toggle('hidden', isActive);
+        countdownActions.classList.toggle('hidden', !isActive);
+    }
+}
+
+/**
+ * Executes automatic profile wipe upon 1-week grace period expiration.
+ */
+async function executeSilentNetlifyProfileWipe() {
+    try {
+        // Delete Puter Cloud Files & KV if signed in
+        if (typeof puter !== 'undefined' && window.puter && puter.auth?.isSignedIn() && navigator.onLine) {
+            try {
+                if (puter.fs && typeof puter.fs.readdir === 'function') {
+                    const items = await puter.fs.readdir('./').catch(() => []);
+                    if (Array.isArray(items)) {
+                        for (const item of items) {
+                            const fileName = item?.name || item?.path || (typeof item === 'string' ? item : null);
+                            if (fileName) {
+                                try {
+                                    if (typeof puter.fs.delete === 'function') await puter.fs.delete(fileName).catch(() => {});
+                                    else if (typeof puter.fs.unlink === 'function') await puter.fs.unlink(fileName).catch(() => {});
+                                } catch (e) {}
+                            }
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                if (puter.kv) {
+                    const keys = ['puter_quiz_sync_v4', 'AIQuizGenerationLog_v1', 'custom_display_name'];
+                    for (const k of keys) {
+                        try {
+                            if (typeof puter.kv.del === 'function') await puter.kv.del(k).catch(() => {});
+                            else if (typeof puter.kv.delete === 'function') await puter.kv.delete(k).catch(() => {});
+                        } catch (e) {}
+                    }
+                }
+            } catch (e) {}
+
+            try { await puter.auth.signOut(); } catch (e) {}
+        }
+
+        // Wipe local data
+        localStorage.clear();
+        sessionStorage.clear();
+        if (typeof caches !== 'undefined' && caches.keys) {
+            const cacheNames = await caches.keys();
+            for (const c of cacheNames) {
+                await caches.delete(c).catch(() => {});
+            }
+        }
+
+        state.quizHistory = {};
+        state.generationLog = [];
+        state.savedProgress = null;
+        state.questions = [];
+        state.userAnswers = [];
+        state.score = 0;
+
+        refreshHistory();
+        showToast('1-week grace period expired: Netlify profile data has been cleared.', 6000, 'neutral');
+        window.location.reload();
+    } catch (err) {
+        console.error('Automated Netlify profile wipe error:', err);
+    }
+}
+
+/**
+ * Checks if a scheduled deletion exists for Netlify.
+ * If expired: triggers automatic profile wipe.
+ * If active: enables countdown state on banner and modal and starts ticker.
+ */
+export async function checkNetlifyScheduledDeletion() {
+    if (!isNetlifyDeployment()) return;
+
+    const rawScheduled = localStorage.getItem(NETLIFY_SCHEDULED_DELETION_KEY);
+    if (!rawScheduled) {
+        setNetlifyCountdownUIActive(false);
+        return;
+    }
+
+    const scheduledTs = parseInt(rawScheduled, 10);
+    if (isNaN(scheduledTs)) {
+        localStorage.removeItem(NETLIFY_SCHEDULED_DELETION_KEY);
+        setNetlifyCountdownUIActive(false);
+        return;
+    }
+
+    const now = Date.now();
+    const remaining = scheduledTs - now;
+
+    if (remaining <= 0) {
+        // Countdown elapsed: execute full profile deletion!
+        localStorage.removeItem(NETLIFY_SCHEDULED_DELETION_KEY);
+        await executeSilentNetlifyProfileWipe();
+        return;
+    }
+
+    // Active countdown: update UI
+    setNetlifyCountdownUIActive(true);
+    updateNetlifyCountdownDisplay(remaining);
+
+    if (netlifyCountdownTimerInterval) clearInterval(netlifyCountdownTimerInterval);
+    netlifyCountdownTimerInterval = setInterval(async () => {
+        const currentRemaining = scheduledTs - Date.now();
+        if (currentRemaining <= 0) {
+            clearInterval(netlifyCountdownTimerInterval);
+            localStorage.removeItem(NETLIFY_SCHEDULED_DELETION_KEY);
+            await executeSilentNetlifyProfileWipe();
+        } else {
+            updateNetlifyCountdownDisplay(currentRemaining);
+        }
+    }, 60000);
+}
+
+/**
+ * Handles the "I Have Successfully Migrated My Data" action in Step 3.
+ */
+export async function handleNetlifyConfirmMigration() {
+    const userChoice = await customConfirm(
+        'Congratulations on migrating your data to the new website!\n\n' +
+        'How would you like to handle your Netlify profile and local data?\n\n' +
+        '• <strong>Start 1-Week Countdown:</strong> Keeps your data for 7 days as a safety fallback, after which it will be permanently wiped.\n\n' +
+        '• <strong>Delete Right Away:</strong> Cancel this prompt and click "Delete Profile Now" to wipe everything immediately.',
+        'Confirm Successful Migration',
+        'Start 1-Week Countdown',
+        'Cancel',
+        false
+    );
+
+    if (userChoice) {
+        const scheduledTs = Date.now() + ONE_WEEK_MS;
+        localStorage.setItem(NETLIFY_SCHEDULED_DELETION_KEY, scheduledTs.toString());
+        setNetlifyCountdownUIActive(true);
+        updateNetlifyCountdownDisplay(ONE_WEEK_MS);
+        checkNetlifyScheduledDeletion();
+        showToast('1-week profile deletion countdown started. You can delete immediately at any time.', 5000, 'info');
+    }
+}
+
+/**
+ * Cancels the scheduled 1-week deletion countdown and restores normal banner.
+ */
+export function cancelNetlifyScheduledDeletion() {
+    if (netlifyCountdownTimerInterval) clearInterval(netlifyCountdownTimerInterval);
+    localStorage.removeItem(NETLIFY_SCHEDULED_DELETION_KEY);
+    setNetlifyCountdownUIActive(false);
+    showToast('Scheduled profile deletion cancelled.', 4000, 'info');
+}
+
+/**
+ * Forces immediate profile deletion on Netlify (bypassing the 7-day wait).
+ */
+export async function forceDeleteNetlifyProfileNow() {
+    closeNetlifyMigrationGuideModal();
+    if (netlifyCountdownTimerInterval) clearInterval(netlifyCountdownTimerInterval);
+    await handleDeleteProfile();
 }

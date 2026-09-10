@@ -539,7 +539,7 @@
     width: 100% !important;
 }
 
-/* 2. FULL-PAGE DASHBOARD MODE: Reset max-height and overflow so the full page scrolls naturally */
+/* 2. FULL-PAGE DASHBOARD MODE: Responsive card sizing based on login state */
 #account-view-container #account-card {
     max-height: none !important;
     overflow: visible !important;
@@ -551,9 +551,18 @@
     max-height: none !important;
 }
 
+/* Logged-out state: Always maintain a centered, compact card on all screens */
+#account-view-container #account-card.account-card-compact,
+#account-view-container #account-card:has(#account-logged-out-content:not(.hidden)) {
+    max-width: 28rem !important; /* 448px */
+    width: 100% !important;
+    margin: 0 auto !important;
+}
+
 @media (min-width: 1024px) {
-    /* Force card component frame to stretch across the primary page panel surface */
-    #account-view-container #account-card {
+    /* Only stretch card across full 5xl width when logged in (to host the 2-column stats grid) */
+    #account-view-container #account-card.account-card-wide,
+    #account-view-container #account-card:has(#account-logged-in-content:not(.hidden)) {
         max-width: 100% !important;
         width: 100% !important;
     }

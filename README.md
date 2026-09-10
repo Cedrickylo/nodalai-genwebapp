@@ -137,14 +137,16 @@ flowchart LR
 - **1-Week Retention Policy**: Automatic calculation of offline cache lifetime, complete with a one-click "Renew for 1 Week" extension button in the Downloads view.
 - **Downloads Storage Manager**: Real-time storage calculation showing disk space consumed by cached exams.
 
-### 9. Encrypted Data Migration (.nodal)
+### 9. Encrypted Data Migration (.nodal) & Netlify Grace Countdown
 - **Domain-to-Domain Portability**: Export your complete quiz database, retake histories, and statistics into an encrypted `.nodal` backup file.
 - **AES-256 Encryption & Cryptographic Checksums**: Encrypted with AES-256 and verified with cryptographic hashes to ensure zero data corruption during migration.
+- **Netlify Post-Migration 1-Week Grace Countdown**: Exclusive to the legacy Netlify deployment, confirming migration lets users choose between an automated 7-day scheduled profile countdown (with real-time banner display) or immediate forced deletion. Excluded from Vercel deployments.
 
 ### 10. Puter Cloud Sync & Account Dashboard
 - **Cross-Device Syncing**: Sign in via Puter to automatically sync quizzes and scores across desktop, laptop, and mobile devices.
 - **Storage Meter & Profile Management**: Real-time calculation of cloud storage used across quizzes, takes, and cache files, with direct profile edit shortcuts.
 - **Fair Use Cooldown Protection**: Smart generation cooldown (2 generations per 3 minutes, 10 per 3 hours) with live countdown timers, preventing quota exhaustion while ensuring failed network requests never penalize your allowance.
+- **Permanent Profile Deletion (Signed-In & Signed-Out)**: Dedicated "Delete Nodal Profile" option protected by two-step verification and typing confirmation (`CONFIRM`). For signed-in users, it wipes Puter cloud files, KV keys, local/session storage, caches, and signs out. For guests, it skips cloud calls and purges all local quizzes, takes, and caches.
 
 ### 11. Device Orientation Lock Check & Auto-Rotation Guard
 - **Respects Device Orientation Lock**: Detects whether your mobile device or operating system has orientation lock enabled (e.g., Portrait Lock / Auto-rotate OFF).
@@ -169,7 +171,7 @@ Nodal AI prioritizes client-side data sovereignty. Data is structured across mod
 | **`localStorage`** | `nodal_offline_downloads_v1` | 1-week offline retention registry and renewal metadata |
 | **`localStorage`** | `nodal_reduce_motion` | User accessibility animation preferences |
 | **`sessionStorage`** | `nodal_last_review_take` | Active review take payload preserved across tab refreshes |
-| **Cache API** | `nodal-ai-cache-v42` | Pre-cached PWA app shell, scripts, styles, and font icons |
+| **Cache API** | `nodal-ai-cache-v44` | Pre-cached PWA app shell, scripts, styles, and font icons |
 | **Puter Filesystem** | `/app/nodal_ai/...` | Sandboxed cloud sync files for authenticated Puter users |
 
 ### Client-Side Document Processing
@@ -190,7 +192,7 @@ At Nodal AI, we believe your educational materials and study habits are strictly
 1. **Zero Tracking & Zero Advertising**: We do not run third-party advertising networks, tracker pixels, cross-site telemetry, or data brokerage analytics.
 2. **No Document Retention**: We do not store, catalog, or train public AI models on the source documents you process. Document text is converted in your local browser and sent ephemerally to the AI generation function solely to create your quiz.
 3. **Guest Mode Sovereignty**: You can use Nodal AI completely anonymously without an account. All your quizzes, scores, and offline downloads remain safely contained within your local browser storage.
-4. **Cloud Sync Transparency**: If you choose to log in using Puter, your synced quizzes and take histories are stored inside your own sandboxed Puter cloud filesystem (`puter.com`). You can delete, export, or modify this data at any time.
+4. **Cloud Sync Transparency & Right to Erasure**: If you choose to log in using Puter, your synced quizzes and take histories are stored inside your own sandboxed Puter cloud filesystem (`puter.com`). You can delete individual quizzes, export your entire library, or use the "Delete Nodal Profile" button to permanently erase all cloud and local records simultaneously.
 5. **Encrypted Portability**: The proprietary `.nodal` backup file format uses AES-256 encryption, allowing you to transport your personal data between devices without exposing plaintext content.
 
 ---
@@ -241,6 +243,13 @@ After completing any quiz, the results screen identifies all questions answered 
 <details>
 <summary><strong>8. How do I transfer my quizzes to a new computer?</strong></summary>
 Open the Account modal and click **Migrate Data (Import / Export)**. Choose **Export**, enter a passphrase to encrypt your data with AES-256, and download the `.nodal` file. On your new device, open the same menu, choose **Import**, select your `.nodal` file, and enter your passphrase to restore your library.
+</details>
+
+<details>
+<summary><strong>9. How do I delete my profile and all stored data?</strong></summary>
+Open the Account modal (available for both signed-in Puter users and signed-out guests) and click <strong>Delete Nodal Profile</strong>. You will be guided through a two-step confirmation, requiring you to type <code>CONFIRM</code> to proceed. If signed in, this permanently deletes all your Puter cloud files and Key-Value records, erases your local quiz library and retakes, wipes offline caches, signs you out, and severs website association. If signed out as a guest, it skips cloud deletion and purges all local storage and caches.
+
+On the legacy Netlify website, users who confirm successful account migration to the new site can also schedule an automatic 1-week deletion countdown or force immediate deletion from the migration guide.
 </details>
 
 ---
