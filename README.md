@@ -39,6 +39,7 @@
 - [Privacy Policy](#privacy-policy)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Contributing Guide](#contributing-guide)
+- [Code of Conduct](#code-of-conduct)
 - [Legal Disclaimer](#legal-disclaimer)
 - [Terms of Use](#terms-of-use)
 
@@ -323,6 +324,13 @@ We welcome contributions from educators, designers, and developers! Follow these
 3. Test your changes across desktop and mobile viewports.
 4. Push to your fork: `git push origin feature/your-feature-name`.
 5. Open a Pull Request on GitHub describing your changes and testing results.
+
+
+---
+
+## Code of Conduct
+
+We are committed to fostering a welcoming, inclusive, and harassment-free educational community. Please read our [Code of Conduct](CODE_OF_CONDUCT.md) to understand the standards of behavior we expect from all contributors and users interacting with the Nodal AI platform and its repository.
 
 ---
 
