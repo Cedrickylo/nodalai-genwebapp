@@ -20,6 +20,26 @@ const ENCRYPTED_STORAGE_KEYS = [
     'nodal_offline_downloads_v1'
 ];
 
+// Historical unencrypted keys from older versions to be cleaned up
+const LEGACY_LOCAL_STORAGE_KEYS = [
+    'AIQuizGeneratorDB',
+    'AIQuizGeneratorDB_v1',
+    'AIQuizGeneratorDB_v2',
+    'AIQuizGeneratorDB_v3',
+    'nodal_quiz_takes',
+    'quizHistory',
+    'quizTakes',
+    'AIQuizInProgress_backup'
+];
+
+// Historical unencrypted Puter KV keys from older versions to be cleaned up
+const LEGACY_CLOUD_KV_KEYS = [
+    'puter_quiz_sync_v1',
+    'puter_quiz_sync_v2',
+    'puter_quiz_sync_v3',
+    'puter_quiz_sync'
+];
+
 // ==================================================================
 // CORE ENCRYPTION & DECRYPTION HELPERS
 // ==================================================================
@@ -280,12 +300,20 @@ export function exportDecryptedQuizJSON(quizData, quizKey = null, takes = []) {
  */
 export function hasLegacyUnencryptedData() {
     try {
+        // 1. Check active database keys for unencrypted data
         for (const key of ENCRYPTED_STORAGE_KEYS) {
             const raw = localStorage.getItem(key);
             if (!raw) continue;
             const trimmed = raw.trim();
             // If it starts with '{' or '[' and is NOT an encrypted envelope/ciphertext
             if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && !isEncryptedData(trimmed)) {
+                return true;
+            }
+        }
+
+        // 2. Check if any deprecated legacy database keys exist that should be cleaned up
+        for (const legacyKey of LEGACY_LOCAL_STORAGE_KEYS) {
+            if (localStorage.getItem(legacyKey) !== null) {
                 return true;
             }
         }
@@ -344,6 +372,7 @@ export function hideMigrationLoader() {
 export function migrateLocalDatabaseToEncrypted() {
     let migratedCount = 0;
     try {
+        // 1. Overwrite active keys in-place with encrypted payloads
         for (const key of ENCRYPTED_STORAGE_KEYS) {
             const raw = localStorage.getItem(key);
             if (!raw) continue;
@@ -354,12 +383,23 @@ export function migrateLocalDatabaseToEncrypted() {
                     const parsed = JSON.parse(trimmed);
                     setEncryptedStorageItem(key, parsed);
                     migratedCount++;
-                    console.log(`[Crypto Migration] Successfully encrypted local key: ${key}`);
+                    console.log(`[Crypto Migration] Successfully encrypted local key in place: ${key}`);
                 } catch (parseErr) {
                     console.warn(`[Crypto Migration] Could not parse legacy item for ${key}:`, parseErr);
                 }
             }
         }
+
+        // 2. Permanently delete deprecated legacy database keys so they do not take up local storage space
+        for (const legacyKey of LEGACY_LOCAL_STORAGE_KEYS) {
+            try {
+                if (localStorage.getItem(legacyKey) !== null) {
+                    localStorage.removeItem(legacyKey);
+                    console.log(`[Crypto Migration] Cleaned up deprecated legacy localStorage key: ${legacyKey}`);
+                }
+            } catch (delErr) {}
+        }
+
         localStorage.setItem('nodal_database_encrypted_v1', 'true');
     } catch (e) {
         console.error('[Crypto Migration] Local migration error:', e);
@@ -370,6 +410,7 @@ export function migrateLocalDatabaseToEncrypted() {
 /**
  * Inspects Puter cloud sync files and KV record. If any unencrypted payloads exist,
  * encrypts them with AES-256 and writes back to Puter cloud.
+ * Explicitly unlinks unencrypted files and purges duplicate copies and legacy KV keys.
  * @returns {Promise<boolean>}
  */
 export async function migrateCloudDataToEncrypted() {
@@ -383,7 +424,7 @@ export async function migrateCloudDataToEncrypted() {
     const PUTER_FS_BACKUP_FILE = 'nodal_quiz_sync_backup.json';
 
     try {
-        // 1. Check Puter KV
+        // 1. Check & migrate Puter KV (overwrites in place)
         try {
             const kvRaw = await puter.kv.get(CLOUD_SYNC_KEY);
             if (kvRaw) {
@@ -393,14 +434,25 @@ export async function migrateCloudDataToEncrypted() {
                     const encrypted = encryptQuizData(parsed, NODAL_STORAGE_AES_KEY);
                     await puter.kv.set(CLOUD_SYNC_KEY, encrypted);
                     migrated = true;
-                    console.log('[Crypto Migration] Migrated Puter KV to encrypted format.');
+                    console.log('[Crypto Migration] Overwrote Puter KV with encrypted format in place.');
                 }
             }
         } catch (kvErr) {
             console.warn('[Crypto Migration] KV check skipped:', kvErr);
         }
 
-        // 2. Check Puter FS Sync and Backup files
+        // 2. Delete deprecated legacy KV keys from older releases
+        for (const legacyKvKey of LEGACY_CLOUD_KV_KEYS) {
+            try {
+                if (typeof puter.kv.del === 'function') {
+                    await puter.kv.del(legacyKvKey).catch(() => {});
+                } else if (typeof puter.kv.delete === 'function') {
+                    await puter.kv.delete(legacyKvKey).catch(() => {});
+                }
+            } catch (e) {}
+        }
+
+        // 3. Check & migrate Puter FS Sync and Backup files
         if (puter.fs && typeof puter.fs.read === 'function' && typeof puter.fs.write === 'function') {
             for (const file of [PUTER_FS_SYNC_FILE, PUTER_FS_BACKUP_FILE]) {
                 try {
@@ -418,13 +470,55 @@ export async function migrateCloudDataToEncrypted() {
                     if (trimmed.startsWith('{') && !isEncryptedData(trimmed)) {
                         const parsed = JSON.parse(trimmed);
                         const encrypted = encryptQuizData(parsed, NODAL_STORAGE_AES_KEY);
+
+                        // Delete unencrypted file first so old file blocks or shadow copies are wiped
+                        try {
+                            if (typeof puter.fs.delete === 'function') {
+                                await puter.fs.delete(file).catch(() => {});
+                            } else if (typeof puter.fs.unlink === 'function') {
+                                await puter.fs.unlink(file).catch(() => {});
+                            }
+                        } catch (delErr) {}
+
+                        // Write fresh encrypted payload
                         await puter.fs.write(file, encrypted, { overwrite: true, dedupe_name: false });
                         migrated = true;
-                        console.log(`[Crypto Migration] Migrated Puter FS file "${file}" to encrypted format.`);
+                        console.log(`[Crypto Migration] Unlinked old unencrypted file and wrote encrypted "${file}".`);
                     }
                 } catch (fsErr) {
                     // File might not exist yet, ignore
                 }
+            }
+
+            // 4. Scan Puter FS root to clean up duplicate copies or older version sync files
+            try {
+                if (typeof puter.fs.readdir === 'function') {
+                    const items = await puter.fs.readdir('./').catch(() => []);
+                    if (Array.isArray(items)) {
+                        for (const item of items) {
+                            const fileName = item?.name || item?.path || (typeof item === 'string' ? item : null);
+                            if (!fileName) continue;
+
+                            // Match numbered duplicates (e.g. "nodal_quiz_sync_v4 (1).json", "nodal_quiz_sync_backup (1).json")
+                            const isDuplicate = /nodal_quiz_sync.*?\s*\(\d+\)\.json$/i.test(fileName);
+                            // Match older version sync files (e.g. nodal_quiz_sync_v1.json, v2.json, v3.json, nodal_quiz_sync.json)
+                            const isOlderVersion = /nodal_quiz_sync_v[1-3]\.json$/i.test(fileName) || fileName === 'nodal_quiz_sync.json';
+
+                            if (isDuplicate || isOlderVersion) {
+                                console.log(`[Crypto Migration] Deleting legacy/duplicate Puter FS file: ${fileName}`);
+                                try {
+                                    if (typeof puter.fs.delete === 'function') {
+                                        await puter.fs.delete(fileName).catch(() => {});
+                                    } else if (typeof puter.fs.unlink === 'function') {
+                                        await puter.fs.unlink(fileName).catch(() => {});
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+                }
+            } catch (readdirErr) {
+                console.warn('[Crypto Migration] Puter FS directory scan warning:', readdirErr);
             }
         }
 
