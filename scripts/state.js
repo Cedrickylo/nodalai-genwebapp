@@ -405,6 +405,7 @@ export const state = {
     incorrectSound: null,
     isMuted: localStorage.getItem('nodal_quiz_muted') === 'true',
     isReduceMotion: localStorage.getItem('nodal_reduce_motion') === 'true',
+    isDeviceOrientationLocked: false,
     loadingInterval: null,
     toastTimeout: null,
     quizTimerInterval: null,

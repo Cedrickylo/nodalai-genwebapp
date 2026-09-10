@@ -851,7 +851,7 @@
                         <section class="info-card lg:col-span-2">
                             <h3>Terms of Service</h3>
                             <p class="text-xs text-gray-400 leading-relaxed">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
-                            <p class="text-xs text-gray-400 leading-relaxed mt-2">For full terms, see the project repository or contact the developer for the official TOS document.</p>
+                            <p class="text-xs text-gray-400 leading-relaxed mt-2">For full terms and conditions, see our official <a href="https://github.com/cedrickylo/nodalai-genwebapp#terms-of-use" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline font-medium inline-flex items-center gap-1"><span>Terms of Use &amp; Legal Disclaimer</span><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a> in the repository.</p>
                         </section>
                     </div>
                 </div>
@@ -1127,8 +1127,52 @@
                     <!-- Accordion Container -->
                     <div id="whats-new-accordion-container" class="space-y-4">
                         
-                        <!-- Release: September 9, 2026 (EXPANDED BY DEFAULT - LATEST) -->
+                        <!-- Release: September 10, 2026 (EXPANDED BY DEFAULT - LATEST) -->
                         <div class="whats-new-item bg-gray-900/60 border border-blue-500/40 rounded-2xl overflow-hidden shadow-lg transition-all">
+                            <button type="button" class="whats-new-toggle w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-800/60 transition cursor-pointer" data-target="changelog-sep-10-2026">
+                                <div class="flex items-center gap-3">
+                                    <span class="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </span>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="text-base sm:text-lg font-bold text-white">September 10, 2026</h3>
+                                            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-0.5">Comprehensive Update: Device Orientation Lock Check & Auto-Rotation Prevention, Terms of Use Direct Linking, Complete Architectural Documentation & Contributing Guide</p>
+                                    </div>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+
+                            <!-- Dropdown for September 10: Expanded by default (no hidden class) -->
+                            <div id="changelog-sep-10-2026" class="whats-new-content p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
+                                <div>
+                                    <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
+                                    <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Device Orientation Lock Check & Auto-Rotation Prevention:</strong> Integrated an automatic device orientation check that respects the user's operating system orientation lock. Removed the PWA manifest orientation override (<code>"orientation": "any"</code>) that previously caused Chromium on Android and other mobile browsers to bypass system lock and auto-rotate. Added a runtime sensor-assisted orientation guard (<code>initDeviceOrientationLockCheck</code>) that checks whether the device has orientation lock enabled and prevents the website from auto-rotating, preserving a rock-solid, stable layout.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>About Page Terms of Service Direct Linking:</strong> Enhanced the Terms of Service card in the About view with an explicit, direct hyperlink to the official repository <strong>Terms of Use &amp; Legal Disclaimer</strong>, providing transparent access to service parameters and copyright policies.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Comprehensive Project Documentation Suite:</strong> Completely overhauled the repository <code>README.md</code> into an authoritative, production-grade guide featuring detailed sections on the project's educational purpose, complete feature breakdown, UI screenshots and architecture, local and cloud data handling, privacy guarantees, exhaustive FAQ, step-by-step contribution guidelines, and official legal terms.</span>
+                                        </li>
+                                        <li class="flex items-start gap-2.5">
+                                            <span class="text-blue-400 font-bold">•</span>
+                                            <span><strong>Service Worker &amp; Offline Cache Upgrade:</strong> Updated service worker cache to v42 (<code>nodal-ai-cache-v42</code>), guaranteeing automatic cache eviction, smooth asset synchronization, and immediate activation of new manifest and orientation settings across all client devices.</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Release: September 9, 2026 (COLLAPSED) -->
+                        <div class="whats-new-item bg-gray-900/60 border border-gray-700/60 rounded-2xl overflow-hidden shadow-lg transition-all">
                             <button type="button" class="whats-new-toggle w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-800/60 transition cursor-pointer" data-target="changelog-sep-09-2026">
                                 <div class="flex items-center gap-3">
                                     <span class="p-2 rounded-xl bg-blue-500/20 text-blue-400">
@@ -1137,16 +1181,15 @@
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <h3 class="text-base sm:text-lg font-bold text-white">September 9, 2026</h3>
-                                            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-600 text-white">Latest</span>
                                         </div>
                                         <p class="text-xs text-gray-400 mt-0.5">Comprehensive Update: Raw JSON Pasting & Unified Import Modal, 60fps Modal Transitions, Customize Navigation Guard, Universal Sync Icons, Centered Headers, Document File Limits & Timer Display</p>
                                     </div>
                                 </div>
-                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200 chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </button>
 
-                            <!-- Dropdown for September 9: Expanded by default (no hidden class) -->
-                            <div id="changelog-sep-09-2026" class="whats-new-content p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
+                            <!-- Dropdown for September 9: Collapsed (hidden class) -->
+                            <div id="changelog-sep-09-2026" class="whats-new-content hidden p-4 sm:p-6 border-t border-gray-700/60 bg-gray-900/40 space-y-4">
                                 <div>
                                     <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2.5">🚀 Newly Added in this Release</h4>
                                     <ul class="space-y-2.5 text-xs sm:text-sm text-gray-300">

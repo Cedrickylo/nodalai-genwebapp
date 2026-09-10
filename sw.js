@@ -1,5 +1,5 @@
-// Incremented to v41 for share live transition, puter login flow, active link resumption, and expired link decommissioning
-const CACHE_NAME = 'nodal-ai-cache-v41';
+// Incremented to v42 for device orientation lock check, terms direct linking, and docs update
+const CACHE_NAME = 'nodal-ai-cache-v42';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

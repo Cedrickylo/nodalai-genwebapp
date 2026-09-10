@@ -1299,3 +1299,13 @@ html.reduce-motion #whats-new-badge {
         transition-timing-function: steps(9, end) !important;
     }
 }
+
+/* ==================================================================
+   DEVICE ORIENTATION LOCK & AUTO-ROTATION PREVENTION
+   Maintains portrait layout stability and avoids layout disruption
+   when device orientation lock is enabled by the operating system.
+   ================================================================== */
+html.device-orientation-locked {
+    max-width: 100vw;
+    overflow-x: hidden;
+}

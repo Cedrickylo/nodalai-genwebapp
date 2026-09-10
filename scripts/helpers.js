@@ -1322,6 +1322,82 @@ export function setReduceMotion(enabled) {
     if (cb2) cb2.checked = state.isReduceMotion;
 }
 
+/**
+ * Device Orientation Lock Check & Auto-Rotation Prevention:
+ * Checks if the user's device has orientation lock enabled (e.g., Portrait Lock in OS settings).
+ * If the device has orientation lock enabled, it actively prevents auto-rotating of the website.
+ * Monitors screen orientation changes and passive accelerometer tilt (DeviceOrientationEvent) to detect
+ * when the physical device is rotated while the system orientation remains locked.
+ */
+export function initDeviceOrientationLockCheck() {
+    // 1. Check current orientation state
+    const checkOrientationState = () => {
+        const isScreenOrientationSupported = !!(window.screen && window.screen.orientation);
+        const currentAngle = isScreenOrientationSupported 
+            ? (window.screen.orientation.angle || 0) 
+            : (typeof window.orientation === 'number' ? window.orientation : 0);
+        const currentType = isScreenOrientationSupported ? (window.screen.orientation.type || '') : '';
+        const isPortrait = currentType.includes('portrait') || currentAngle === 0 || window.innerHeight >= window.innerWidth;
+        
+        return { isPortrait, currentType, currentAngle };
+    };
+
+    // 2. Passive sensor check: detect if physical tilt occurs while OS orientation lock holds viewport steady
+    if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+        window.addEventListener('deviceorientation', (e) => {
+            const gamma = e.gamma; // tilt left/right (-90 to 90)
+            const beta = e.beta;   // tilt front/back (-180 to 180)
+            if (gamma === null || beta === null) return;
+
+            // Physical device is tilted sideways in landscape posture
+            const isPhysicalLandscape = Math.abs(gamma) > 55 || (Math.abs(beta) < 40 && Math.abs(gamma) > 45);
+            const orientationAngle = (window.screen?.orientation?.angle !== undefined)
+                ? window.screen.orientation.angle
+                : (typeof window.orientation === 'number' ? window.orientation : 0);
+
+            // If physical device is tilted sideways, BUT the screen orientation angle remains at 0° (portrait),
+            // the device OS has orientation lock explicitly enabled!
+            if (isPhysicalLandscape && orientationAngle === 0) {
+                state.isDeviceOrientationLocked = true;
+                document.documentElement.classList.add('device-orientation-locked');
+                
+                // Prevent any programmatic or delayed rotation of website
+                if (window.screen?.orientation?.lock) {
+                    try {
+                        window.screen.orientation.lock('portrait').catch(() => {});
+                    } catch (err) {}
+                }
+            } else if (!isPhysicalLandscape && orientationAngle === 0) {
+                // Device held vertically; preserve locked state if established
+                document.documentElement.classList.toggle('device-orientation-locked', state.isDeviceOrientationLocked);
+            } else if (orientationAngle !== 0) {
+                // Device physically rotated AND screen angle changed (auto-rotate was allowed by OS)
+                state.isDeviceOrientationLocked = false;
+                document.documentElement.classList.remove('device-orientation-locked');
+            }
+        }, { passive: true });
+    }
+
+    // 3. Screen orientation change listener: if orientation lock is enabled, disallow auto-rotating
+    if (window.screen?.orientation) {
+        window.screen.orientation.addEventListener('change', () => {
+            if (state.isDeviceOrientationLocked) {
+                try {
+                    if (window.screen.orientation.lock) {
+                        window.screen.orientation.lock('portrait').catch(() => {});
+                    }
+                } catch (e) {}
+            }
+        });
+    }
+
+    // 4. Initial check
+    const initial = checkOrientationState();
+    if (initial.isPortrait) {
+        document.documentElement.classList.add('orientation-portrait');
+    }
+}
+
 export function showToast(message, duration = 3000, type = 'success') {
     if (state.toastTimeout) {
         clearTimeout(state.toastTimeout);
@@ -3657,6 +3733,7 @@ export function initializeAppState() {
     handleTimeToggle();
     handleAttemptToggle();
     setReduceMotion(localStorage.getItem('nodal_reduce_motion') === 'true');
+    initDeviceOrientationLockCheck();
     updateResumeButtonVisibility();
 }
 
