@@ -2,6 +2,7 @@ import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, 
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing, cleanupExpiredSharedQuizzes } from './helpers.js';
 import { initNetlifyMigrationBannerAndNotice } from './quiz/quizMigration.js';
+import { executeDatabaseMigration } from './quiz/quizCrypto.js';
 import { elements, state } from './state.js';
 
 // ==================================================================
@@ -97,6 +98,14 @@ async function initApp() {
         }
         bindUserGestureToStartAudio();
         initializeAudio();
+
+        // Check and migrate legacy unencrypted data with fullscreen loader if needed
+        try {
+            await executeDatabaseMigration();
+        } catch (migErr) {
+            console.warn('[Startup] Database migration error handled gracefully:', migErr);
+        }
+
         initializeAppState();
         attachAuthHandlers();
         attachQuizEventListeners();
@@ -286,6 +295,56 @@ async function initApp() {
             setSyncing('offline');
             validateAllInputs();
         });
+
+        // ==================================================================
+        // MULTI-DEVICE AUTO-SYNC ON TAB VISIBILITY & WINDOW FOCUS
+        // Automatically fetches quizzes and test scores updated on another
+        // device as soon as the user returns to or focuses this window.
+        // ==================================================================
+        let lastBackgroundSyncTime = Date.now();
+        const AUTO_SYNC_COOLDOWN_MS = 30000; // 30-second cooldown prevents spamming Puter
+
+        const triggerAutoBackgroundSync = () => {
+            if (typeof puter === 'undefined' || !window.puter?.auth?.isSignedIn() || !navigator.onLine) {
+                return;
+            }
+            // Do not disrupt active quiz taking, customization, or AI generation
+            const isQuizActive = elements.views?.quiz && elements.views.quiz.classList.contains('active');
+            const isGenerationActive = (elements.views?.loading && elements.views.loading.classList.contains('active')) ||
+                state.aiGenerationInterval !== null || 
+                state.aiGenerationAbortController !== null;
+            const isCustomizing = isCustomizingQuizGeneration();
+            if (isQuizActive || isGenerationActive || isCustomizing) {
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastBackgroundSyncTime < AUTO_SYNC_COOLDOWN_MS) {
+                return;
+            }
+            lastBackgroundSyncTime = now;
+            console.log('[Auto-Sync] Tab active: syncing latest multi-device updates...');
+            syncHistoryWithCloud(false).catch((err) => {
+                console.warn('[Auto-Sync] Multi-device background sync error:', err);
+            });
+        };
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                triggerAutoBackgroundSync();
+            }
+        });
+
+        window.addEventListener('focus', () => {
+            triggerAutoBackgroundSync();
+        });
+
+        // Periodic 5-minute background sync pulse when tab is left open
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                triggerAutoBackgroundSync();
+            }
+        }, 5 * 60 * 1000);
 
         const urlParams = new URLSearchParams(window.location.search);
         const shareId = urlParams.get('share');

@@ -1,6 +1,11 @@
 import { elements, state, constants } from '../state.js';
 import { resetAdvancedOptions } from './quizUtils.js';
 import {
+    decryptImportedQuizText,
+    getEncryptedStorageItem,
+    setEncryptedStorageItem
+} from './quizCrypto.js';
+import {
     showToast,
     showView,
     setupCustomizeView,
@@ -532,8 +537,12 @@ export function resetAppFiles() {
 
 export function handleQuizImport(event) {
     const file = event.target.files[0];
-    if (!file || !file.name.endsWith('.json')) {
-        showToast('Requires .json', 3000, 'error');
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    const isValidExt = lowerName.endsWith('.json') || lowerName.endsWith('.txt') || lowerName.endsWith('.nodal');
+    if (!isValidExt) {
+        showToast('Requires .json, .txt, or .nodal quiz file', 3500, 'error');
         return;
     }
 
@@ -542,9 +551,10 @@ export function handleQuizImport(event) {
     const reader = new FileReader();
     reader.onload = async (e) => {
         try {
-            const data = JSON.parse(e.target.result);
-            if (!data?.questions?.length || !data.config || !data.questions.every(q => q?.question && (q.answer !== undefined && q.answer !== null && q.answer !== ''))) {
-                throw new Error('Invalid quiz JSON structure.');
+            const rawContent = e.target.result;
+            const { data } = decryptImportedQuizText(rawContent);
+            if (!data?.questions?.length || !data.questions.every(q => q?.question && (q.answer !== undefined && q.answer !== null && q.answer !== ''))) {
+                throw new Error('Invalid quiz structure.');
             }
 
             // Normalize questions and boolean answers
@@ -592,7 +602,9 @@ export function handleQuizImport(event) {
                 }
             }
 
-            const importedId = data.quizId || CryptoJS.SHA256(JSON.stringify(normalizedQuestions) + JSON.stringify(config) + (data.fileName || file.name)).toString();
+            const importedId = data.quizId || (typeof CryptoJS !== 'undefined' && CryptoJS.SHA256 
+                ? CryptoJS.SHA256(JSON.stringify(normalizedQuestions) + JSON.stringify(config) + (data.fileName || file.name)).toString()
+                : `quiz_${Date.now()}`);
             
             if (state.quizHistory[importedId]) {
                 hideLoadingOverlay();
@@ -635,13 +647,7 @@ export function handleQuizImport(event) {
             // Restore takes and statistics if bundled in the imported JSON
             if (Array.isArray(data.takes) && data.takes.length > 0) {
                 const takesDbKey = constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1';
-                let allTakes = {};
-                try {
-                    const raw = localStorage.getItem(takesDbKey);
-                    allTakes = raw ? JSON.parse(raw) : {};
-                } catch (e) {
-                    allTakes = {};
-                }
+                const allTakes = getEncryptedStorageItem(takesDbKey, {});
                 const existing = Array.isArray(allTakes[state.currentQuizKey]) ? allTakes[state.currentQuizKey] : [];
                 const merged = [...existing];
                 data.takes.forEach(newTake => {
@@ -659,7 +665,7 @@ export function handleQuizImport(event) {
                 merged.sort((a, b) => (a.completedAt || a.timestamp || 0) - (b.completedAt || b.timestamp || 0));
                 merged.forEach((t, idx) => { t.takeNumber = idx + 1; });
                 allTakes[state.currentQuizKey] = merged;
-                localStorage.setItem(takesDbKey, JSON.stringify(allTakes));
+                setEncryptedStorageItem(takesDbKey, allTakes);
             }
             if (typeof puter !== 'undefined' && window.puter && puter.auth && puter.auth.isSignedIn() && navigator.onLine) {
                 try {
@@ -708,26 +714,34 @@ export async function importQuizFromText(rawText) {
     showLoadingOverlay('Importing Quiz...', 'Parsing pasted quiz JSON text...');
 
     try {
-        const { cleanAndParseQuizJson } = await import('../aiService.js');
-        const data = cleanAndParseQuizJson(rawText, 'Pasted Quiz');
+        let data = null;
+        try {
+            const decResult = decryptImportedQuizText(rawText);
+            data = decResult.data;
+        } catch (decErr) {
+            const { cleanAndParseQuizJson } = await import('../aiService.js');
+            data = cleanAndParseQuizJson(rawText, 'Pasted Quiz');
+        }
         
         if (!data?.questions?.length) {
             throw new Error('No valid questions found in pasted JSON.');
         }
 
         // Check if raw text also had takes
-        let takes = [];
-        try {
-            let cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-            const firstBrace = cleaned.indexOf('{');
-            const lastBrace = cleaned.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace > firstBrace) {
-                const parsedObj = JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
-                if (Array.isArray(parsedObj?.takes)) {
-                    takes = parsedObj.takes;
+        let takes = Array.isArray(data.takes) ? data.takes : [];
+        if (!takes.length) {
+            try {
+                let cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+                const firstBrace = cleaned.indexOf('{');
+                const lastBrace = cleaned.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace > firstBrace) {
+                    const parsedObj = JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+                    if (Array.isArray(parsedObj?.takes)) {
+                        takes = parsedObj.takes;
+                    }
                 }
-            }
-        } catch (e) {}
+            } catch (e) {}
+        }
 
         const normalizedQuestions = (data.questions || []).map(q => {
             let answer = q.answer;
@@ -771,7 +785,9 @@ export async function importQuizFromText(rawText) {
             }
         }
 
-        const importedId = data.quizId || CryptoJS.SHA256(JSON.stringify(normalizedQuestions) + JSON.stringify(config) + (data.fileName || 'Pasted Quiz')).toString();
+        const importedId = data.quizId || (typeof CryptoJS !== 'undefined' && CryptoJS.SHA256 
+            ? CryptoJS.SHA256(JSON.stringify(normalizedQuestions) + JSON.stringify(config) + (data.fileName || 'Pasted Quiz')).toString()
+            : `quiz_${Date.now()}`);
 
         if (state.quizHistory[importedId]) {
             hideLoadingOverlay();
@@ -812,13 +828,7 @@ export async function importQuizFromText(rawText) {
 
         if (Array.isArray(takes) && takes.length > 0) {
             const takesDbKey = constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1';
-            let allTakes = {};
-            try {
-                const raw = localStorage.getItem(takesDbKey);
-                allTakes = raw ? JSON.parse(raw) : {};
-            } catch (e) {
-                allTakes = {};
-            }
+            const allTakes = getEncryptedStorageItem(takesDbKey, {});
             const existing = Array.isArray(allTakes[state.currentQuizKey]) ? allTakes[state.currentQuizKey] : [];
             const merged = [...existing];
             takes.forEach(newTake => {
@@ -836,7 +846,7 @@ export async function importQuizFromText(rawText) {
             merged.sort((a, b) => (a.completedAt || a.timestamp || 0) - (b.completedAt || b.timestamp || 0));
             merged.forEach((t, idx) => { t.takeNumber = idx + 1; });
             allTakes[state.currentQuizKey] = merged;
-            localStorage.setItem(takesDbKey, JSON.stringify(allTakes));
+            setEncryptedStorageItem(takesDbKey, allTakes);
         }
 
         if (typeof puter !== 'undefined' && window.puter && puter.auth && puter.auth.isSignedIn() && navigator.onLine) {
@@ -997,7 +1007,7 @@ export async function loadSharedQuiz(publicUrl) {
                 localMatch.quiz.share = { isShared: false };
                 localMatch.quiz.timestamp = Date.now();
                 try {
-                    localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+                    setEncryptedStorageItem(constants.DB_NAME, state.quizHistory);
                     localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
                 } catch (storageErr) {
                     console.warn('[Share] Failed to update local storage on expired link:', storageErr);

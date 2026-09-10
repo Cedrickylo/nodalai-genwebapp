@@ -1,4 +1,5 @@
 import { elements, state, constants } from '../state.js';
+import { getEncryptedStorageItem, setEncryptedStorageItem } from './quizCrypto.js';
 import {
     showToast,
     pushSubState,
@@ -248,10 +249,7 @@ export async function populateExportItemCounts() {
         const quizDb = state.quizHistory || {};
         quizCount = Object.keys(quizDb).length;
         if (quizCount === 0) {
-            const rawQuizzes = localStorage.getItem(constants.DB_NAME);
-            if (rawQuizzes) {
-                quizCount = Object.keys(JSON.parse(rawQuizzes)).length;
-            }
+            quizCount = Object.keys(getEncryptedStorageItem(constants.DB_NAME, {})).length;
         }
     } catch (e) {
         quizCount = 0;
@@ -259,8 +257,7 @@ export async function populateExportItemCounts() {
 
     let takesCount = 0;
     try {
-        const rawTakes = localStorage.getItem(constants.QUIZ_ATTEMPTS_DB_KEY);
-        const takesDb = rawTakes ? JSON.parse(rawTakes) : {};
+        const takesDb = getEncryptedStorageItem(constants.QUIZ_ATTEMPTS_DB_KEY, {});
         takesCount = Object.values(takesDb).reduce((acc, arr) => acc + (Array.isArray(arr) ? arr.length : 0), 0);
     } catch (e) {
         takesCount = 0;
@@ -318,10 +315,7 @@ export async function executeExport() {
         if (includeQuizzes) {
             exportPayload.quizzes = state.quizHistory || {};
             if (Object.keys(exportPayload.quizzes).length === 0) {
-                const rawQuizzes = localStorage.getItem(constants.DB_NAME);
-                if (rawQuizzes) {
-                    try { exportPayload.quizzes = JSON.parse(rawQuizzes); } catch (e) {}
-                }
+                exportPayload.quizzes = getEncryptedStorageItem(constants.DB_NAME, {});
             }
         }
 
@@ -586,7 +580,7 @@ export async function executeImport() {
                 importedQuizzesCount++;
             }
 
-            localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+            setEncryptedStorageItem(constants.DB_NAME, state.quizHistory);
             localStorage.setItem(`${constants.DB_NAME}_ts`, Date.now().toString());
         }
 
@@ -595,13 +589,7 @@ export async function executeImport() {
             updateMigrationProgress(50, 'Restoring quiz takes and test statistics...');
             await new Promise(r => setTimeout(r, 180));
 
-            let currentTakes = {};
-            try {
-                const raw = localStorage.getItem(constants.QUIZ_ATTEMPTS_DB_KEY);
-                currentTakes = raw ? JSON.parse(raw) : {};
-            } catch (e) {
-                currentTakes = {};
-            }
+            let currentTakes = getEncryptedStorageItem(constants.QUIZ_ATTEMPTS_DB_KEY, {});
 
             for (const [quizKey, takesList] of Object.entries(stagedImportPayload.takes)) {
                 if (Array.isArray(takesList)) {
@@ -629,7 +617,7 @@ export async function executeImport() {
                 }
             }
 
-            localStorage.setItem(constants.QUIZ_ATTEMPTS_DB_KEY, JSON.stringify(currentTakes));
+            setEncryptedStorageItem(constants.QUIZ_ATTEMPTS_DB_KEY, currentTakes);
         }
 
         // 3. Restore Offline Downloads
@@ -637,16 +625,10 @@ export async function executeImport() {
             updateMigrationProgress(70, 'Restoring offline downloads registry...');
             await new Promise(r => setTimeout(r, 150));
 
-            let currentDownloads = {};
-            try {
-                const raw = localStorage.getItem(constants.OFFLINE_DOWNLOADS_DB_KEY);
-                currentDownloads = raw ? JSON.parse(raw) : {};
-            } catch (e) {
-                currentDownloads = {};
-            }
+            let currentDownloads = getEncryptedStorageItem(constants.OFFLINE_DOWNLOADS_DB_KEY, {});
 
             Object.assign(currentDownloads, stagedImportPayload.offlineDownloads);
-            localStorage.setItem(constants.OFFLINE_DOWNLOADS_DB_KEY, JSON.stringify(currentDownloads));
+            setEncryptedStorageItem(constants.OFFLINE_DOWNLOADS_DB_KEY, currentDownloads);
         }
 
         // 4. Restore Settings
@@ -705,10 +687,7 @@ export function autoExportMigrationBundle() {
     try {
         let quizzes = state.quizHistory || {};
         if (Object.keys(quizzes).length === 0) {
-            const rawQuizzes = localStorage.getItem(constants.DB_NAME);
-            if (rawQuizzes) {
-                try { quizzes = JSON.parse(rawQuizzes); } catch (e) {}
-            }
+            quizzes = getEncryptedStorageItem(constants.DB_NAME, {});
         }
 
         let takes = {};

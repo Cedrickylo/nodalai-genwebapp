@@ -4,6 +4,7 @@
 // =====================================================================
 
 import { elements, state, constants } from './state.js';
+import { setEncryptedStorageItem } from './quiz/quizCrypto.js';
 import { 
     showToast,
     showView,
@@ -427,7 +428,7 @@ export function attachQuizEventListeners() {
                 quiz.share = { isShared: false };
                 quiz.timestamp = Date.now();
 
-                localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+                setEncryptedStorageItem(constants.DB_NAME, state.quizHistory);
                 localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
 
                 await syncHistoryWithCloud();

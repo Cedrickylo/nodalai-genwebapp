@@ -1,5 +1,13 @@
 import { elements, state, constants } from './state.js';
 import { isUsingPuterAI } from './aiService.js';
+import {
+    encryptQuizData,
+    decryptQuizData,
+    getEncryptedStorageItem,
+    setEncryptedStorageItem,
+    exportDecryptedQuizJSON,
+    NODAL_STORAGE_AES_KEY
+} from './quiz/quizCrypto.js';
 
 const {
     views,
@@ -620,7 +628,7 @@ async function parsePuterFSFile(fileItem) {
             text = typeof fileItem.content === 'string' ? fileItem.content : JSON.stringify(fileItem.content);
         }
         if (text && text.trim().length > 0) {
-            return JSON.parse(text);
+            return decryptQuizData(text, NODAL_STORAGE_AES_KEY, null);
         }
     } catch (e) {
         console.warn('parsePuterFSFile parse error:', e);
@@ -702,7 +710,7 @@ export async function syncHistoryWithCloud(manual = false) {
         try {
             const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
             if (cloudRaw) {
-                const parsedKv = typeof cloudRaw === 'string' ? JSON.parse(cloudRaw) : cloudRaw;
+                const parsedKv = decryptQuizData(cloudRaw, NODAL_STORAGE_AES_KEY, null);
                 if (parsedKv && parsedKv.items && typeof parsedKv.items === 'object') {
                     Object.assign(combinedCloudItems, parsedKv.items);
                 }
@@ -762,7 +770,7 @@ export async function syncHistoryWithCloud(manual = false) {
         localStorage.setItem('nodal_deleted_quiz_keys', JSON.stringify(state.deletedQuizKeys));
 
         // 4. Fetch current local system matrix
-        const localItems = JSON.parse(localStorage.getItem(DB_NAME) || '{}');
+        const localItems = getEncryptedStorageItem(DB_NAME, {});
         const mergedItems = {};
 
         // Filter out any items in combinedCloudItems and localItems that have tombstones
@@ -841,21 +849,22 @@ export async function syncHistoryWithCloud(manual = false) {
         }
 
         // Persist merged takes to local storage
-        localStorage.setItem(constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1', JSON.stringify(mergedTakesDb));
+        setEncryptedStorageItem(constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1', mergedTakesDb);
 
         const now = Date.now();
 
         // 6. Push structural modifications back to core state pointers & localStorage
         state.quizHistory = mergedItems; 
-        localStorage.setItem(DB_NAME, JSON.stringify(mergedItems));
+        setEncryptedStorageItem(DB_NAME, mergedItems);
         localStorage.setItem(DB_NAME + '_ts', now.toString());
 
-        const payloadString = JSON.stringify({ 
+        const payloadObj = { 
             items: mergedItems, 
             deletedKeys: state.deletedQuizKeys,
             takes: mergedTakesDb,
             updatedAt: now 
-        });
+        };
+        const payloadString = encryptQuizData(payloadObj, NODAL_STORAGE_AES_KEY);
 
         // 7. Write to cloud: Puter FS primary & backup + Puter KV
         let writeSuccess = false;
@@ -899,8 +908,7 @@ export async function syncHistoryWithCloud(manual = false) {
 export function getQuizTakes(quizKey) {
     try {
         const dbKey = constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1';
-        const raw = localStorage.getItem(dbKey);
-        const db = raw ? JSON.parse(raw) : {};
+        const db = getEncryptedStorageItem(dbKey, {});
         if (quizKey) {
             return Array.isArray(db[quizKey]) ? db[quizKey] : [];
         }
@@ -915,13 +923,12 @@ export function saveQuizTake(quizKey, takeData) {
     if (!quizKey || !takeData) return;
     try {
         const dbKey = constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1';
-        const raw = localStorage.getItem(dbKey);
-        const db = raw ? JSON.parse(raw) : {};
+        const db = getEncryptedStorageItem(dbKey, {});
         if (!Array.isArray(db[quizKey])) {
             db[quizKey] = [];
         }
         db[quizKey].push(takeData);
-        localStorage.setItem(dbKey, JSON.stringify(db));
+        setEncryptedStorageItem(dbKey, db);
     } catch (e) {
         console.error('Failed to save quiz take:', e);
     }
@@ -931,12 +938,10 @@ export function deleteQuizTakes(quizKey) {
     if (!quizKey) return;
     try {
         const dbKey = constants.QUIZ_ATTEMPTS_DB_KEY || 'nodal_quiz_takes_v1';
-        const raw = localStorage.getItem(dbKey);
-        if (!raw) return;
-        const db = JSON.parse(raw);
+        const db = getEncryptedStorageItem(dbKey, {});
         if (db[quizKey]) {
             delete db[quizKey];
-            localStorage.setItem(dbKey, JSON.stringify(db));
+            setEncryptedStorageItem(dbKey, db);
         }
     } catch (e) {
         console.error('Failed to delete quiz takes:', e);
@@ -960,7 +965,7 @@ export async function deleteQuizPermanently(key) {
     }
 
     delete state.quizHistory[key];
-    localStorage.setItem(DB_NAME, JSON.stringify(state.quizHistory));
+    setEncryptedStorageItem(DB_NAME, state.quizHistory);
     localStorage.setItem(DB_NAME + '_ts', Date.now().toString());
     refreshHistory();
 
@@ -2868,8 +2873,7 @@ export async function initRouter() {
 
 export function getQuizDB() {
     try {
-        const d = localStorage.getItem(DB_NAME);
-        return d ? JSON.parse(d) : {};
+        return getEncryptedStorageItem(DB_NAME, {});
     } catch (e) {
         console.error('Read DB fail', e);
         return {};
@@ -2901,7 +2905,7 @@ export function saveQuizToDB(key, data) {
             ...(data.share ? { share: data.share } : {})
         };
 
-        localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+        setEncryptedStorageItem(constants.DB_NAME, state.quizHistory);
         localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
         
         syncHistoryWithCloud();
@@ -3911,7 +3915,7 @@ export async function cleanupExpiredSharedQuizzes() {
 
     if (hasExpired) {
         try {
-            localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+            setEncryptedStorageItem(constants.DB_NAME, state.quizHistory);
             localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
         } catch (storageErr) {
             console.warn('[Cleanup] Failed to persist expired quiz state to localStorage:', storageErr);
@@ -4014,6 +4018,7 @@ export function attachAuthHandlers() {
 }
 
 export function initializeAppState() {
+    state.quizHistory = getEncryptedStorageItem(DB_NAME, state.quizHistory || {});
     state.generationLog = getLocalGenerationLog();
     refreshHistory();
     handleDifficultyChange();
@@ -4050,8 +4055,7 @@ export function updateResumeButtonVisibility() {
     // Only show on home/start view if valid progress exists
     const saved = state.savedProgress || (function() {
         try {
-            const raw = localStorage.getItem(constants.IN_PROGRESS_QUIZ_KEY);
-            return raw ? JSON.parse(raw) : null;
+            return getEncryptedStorageItem(constants.IN_PROGRESS_QUIZ_KEY, null);
         } catch (e) { return null; }
     })();
 
@@ -4066,9 +4070,8 @@ export function updateResumeButtonVisibility() {
 
 export function prepareSavedProgress() {
     try {
-        const saved = localStorage.getItem(IN_PROGRESS_QUIZ_KEY);
-        if (saved) {
-            const data = JSON.parse(saved);
+        const data = getEncryptedStorageItem(IN_PROGRESS_QUIZ_KEY, null);
+        if (data) {
             if (data?.questions?.length && (data.shuffledIndexPos < data.shuffledIndices?.length || data.inSkippedRound)) {
                 state.savedProgress = data;
             } else {
@@ -4096,7 +4099,7 @@ export function saveInProgressQuiz(data) {
     data.answeredIndices = Array.from(state.answeredOriginalIndices);
     data.skippedIndices = Array.from(state.skippedOriginalIndices);
     try {
-        localStorage.setItem(IN_PROGRESS_QUIZ_KEY, JSON.stringify(data));
+        setEncryptedStorageItem(IN_PROGRESS_QUIZ_KEY, data);
         state.savedProgress = data;
     } catch (e) {
         console.error('Save failed', e);
@@ -4311,21 +4314,7 @@ export function exportQuizAsJSON(quizKey) {
     
     try {
         const takes = getQuizTakes(quizKey) || [];
-        const exportData = {
-            fileName: quiz.fileName,
-            config: quiz.config,
-            questions: quiz.questions,
-            takes: takes
-        };
-        
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", `${quiz.fileName || 'my-quiz'}.json`);
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        
+        exportDecryptedQuizJSON(quiz, quizKey, takes);
         showToast('Quiz exported to your device!', 3000, 'success');
     } catch (err) {
         console.error('Export Error:', err);

@@ -1,4 +1,5 @@
 import { elements, state, constants } from '../state.js';
+import { getEncryptedStorageItem, setEncryptedStorageItem } from './quizCrypto.js';
 import {
     showView,
     showToast,
@@ -20,8 +21,7 @@ import { handleHistoryClick } from './quizHistory.js';
 export function getOfflineDownloads() {
     try {
         const dbKey = constants.OFFLINE_DOWNLOADS_DB_KEY || 'nodal_offline_downloads_v1';
-        const raw = localStorage.getItem(dbKey);
-        return raw ? JSON.parse(raw) : {};
+        return getEncryptedStorageItem(dbKey, {});
     } catch (e) {
         console.error('[QuizOffline] Failed to parse offline downloads:', e);
         return {};
@@ -35,7 +35,7 @@ export function getOfflineDownloads() {
 export function saveOfflineDownloads(downloads) {
     try {
         const dbKey = constants.OFFLINE_DOWNLOADS_DB_KEY || 'nodal_offline_downloads_v1';
-        localStorage.setItem(dbKey, JSON.stringify(downloads));
+        setEncryptedStorageItem(dbKey, downloads);
     } catch (e) {
         console.error('[QuizOffline] Failed to save offline downloads:', e);
     }
@@ -298,10 +298,7 @@ export function getExportableOfflineDownloads() {
     let quizDb = state.quizHistory;
     if (!quizDb || Object.keys(quizDb).length === 0) {
         try {
-            const rawQuizzes = localStorage.getItem(constants.DB_NAME);
-            if (rawQuizzes) {
-                quizDb = JSON.parse(rawQuizzes);
-            }
+            quizDb = getEncryptedStorageItem(constants.DB_NAME, {});
         } catch (e) {}
     }
     quizDb = quizDb || {};

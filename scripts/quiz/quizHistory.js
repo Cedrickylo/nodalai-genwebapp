@@ -1,4 +1,5 @@
 import { elements, state, constants } from '../state.js';
+import { setEncryptedStorageItem, exportDecryptedQuizJSON } from './quizCrypto.js';
 import {
     showView,
     showToast,
@@ -38,23 +39,7 @@ export function exportQuiz() {
 export function exportQuizFromHistory(data, key) {
     try {
         const takes = key ? (getQuizTakes(key) || []) : [];
-        const exportPayload = {
-            quizId: key || CryptoJS.SHA256(JSON.stringify(data.questions) + JSON.stringify(data.config) + data.fileName).toString(),
-            fileName: data.fileName,
-            config: data.config,
-            questions: data.questions,
-            takes: takes
-        };
-        const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        const name = (data.fileName || 'quiz').replace(/\.[^/.]+$/, '');
-        link.download = `quiz-${name}.json`;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        exportDecryptedQuizJSON(data, key, takes);
         showToast('Exported!');
     } catch (e) {
         console.error('Export fail:', e);
@@ -134,7 +119,7 @@ export async function generateShareableLink(quizKey) {
         // Updates individual quiz timestamp for sync tracking
         quiz.timestamp = Date.now();
 
-        localStorage.setItem(constants.DB_NAME, JSON.stringify(state.quizHistory));
+        setEncryptedStorageItem(constants.DB_NAME, state.quizHistory);
         localStorage.setItem(constants.DB_NAME + '_ts', Date.now().toString());
         
         // Sync history changes with Puter cloud profiles

@@ -14,7 +14,9 @@ export const constants = {
     WELCOME_DISMISSED_KEY: 'nodal_welcome_dismissed_v1', // Cleaned up duplicate
     QUIZ_ATTEMPTS_DB_KEY: 'nodal_quiz_takes_v1',
     OFFLINE_DOWNLOADS_DB_KEY: 'nodal_offline_downloads_v1',
-    OFFLINE_EXPIRATION_MS: 7 * 24 * 60 * 60 * 1000
+    OFFLINE_EXPIRATION_MS: 7 * 24 * 60 * 60 * 1000,
+    STORAGE_ENCRYPTION_KEY: 'NodalAI_Secure_Quiz_Storage_2026_@cedrickylo',
+    STORAGE_ENC_PREFIX: 'NODAL_ENC_v1:'
 };
 
 export const elements = {
@@ -394,6 +396,24 @@ export const elements = {
     reduceMotionToggleLoggedOut: document.getElementById('reduce-motion-toggle-logged-out')
 };
 
+function getInitialQuizHistory() {
+    try {
+        const raw = localStorage.getItem(constants.DB_NAME);
+        if (!raw) return {};
+        const trimmed = raw.trim();
+        if (typeof CryptoJS !== 'undefined' && CryptoJS.AES && (trimmed.startsWith('NODAL_ENC_v1:') || trimmed.startsWith('U2FsdGVkX1'))) {
+            const ciphertext = trimmed.startsWith('NODAL_ENC_v1:') ? trimmed.slice('NODAL_ENC_v1:'.length) : trimmed;
+            const bytes = CryptoJS.AES.decrypt(ciphertext, constants.STORAGE_ENCRYPTION_KEY);
+            const str = bytes.toString(CryptoJS.enc.Utf8);
+            if (str) return JSON.parse(str);
+        }
+        return JSON.parse(trimmed);
+    } catch (e) {
+        console.warn('Failed to parse initial quizHistory:', e);
+        return {};
+    }
+}
+
 export const state = {
     fileContent: '',
     fileHash: '',
@@ -402,6 +422,9 @@ export const state = {
     score: 0,
     shuffledIndices: [],
     shuffledOptionsMap: {},
+    audioContext: null,
+    audioToneLoaded: false,
+    audioInitialized: false,
     currentQuizConfig: {},
     currentQuizKey: '',
     currentFileName: '',
@@ -414,7 +437,7 @@ export const state = {
     loadingInterval: null,
     toastTimeout: null,
     quizTimerInterval: null,
-    quizHistory: JSON.parse(localStorage.getItem(constants.DB_NAME) || '{}'),
+    quizHistory: getInitialQuizHistory(),
     generationLog: [],
     savedProgress: null,
     timeRemaining: 0,

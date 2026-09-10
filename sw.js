@@ -1,5 +1,5 @@
-// Incremented to v45 for account delete button sizing and layout refinements
-const CACHE_NAME = 'nodal-ai-cache-v45';
+// Incremented to v47 for multi-device auto-sync on tab visibility and focus
+const CACHE_NAME = 'nodal-ai-cache-v47';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -13,6 +13,7 @@ const LOCAL_ASSETS_TO_CACHE = [
     '/scripts/state.js',
     '/scripts/aiService.js',
     '/scripts/quiz.js',
+    '/scripts/quiz/quizCrypto.js',
     '/scripts/quiz/fileHandling.js',
     '/scripts/quiz/quizExecution.js',
     '/scripts/quiz/quizGeneration.js',
