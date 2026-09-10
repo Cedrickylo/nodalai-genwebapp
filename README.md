@@ -1,19 +1,20 @@
 # Nodal AI — AI-Powered Quiz Generator & Interactive Study Companion
 
 <div align="center">
-
-![Nodal AI Logo](icons/icon-192.png)
-
-[![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20PWA-blue.svg)](#installable-pwa)
-[![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%203.5%20Flash--Lite-4285F4.svg)](https://deepmind.google/technologies/gemini/)
-[![Cloud Sync](https://img.shields.io/badge/Cloud%20Sync-Puter.js-00d1b2.svg)](https://puter.com)
-[![Offline Mode](https://img.shields.io/badge/Offline%20Mode-1--Week%20Retention-success.svg)](#8-1-week-offline-retention--downloads)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](#terms-of-use)
-
-**Transform any lecture slide, PDF, textbook chapter, or notes into tailored, interactive practice quizzes in seconds.**
-
-[**Explore Live App**](https://nodalai-genwebapp.vercel.app/) • [**Report Bug**](https://github.com/cedrickylo/nodalai-genwebapp/issues) • [**Request Feature**](https://github.com/cedrickylo/nodalai-genwebapp/issues)
-
+  <img src="icons/icon-192.png" alt="Nodal AI Logo" />
+  <br />
+  <a href="#installable-pwa"><img src="https://img.shields.io/badge/Platform-Web%20%7C%20PWA-blue.svg" alt="Platform" /></a>
+  <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/AI%20Engine-Google%20Gemini%203.5%20Flash--Lite-4285F4.svg" alt="AI Engine" /></a>
+  <a href="https://puter.com"><img src="https://img.shields.io/badge/Cloud%20Sync-Puter.js-00d1b2.svg" alt="Cloud Sync" /></a>
+  <a href="#8-1-week-offline-retention--downloads"><img src="https://img.shields.io/badge/Offline%20Mode-1--Week%20Retention-success.svg" alt="Offline Mode" /></a>
+  <a href="#terms-of-use"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" /></a>
+  <br /><br />
+  <p><b>Transform any lecture slide, PDF, textbook chapter, or notes into tailored, interactive practice quizzes in seconds.</b></p>
+  <p>
+    <a href="https://nodalai-genwebapp.vercel.app/"><b>Explore Live App</b></a> • 
+    <a href="https://github.com/cedrickylo/nodalai-genwebapp/issues"><b>Report Bug</b></a> • 
+    <a href="https://github.com/cedrickylo/nodalai-genwebapp/issues"><b>Request Feature</b></a>
+  </p>
 </div>
 
 ---
@@ -176,6 +177,7 @@ Nodal AI prioritizes client-side data sovereignty. Data is structured across mod
 
 ### Client-Side Document Processing
 When you select a document (PDF, Word, PowerPoint, or text):
+
 1. The file is read into memory using HTML5 `FileReader` and parsed strictly inside the browser worker/thread (`pdf.js` for PDFs, `mammoth.js` for Word, and `JSZip` for PowerPoint XML).
 2. The raw document file is **never uploaded** to an external file server.
 3. Only the sanitized, extracted text content required for question generation is sent over TLS to the serverless AI endpoint (`/api/generate-quiz`).
@@ -201,16 +203,21 @@ At Nodal AI, we believe your educational materials and study habits are strictly
 
 <details>
 <summary><strong>1. Is Nodal AI free to use?</strong></summary>
+
 Yes! Nodal AI is free to use. There are no paywalls, hidden subscriptions, or premium-tier restrictions.
+
 </details>
 
 <details>
 <summary><strong>2. Do I need to create an account to take quizzes?</strong></summary>
+
 No. You can generate, customize, take, review, and save quizzes completely as a guest. An optional Puter account is only needed if you want your quizzes and scores to automatically synchronize across multiple devices.
+
 </details>
 
 <details>
 <summary><strong>3. What file formats are supported?</strong></summary>
+
 Nodal AI supports:
 - **PDF Documents** (`.pdf`)
 - **Microsoft Word** (`.docx`, `.doc`)
@@ -218,38 +225,51 @@ Nodal AI supports:
 - **Plain Text & Markdown** (`.txt`, `.md`)
 - **Rich Text & OpenDocument** (`.rtf`, `.odt`)
 - **Raw JSON Prompts** pasted directly into the import dialog.
+
 </details>
 
 <details>
 <summary><strong>4. Why did the app not rotate when I tilted my phone?</strong></summary>
+
 Nodal AI features an automatic **Device Orientation Lock Check**. If your phone's operating system has orientation lock enabled (such as "Portrait Lock" on iOS or "Auto-rotate: OFF" on Android), Nodal AI honors your system preference and prevents the website from rotating sideways. To allow the website to rotate into landscape, simply turn on Auto-rotate in your phone's quick settings / control center.
+
 </details>
 
 <details>
 <summary><strong>5. How does the Generation Cooldown work?</strong></summary>
+
 To ensure reliable serverless performance and fair access for all users, Nodal AI enforces a fair-use rate limit of 2 generations per 3-minute window, and up to 10 generations per 3-hour period. If an AI request fails due to an upstream network timeout or temporary outage, it **does not** count against your quota.
+
 </details>
 
 <details>
 <summary><strong>6. Can I study completely offline?</strong></summary>
+
 Yes! As an installable Progressive Web App (PWA), Nodal AI caches its core interface via Service Worker. Quizzes saved to your device have a 1-week offline retention period. You can take downloaded quizzes, review answers, and track retake scores with zero internet connectivity. Generating *new* quizzes with Gemini requires an active internet connection.
+
 </details>
 
 <details>
 <summary><strong>7. How do Remedial Quizzes work?</strong></summary>
+
 After completing any quiz, the results screen identifies all questions answered incorrectly. Clicking "Generate Remedial Quiz" automatically extracts those exact missed items and packages them into a fresh assessment so you can practice until you achieve 100% mastery.
+
 </details>
 
 <details>
 <summary><strong>8. How do I transfer my quizzes to a new computer?</strong></summary>
+
 Open the Account modal and click **Migrate Data (Import / Export)**. Choose **Export**, enter a passphrase to encrypt your data with AES-256, and download the `.nodal` file. On your new device, open the same menu, choose **Import**, select your `.nodal` file, and enter your passphrase to restore your library.
+
 </details>
 
 <details>
 <summary><strong>9. How do I delete my profile and all stored data?</strong></summary>
+
 Open the Account modal (available for both signed-in Puter users and signed-out guests) and click <strong>Delete Nodal Profile</strong>. You will be guided through a two-step confirmation, requiring you to type <code>CONFIRM</code> to proceed. If signed in, this permanently deletes all your Puter cloud files and Key-Value records, erases your local quiz library and retakes, wipes offline caches, signs you out, and severs website association. If signed out as a guest, it skips cloud deletion and purges all local storage and caches.
 
 On the legacy Netlify website, users who confirm successful account migration to the new site can also schedule an automatic 1-week deletion countdown or force immediate deletion from the migration guide.
+
 </details>
 
 ---
@@ -313,6 +333,7 @@ We welcome contributions from educators, designers, and developers! Follow these
 
 ### Limitation of Liability
 The creator, developers, and contributors of Nodal AI shall not be held liable for:
+
 - Any academic examination results, grades, or certifications obtained by users.
 - Loss of unsynced local data resulting from clearing browser caches, private browsing sessions, or device resets.
 - Service interruptions, upstream AI API deprecations, or network downtime.
