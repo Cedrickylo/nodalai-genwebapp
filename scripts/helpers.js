@@ -6,6 +6,8 @@ import {
     getEncryptedStorageItem,
     setEncryptedStorageItem,
     exportDecryptedQuizJSON,
+    purgeLegacyLocalStorageKeys,
+    cleanupLingeringLegacyCloudFiles,
     NODAL_STORAGE_AES_KEY
 } from './quiz/quizCrypto.js';
 
@@ -1062,6 +1064,10 @@ export async function calculatePuterStorageUsage() {
     }
 
     try {
+        // Proactively clean up lingering duplicate or older version files first
+        // so calculated storage strictly reflects the clean state
+        await cleanupLingeringLegacyCloudFiles().catch(() => {});
+
         // 1. Files in user's app directory on Puter FS
         if (puter.fs && typeof puter.fs.readdir === 'function') {
             const items = await puter.fs.readdir('./').catch(() => []);
@@ -3889,6 +3895,11 @@ export async function loginToPuter() {
 }
 
 export async function cleanupExpiredSharedQuizzes() {
+    // Proactively clean up any lingering legacy cloud files or duplicates in the background
+    if (typeof puter !== 'undefined' && window.puter?.auth?.isSignedIn() && navigator.onLine) {
+        cleanupLingeringLegacyCloudFiles().catch(() => {});
+    }
+
     if (!state.quizHistory || typeof state.quizHistory !== 'object') return;
 
     let hasExpired = false;
@@ -4018,6 +4029,7 @@ export function attachAuthHandlers() {
 }
 
 export function initializeAppState() {
+    purgeLegacyLocalStorageKeys();
     state.quizHistory = getEncryptedStorageItem(DB_NAME, state.quizHistory || {});
     state.generationLog = getLocalGenerationLog();
     refreshHistory();

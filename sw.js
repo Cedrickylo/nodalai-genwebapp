@@ -1,5 +1,5 @@
-// Incremented to v49 for legacy unencrypted data and duplicate file cleanup
-const CACHE_NAME = 'nodal-ai-cache-v49';
+// Incremented to v50 for lingering legacy file and duplicate cleanup
+const CACHE_NAME = 'nodal-ai-cache-v50';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
