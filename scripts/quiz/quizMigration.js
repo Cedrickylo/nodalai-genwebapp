@@ -449,17 +449,26 @@ export async function handleFileSelectionForImport(file) {
     await new Promise(r => setTimeout(r, 220));
 
     try {
-        const fileContent = await file.text();
-        let parsedEnvelope = null;
+        const fileContent = (await file.text()).trim();
+        let ciphertext = null;
+        let exportedAt = Date.now();
 
-        try {
-            parsedEnvelope = JSON.parse(fileContent);
-        } catch (jsonErr) {
-            throw new Error('The backup file is corrupt or not in valid JSON envelope format.');
+        // 3. Support both standard JSON envelope format and colon-delimited string format
+        if (fileContent.startsWith('{')) {
+            try {
+                const parsedEnvelope = JSON.parse(fileContent);
+                if (parsedEnvelope && parsedEnvelope.magic === NODAL_MAGIC_HEADER && parsedEnvelope.payload) {
+                    ciphertext = parsedEnvelope.payload;
+                    exportedAt = parsedEnvelope.exportedAt || exportedAt;
+                }
+            } catch (jsonErr) {
+                // Not valid JSON envelope
+            }
+        } else if (fileContent.startsWith(`${NODAL_MAGIC_HEADER}:`)) {
+            ciphertext = fileContent.slice(`${NODAL_MAGIC_HEADER}:`.length).trim();
         }
 
-        // 3. Magic header and payload check
-        if (!parsedEnvelope || parsedEnvelope.magic !== NODAL_MAGIC_HEADER || !parsedEnvelope.payload) {
+        if (!ciphertext) {
             throw new Error(
                 `Unrecognized file format. The file does not contain a valid Nodal AI cryptographic signature (${NODAL_MAGIC_HEADER}).`
             );
@@ -470,7 +479,7 @@ export async function handleFileSelectionForImport(file) {
             throw new Error('Encryption engine (CryptoJS) is not available to decrypt this backup.');
         }
 
-        const decryptedBytes = CryptoJS.AES.decrypt(parsedEnvelope.payload, NODAL_AES_KEY);
+        const decryptedBytes = CryptoJS.AES.decrypt(ciphertext, NODAL_AES_KEY);
         const decryptedString = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
         if (!decryptedString) {
@@ -488,7 +497,7 @@ export async function handleFileSelectionForImport(file) {
 
         // Hide skeleton and render summary card
         if (skeleton) skeleton.classList.add('hidden');
-        renderImportSummary(file.name, parsedEnvelope.exportedAt, payload);
+        renderImportSummary(file.name, exportedAt, payload);
     } catch (validationErr) {
         console.warn('[Migration] Invalid backup file uploaded:', validationErr);
         if (skeleton) skeleton.classList.add('hidden');
@@ -721,9 +730,16 @@ export function autoExportMigrationBundle() {
 
         const rawJson = JSON.stringify(exportPayload);
         const encrypted = CryptoJS.AES.encrypt(rawJson, NODAL_AES_KEY).toString();
-        const finalPackage = `${NODAL_MAGIC_HEADER}:${encrypted}`;
 
-        const blob = new Blob([finalPackage], { type: 'application/octet-stream' });
+        const finalEnvelope = {
+            magic: NODAL_MAGIC_HEADER,
+            version: 1,
+            exportedAt: exportPayload.exportedAt,
+            domain: exportPayload.sourceDomain,
+            payload: encrypted
+        };
+
+        const blob = new Blob([JSON.stringify(finalEnvelope, null, 2)], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

@@ -1,5 +1,5 @@
-// Incremented to v47 for multi-device auto-sync on tab visibility and focus
-const CACHE_NAME = 'nodal-ai-cache-v47';
+// Incremented to v48 for dual-format .nodal backup compatibility and profile deletion
+const CACHE_NAME = 'nodal-ai-cache-v48';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
