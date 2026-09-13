@@ -23,6 +23,46 @@ export const NODAL_FILE_EXTENSION = '.nodal';
 // Active parsed backup staging for import
 let stagedImportPayload = null;
 
+/**
+ * Displays an informational modal explaining that a feature is disabled on Netlify,
+ * and provides a direct button to open the official Vercel deployment.
+ * @param {'generation'|'sharing'|'import'|'migration-import'} feature
+ */
+export async function showNetlifyFeatureDisabledModal(feature) {
+    let title = 'Feature Disabled on Netlify';
+    let message = '';
+    let vercelUrl = 'https://nodal-gamma.vercel.app';
+
+    if (feature === 'generation') {
+        title = 'Quiz Generation Disabled on Netlify';
+        message = 'Nodal AI has permanently upgraded to Vercel.\n\n' +
+            'Quiz generation (both built-in Nodal AI and system prompt generation) is no longer supported on this Netlify website.\n\n' +
+            'Please use our official website at <strong>nodal-gamma.vercel.app</strong> for faster quiz generation, enhanced AI models, and active updates.';
+    } else if (feature === 'sharing') {
+        title = 'Link Sharing Disabled on Netlify';
+        message = 'Link sharing is disabled on this Netlify website.\n\n' +
+            '⚠️ <strong>Notice:</strong> All existing shared links created on Netlify have been disabled and deactivated.\n\n' +
+            'To share quizzes and create new active share links, please use our official website at <strong>nodal-gamma.vercel.app</strong>.';
+    } else if (feature === 'import' || feature === 'migration-import') {
+        title = 'Quiz Import Disabled on Netlify';
+        message = 'Importing quizzes and restoring data backups is disabled on this Netlify site because it is scheduled for retirement.\n\n' +
+            'Please import your quizzes or restore your backup migration bundle directly on our website at <strong>nodal-gamma.vercel.app</strong>.';
+        vercelUrl = 'https://nodal-gamma.vercel.app/#migration-import';
+    }
+
+    const shouldOpen = await customConfirm(
+        message,
+        title,
+        'Open Vercel Website',
+        'Dismiss',
+        false
+    );
+
+    if (shouldOpen) {
+        window.open(vercelUrl, '_blank', 'noopener,noreferrer');
+    }
+}
+
 // ==================================================================
 // UNIFIED MIGRATION POPUP MODAL CONTROLLER
 // ==================================================================
@@ -33,6 +73,11 @@ let stagedImportPayload = null;
  * @param {boolean} pushHash 
  */
 export function openMigrationModal(step = 'choice', pushHash = true) {
+    if (isNetlifyDeployment() && step === 'import') {
+        showNetlifyFeatureDisabledModal('migration-import');
+        return;
+    }
+
     const modal = document.getElementById('migration-modal');
     if (!modal) return;
     modal.classList.remove('hidden');
@@ -71,6 +116,12 @@ export function closeMigrationModal(fromPopState = false) {
  * @param {'choice'|'export'|'import'|'progress'} step 
  */
 export function navigateToMigrationStep(step) {
+    if (step === 'import' && isNetlifyDeployment()) {
+        closeMigrationModal();
+        showNetlifyFeatureDisabledModal('migration-import');
+        return;
+    }
+
     const stepChoice = document.getElementById('migration-step-choice');
     const stepExport = document.getElementById('migration-step-export');
     const stepImport = document.getElementById('migration-step-import');
@@ -424,6 +475,13 @@ export function resetImportStaging() {
  */
 export async function handleFileSelectionForImport(file) {
     if (!file) return;
+
+    if (isNetlifyDeployment()) {
+        resetImportStaging();
+        closeMigrationModal();
+        showNetlifyFeatureDisabledModal('migration-import');
+        return;
+    }
 
     // 1. Strict extension check
     if (!file.name.toLowerCase().endsWith(NODAL_FILE_EXTENSION)) {
@@ -817,6 +875,20 @@ export function initNetlifyMigrationBannerAndNotice() {
     if (banner) {
         banner.classList.remove('hidden');
         document.body.classList.add('has-netlify-banner');
+
+        const updateBannerHeight = () => {
+            if (banner && !banner.classList.contains('hidden')) {
+                const height = banner.offsetHeight || 56;
+                document.documentElement.style.setProperty('--netlify-banner-height', `${height}px`);
+            } else {
+                document.documentElement.style.setProperty('--netlify-banner-height', '0px');
+            }
+        };
+        updateBannerHeight();
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(updateBannerHeight).observe(banner);
+        }
+        window.addEventListener('resize', updateBannerHeight);
     }
 
     // 2. Wire Top Banner Button
@@ -872,6 +944,11 @@ export function initNetlifyMigrationBannerAndNotice() {
     const confirmMigratedBtn = document.getElementById('netlify-confirm-migrated-btn');
     if (confirmMigratedBtn) {
         confirmMigratedBtn.onclick = handleNetlifyConfirmMigration;
+    }
+
+    const guideImmediateDeleteBtn = document.getElementById('netlify-guide-immediate-delete-btn');
+    if (guideImmediateDeleteBtn) {
+        guideImmediateDeleteBtn.onclick = forceDeleteNetlifyProfileNow;
     }
 
     const guideForceDeleteBtn = document.getElementById('netlify-guide-force-delete-btn');
@@ -1080,10 +1157,11 @@ export async function checkNetlifyScheduledDeletion() {
  */
 export async function handleNetlifyConfirmMigration() {
     const userChoice = await customConfirm(
-        'Congratulations on migrating your data to the new website!\n\n' +
-        'How would you like to handle your Netlify profile and local data?\n\n' +
-        '• <strong>Start 1-Week Countdown:</strong> Keeps your data for 7 days as a safety fallback, after which it will be permanently wiped.\n\n' +
-        '• <strong>Delete Right Away:</strong> Cancel this prompt and click "Delete Profile Now" to wipe everything immediately.',
+        'Congratulations on migrating your data to Vercel!\n\n' +
+        'Would you like to start the <strong>1-Week Safety Countdown</strong>?\n\n' +
+        '• Keeps your Netlify data for 7 days as a safety fallback, after which it will be automatically cleared.\n' +
+        '• You can cancel the countdown or delete your profile immediately at any time.\n\n' +
+        '(To delete immediately without waiting 7 days, click Cancel and choose "Delete Profile Now (Skip Countdown)" in Step 3).',
         'Confirm Successful Migration',
         'Start 1-Week Countdown',
         'Cancel',

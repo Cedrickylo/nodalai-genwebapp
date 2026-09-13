@@ -199,7 +199,14 @@ export function attachQuizEventListeners() {
     skipQuestionBtn.addEventListener('click', skipQuestion);
     restartQuizBtn.addEventListener('click', () => resetApp(true));
     exportQuizBtn?.addEventListener('click', exportQuiz);
-    elements.generateShareLinkBtn.onclick = () => generateShareableLink(state.currentShareQuizKey);
+    elements.generateShareLinkBtn.onclick = async () => {
+        const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+        if (isNetlifyDeployment()) {
+            showNetlifyFeatureDisabledModal('sharing');
+            return;
+        }
+        generateShareableLink(state.currentShareQuizKey);
+    };
     // Help, About, and Account back buttons (navigate directly to homepage)
     elements.helpBackBtn?.addEventListener('click', () => showView('start'));
     elements.aboutBackBtn?.addEventListener('click', () => showView('start'));
@@ -234,7 +241,13 @@ export function attachQuizEventListeners() {
     elements.aiChoiceModal?.addEventListener('click', (e) => {
         if (e.target === elements.aiChoiceModal) closeAiChoiceModal();
     });
-    elements.aiChoiceNodalBtn?.addEventListener('click', () => {
+    elements.aiChoiceNodalBtn?.addEventListener('click', async () => {
+        const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+        if (isNetlifyDeployment()) {
+            closeAiChoiceModal();
+            showNetlifyFeatureDisabledModal('generation');
+            return;
+        }
         const warning = getGenerationCooldownWarning();
         if (warning) {
             showToast(warning, 5000, 'warning');
@@ -242,7 +255,13 @@ export function attachQuizEventListeners() {
         }
         startNodalAiGeneration(state.currentQuizConfig, state.currentFileName);
     });
-    elements.aiChoiceOtherBtn?.addEventListener('click', () => {
+    elements.aiChoiceOtherBtn?.addEventListener('click', async () => {
+        const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+        if (isNetlifyDeployment()) {
+            closeAiChoiceModal();
+            showNetlifyFeatureDisabledModal('generation');
+            return;
+        }
         closeAiChoiceModal(false, true);
         openAiPromptModal(state.currentQuizConfig, state.currentFileName, false);
     });
@@ -310,6 +329,11 @@ export function attachQuizEventListeners() {
     });
 
     openImportChoiceBtn?.addEventListener('click', async () => {
+        const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+        if (isNetlifyDeployment()) {
+            showNetlifyFeatureDisabledModal('import');
+            return;
+        }
         const { openImportChoiceModal } = await import('./helpers.js');
         openImportChoiceModal();
     });
@@ -458,6 +482,14 @@ export function attachQuizEventListeners() {
         }
     });
     elements.shareMenuLinkBtn.onclick = async () => {
+        const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+        if (isNetlifyDeployment()) {
+            const { closeShareModal } = await import('./helpers.js');
+            closeShareModal();
+            showNetlifyFeatureDisabledModal('sharing');
+            return;
+        }
+
         const { 
             navigateToShareStep, 
             showToast, 

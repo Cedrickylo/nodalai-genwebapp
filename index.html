@@ -1683,7 +1683,7 @@
         })();
     </script>
 
-    <div id="toast-notification" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg cursor-pointer select-none z-[200]"><span id="toast-message"></span></div>
+    <div id="toast-notification" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg cursor-pointer select-none z-[350]"><span id="toast-message"></span></div>
 <div id="account-modal-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
     
 <div id="account-card" class="bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-700 overflow-hidden relative flex flex-col max-h-[90vh] sm:max-h-[85vh]">
@@ -2343,6 +2343,10 @@
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         <span>I Have Successfully Migrated My Data</span>
                     </button>
+                    <button id="netlify-guide-immediate-delete-btn" type="button" class="w-full bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 font-medium py-2.5 px-4 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <span>Delete Profile Now (Skip Countdown)</span>
+                    </button>
                 </div>
 
                 <!-- State B: Active Countdown Display (Hidden by default) -->
@@ -2862,7 +2866,7 @@
         </div>
     </div>
 
-    <div id="custom-confirm-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300">
+    <div id="custom-confirm-modal" class="hidden fixed inset-0 z-[350] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300">
         <div class="bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform scale-100 transition-transform duration-300">
             <div class="p-6">
                 <h3 class="text-xl font-bold text-white mb-3" id="confirm-title">Confirm</h3>

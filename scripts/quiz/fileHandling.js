@@ -535,7 +535,14 @@ export function resetAppFiles() {
     updateResumeButtonVisibility();
 }
 
-export function handleQuizImport(event) {
+export async function handleQuizImport(event) {
+    const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quizMigration.js');
+    if (isNetlifyDeployment()) {
+        if (event.target) event.target.value = '';
+        showNetlifyFeatureDisabledModal('import');
+        return;
+    }
+
     const file = event.target.files[0];
     if (!file) return;
 
@@ -706,6 +713,12 @@ export function handleQuizImport(event) {
 }
 
 export async function importQuizFromText(rawText) {
+    const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quizMigration.js');
+    if (isNetlifyDeployment()) {
+        showNetlifyFeatureDisabledModal('import');
+        return false;
+    }
+
     if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
         showToast('Please paste valid quiz JSON text.', 3000, 'warning');
         return false;
@@ -933,6 +946,12 @@ export async function resumeQuiz(savedData) {
 }
 
 export async function loadSharedQuiz(publicUrl) {
+    const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quizMigration.js');
+    if (isNetlifyDeployment()) {
+        showNetlifyFeatureDisabledModal('sharing');
+        return;
+    }
+
     try {
         const { 
             findExactQuizForSharedLink, 

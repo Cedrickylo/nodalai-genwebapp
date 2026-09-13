@@ -712,14 +712,25 @@ export async function syncHistoryWithCloud(manual = false) {
         try {
             const cloudRaw = await puter.kv.get(CLOUD_SYNC_KEY);
             if (cloudRaw) {
-                const parsedKv = decryptQuizData(cloudRaw, NODAL_STORAGE_AES_KEY, null);
-                if (parsedKv && parsedKv.items && typeof parsedKv.items === 'object') {
-                    Object.assign(combinedCloudItems, parsedKv.items);
+                let isPointer = false;
+                if (typeof cloudRaw === 'string' && cloudRaw.includes('_isFsPointer')) {
+                    try {
+                        const parsedPtr = JSON.parse(cloudRaw);
+                        if (parsedPtr && parsedPtr._isFsPointer) {
+                            isPointer = true;
+                        }
+                    } catch (e) {}
                 }
-                if (parsedKv && parsedKv.deletedKeys && typeof parsedKv.deletedKeys === 'object') {
-                    Object.assign(state.deletedQuizKeys, parsedKv.deletedKeys);
+                if (!isPointer) {
+                    const parsedKv = decryptQuizData(cloudRaw, NODAL_STORAGE_AES_KEY, null);
+                    if (parsedKv && parsedKv.items && typeof parsedKv.items === 'object') {
+                        Object.assign(combinedCloudItems, parsedKv.items);
+                    }
+                    if (parsedKv && parsedKv.deletedKeys && typeof parsedKv.deletedKeys === 'object') {
+                        Object.assign(state.deletedQuizKeys, parsedKv.deletedKeys);
+                    }
+                    ingestCloudTakes(parsedKv?.takes);
                 }
-                ingestCloudTakes(parsedKv?.takes);
             }
         } catch (kvReadErr) {
             console.warn("Puter KV read warning:", kvReadErr);
@@ -877,13 +888,34 @@ export async function syncHistoryWithCloud(manual = false) {
         const fsBackupSuccess = await writePuterCloudBackup(PUTER_FS_BACKUP_FILE, payloadString);
         if (fsBackupSuccess) writeSuccess = true;
 
-        try {
-            const kvRes = await puter.kv.set(CLOUD_SYNC_KEY, payloadString);
-            if (kvRes !== false && !(kvRes && kvRes.error)) {
-                writeSuccess = true;
+        // Puter KV has a hard ceiling of 408,576 bytes per value.
+        // For larger sync payloads, Puter FS (primary and backup above) safely stores the full data.
+        const PUTER_KV_SIZE_LIMIT = 400000;
+        const payloadBytes = new Blob([payloadString]).size;
+
+        if (payloadBytes <= PUTER_KV_SIZE_LIMIT) {
+            try {
+                const kvRes = await puter.kv.set(CLOUD_SYNC_KEY, payloadString);
+                if (kvRes !== false && !(kvRes && kvRes.error)) {
+                    writeSuccess = true;
+                }
+            } catch (kvWriteErr) {
+                console.warn("Puter KV set skipped/failed (preserved in Puter FS):", kvWriteErr);
             }
-        } catch (kvWriteErr) {
-            console.warn("Puter KV set failed (likely size limit, preserved in Puter FS):", kvWriteErr);
+        } else {
+            // Payload exceeds Puter KV single-key quota; store lightweight pointer so KV does not retain stale history
+            try {
+                const pointerObj = {
+                    _isFsPointer: true,
+                    updatedAt: now,
+                    fsPrimary: PUTER_FS_SYNC_FILE,
+                    fsBackup: PUTER_FS_BACKUP_FILE,
+                    size: payloadBytes
+                };
+                await puter.kv.set(CLOUD_SYNC_KEY, JSON.stringify(pointerObj));
+            } catch (pointerErr) {
+                // Non-fatal: Puter FS is already authoritative and verified above
+            }
         }
 
         if (!writeSuccess) {
@@ -2803,8 +2835,12 @@ export async function restoreRouteFromHash(hash) {
         }
     } else if (clean === 'migration-import' || clean === 'import') {
         showView('start', false);
-        const { openMigrationModal } = await import('./quiz/quizMigration.js');
-        openMigrationModal('import', false);
+        const { openMigrationModal, isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+        if (isNetlifyDeployment()) {
+            showNetlifyFeatureDisabledModal('migration-import');
+        } else {
+            openMigrationModal('import', false);
+        }
     } else if (clean === 'remedial-setup') {
         if (!state.questions || state.questions.length === 0) {
             const redirectHash = state.preQuizHash || sessionStorage.getItem('nodal_pre_quiz_hash') || '#home';
@@ -2860,9 +2896,13 @@ export async function initRouter() {
         window.history.replaceState({ view: 'start' }, '', '#home');
         showView('start', false);
         updateNavHighlights('home');
-        import('./quiz/quizMigration.js').then(({ openMigrationModal }) => {
-            openMigrationModal('import', false);
-            showToast('Welcome to Nodal on Vercel! Select your .nodal backup file to restore all your data.', 7000, 'info');
+        import('./quiz/quizMigration.js').then(({ openMigrationModal, isNetlifyDeployment, showNetlifyFeatureDisabledModal }) => {
+            if (isNetlifyDeployment()) {
+                showNetlifyFeatureDisabledModal('migration-import');
+            } else {
+                openMigrationModal('import', false);
+                showToast('Welcome to Nodal on Vercel! Select your .nodal backup file to restore all your data.', 7000, 'info');
+            }
         }).catch(err => console.error('Failed to launch migration modal for import hash', err));
         return;
     }
@@ -3685,7 +3725,12 @@ questions (Enumeration): Format each object as follows:
 "explanation": A specific, factual explanation drawn directly from the text outlining why these items are grouped.${sourceSection}`;
 }
 
-export function openAiChoiceModal(config, fileName) {
+export async function openAiChoiceModal(config, fileName) {
+    const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+    if (isNetlifyDeployment()) {
+        showNetlifyFeatureDisabledModal('generation');
+        return;
+    }
     if (elements.aiChoiceSummaryBadges) {
         const mcCount = config.mc !== undefined ? config.mc : (config.mcCount !== undefined ? config.mcCount : 0);
         const tfCount = config.tf !== undefined ? config.tf : (config.tfCount !== undefined ? config.tfCount : 0);
@@ -3740,7 +3785,12 @@ export function closeAiChoiceModal(fromPopState = false, skipHistoryBack = false
     });
 }
 
-export function openAiPromptModal(config, fileName, showNotice = false) {
+export async function openAiPromptModal(config, fileName, showNotice = false) {
+    const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+    if (isNetlifyDeployment()) {
+        showNetlifyFeatureDisabledModal('generation');
+        return;
+    }
     state.aiPromptShowNotice = !!showNotice;
     const noticeEl = elements.aiServiceNotice || document.getElementById('ai-service-notice');
     if (noticeEl) {
@@ -4197,7 +4247,13 @@ export function isQuizShareActive(quiz) {
     );
 }
 
-export function openShareModal(quizKey, replaceHash = false) {
+export async function openShareModal(quizKey, replaceHash = false) {
+    const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quiz/quizMigration.js');
+    if (isNetlifyDeployment()) {
+        showNetlifyFeatureDisabledModal('sharing');
+        return;
+    }
+
     state.currentShareQuizKey = quizKey;
     const quiz = state.quizHistory[quizKey];
     

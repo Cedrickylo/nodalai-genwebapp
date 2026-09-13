@@ -22,6 +22,13 @@ const {
 } = elements;
 
 export async function handleQuizGeneration(isRemedial = false, skipStart = false) {
+    if (!state.isCustomizingHistory || isRemedial) {
+        const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quizMigration.js');
+        if (isNetlifyDeployment()) {
+            showNetlifyFeatureDisabledModal('generation');
+            return;
+        }
+    }
 
     // 1. CUSTOMIZATION CHECK FOR EXISTING QUIZ IN HISTORY
     if (state.isCustomizingHistory && state.customizingQuizData && !isRemedial) {
@@ -256,6 +263,12 @@ export async function startNodalAiGeneration(config, fileName) {
     clearSubState('#ai-choice');
     if (elements.aiChoiceModal) {
         elements.aiChoiceModal.classList.add('hidden');
+    }
+
+    const { isNetlifyDeployment, showNetlifyFeatureDisabledModal } = await import('./quizMigration.js');
+    if (isNetlifyDeployment()) {
+        showNetlifyFeatureDisabledModal('generation');
+        return;
     }
 
     // Offline Guard: Live AI generation requires an active internet connection

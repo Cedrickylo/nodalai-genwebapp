@@ -1133,15 +1133,29 @@
     animation: modalContentPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Netlify to Vercel Migration Top Banner & Page Offset */
+/* Netlify to Vercel Migration Top Banner & Dynamic Page Offset */
+:root {
+    --netlify-banner-height: 0px;
+}
+
 body.has-netlify-banner {
-    padding-top: 52px !important;
+    padding-top: calc(var(--netlify-banner-height, 56px) + 1rem) !important;
 }
 
 @media (min-width: 768px) {
     body.has-netlify-banner {
-        padding-top: 56px !important;
+        padding-top: calc(var(--netlify-banner-height, 56px) + 1rem) !important;
     }
+}
+
+/* Offset desktop sticky sidebar so it never slides under the banner */
+body.has-netlify-banner aside.md\:sticky {
+    top: calc(var(--netlify-banner-height, 56px) + 1rem) !important;
+}
+
+/* Offset sticky page headers so they stick cleanly below the banner */
+body.has-netlify-banner .page-sticky-header {
+    top: calc(var(--netlify-banner-height, 56px) + 0.75rem) !important;
 }
 
 /* Mobile Menu Modal & Bottom Sheet - Entrance */
