@@ -1,5 +1,5 @@
-// Incremented to v50 for lingering legacy file and duplicate cleanup
-const CACHE_NAME = 'nodal-ai-cache-v50';
+// Incremented to v52 for Tailwind CDN and Tone.js AudioContext quiet and lazy-load
+const CACHE_NAME = 'nodal-ai-cache-v52';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

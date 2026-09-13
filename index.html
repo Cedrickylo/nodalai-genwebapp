@@ -19,13 +19,57 @@
     <!-- App Icons -->
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <script>
+        // Suppress benign third-party library advisory and deprecation messages
+        (function() {
+            const origWarn = console.warn;
+            console.warn = function(...args) {
+                const msg = args[0] ? String(args[0]) : '';
+                if (msg.includes('cdn.tailwindcss.com should not be used in production') ||
+                    msg.includes('ScriptProcessorNode is deprecated')) {
+                    return;
+                }
+                origWarn.apply(console, args);
+            };
+
+            const origLog = console.log;
+            console.log = function(...args) {
+                const msg = args[0] ? String(args[0]) : '';
+                if (msg.includes('Tone.js v14')) {
+                    return;
+                }
+                origLog.apply(console, args);
+            };
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        // Suppress Puter ASCII banner and promotional console messages
+        window.PUTER_QUIET = true;
+
+        // Intercept XMLHttpRequest to prevent browser warning: Refused to set unsafe header "Origin"
+        (function() {
+            const origSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+            XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
+                if (typeof header === 'string' && header.toLowerCase() === 'origin') {
+                    // Origin is a forbidden request header; browsers manage it automatically
+                    return;
+                }
+                return origSetRequestHeader.apply(this, arguments);
+            };
+        })();
+    </script>
     <script src="https://js.puter.com/v2/"></script>
+    <script>
+        if (window.puter) {
+            window.puter.quiet = true;
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="styles.css">

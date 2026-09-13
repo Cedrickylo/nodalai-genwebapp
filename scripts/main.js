@@ -81,23 +81,21 @@ export function hideAppLoader() {
 async function initApp() {
     if (window.puter) puter.quiet = true;
     try {
-        // Bind user gesture to resume AudioContext (Tone.js)
+        // Bind user gesture to initialize and resume AudioContext (Tone.js)
         function bindUserGestureToStartAudio() {
             const resumeAudio = async () => {
                 try {
+                    initializeAudio();
                     if (window.Tone && Tone.context && Tone.context.state === 'suspended') {
                         await Tone.start();
-                        console.log('AudioContext resumed via Tone.start()');
                     }
-                } catch (e) {
-                    console.warn('Tone.start() failed', e);
-                }
+                } catch (e) {}
             };
-            window.addEventListener('click', resumeAudio, { once: true });
-            window.addEventListener('keydown', resumeAudio, { once: true });
+            window.addEventListener('click', resumeAudio, { once: true, passive: true });
+            window.addEventListener('keydown', resumeAudio, { once: true, passive: true });
+            window.addEventListener('touchstart', resumeAudio, { once: true, passive: true });
         }
         bindUserGestureToStartAudio();
-        initializeAudio();
 
         // Check and migrate legacy unencrypted data with fullscreen loader if needed
         try {
@@ -140,20 +138,20 @@ async function initApp() {
         }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v41)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v52)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW v41] ServiceWorker registered with scope:', reg.scope);
+                    console.log('[SW v52] ServiceWorker registered with scope:', reg.scope);
 
                     // Proactively check for updates immediately
                     reg.update().catch(() => {});
 
                     // Check if an update is already waiting to activate
                     if (reg.waiting && navigator.serviceWorker.controller) {
-                        console.log('[SW v41] Existing waiting worker found, activating...');
+                        console.log('[SW v52] Existing waiting worker found, activating...');
                         sessionStorage.setItem('nodal_is_updating', 'true');
                         showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
                         reg.waiting.postMessage({ type: 'SKIP_WAITING' });

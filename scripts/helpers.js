@@ -3899,15 +3899,18 @@ export function closePasteJsonModal(fromPopState = false) {
 }
 
 export function initializeAudio() {
+    if (state.correctSound && state.incorrectSound) return;
     try {
         if (typeof Tone !== 'undefined') {
-            state.correctSound = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
-            state.incorrectSound = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
-        } else {
-            console.warn('Tone.js not loaded.');
+            if (!state.correctSound) {
+                state.correctSound = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
+            }
+            if (!state.incorrectSound) {
+                state.incorrectSound = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
+            }
         }
     } catch (e) {
-        console.warn('Audio init failed.', e);
+        // Silently catch audio context initialization issues
     }
 }
 
