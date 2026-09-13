@@ -15,6 +15,14 @@ import {
 import { handleHistoryClick } from './quizHistory.js';
 
 /**
+ * Checks if the current user is authenticated with a Puter account.
+ * @returns {boolean}
+ */
+export function isPuterSignedIn() {
+    return typeof puter !== 'undefined' && !!window.puter?.auth?.isSignedIn?.();
+}
+
+/**
  * Retrieves the offline downloads registry from localStorage.
  * @returns {Record<string, { quizKey: string, fileName: string, downloadedAt: number, expiresAt: number, sizeBytes: number, isManual: boolean, isOptedOut?: boolean }>}
  */
@@ -113,7 +121,7 @@ export function formatTimeLeft(ms) {
  * @returns {{ available: boolean, isManual?: boolean, isAuto?: boolean, expiresAt?: number, downloadedAt?: number, remainingMs?: number, formattedTimeLeft?: string, sizeBytes?: number }}
  */
 export function isQuizAvailableOffline(quizKey) {
-    if (!quizKey) return { available: false };
+    if (!quizKey || !isPuterSignedIn()) return { available: false, remainingMs: 0 };
 
     const downloads = getOfflineDownloads();
     const record = downloads[quizKey];
@@ -200,6 +208,11 @@ export function pruneExpiredOfflineDownloads() {
  * @returns {Promise<{ quizKey: string, expiresAt: number, sizeBytes: number }>}
  */
 export async function downloadQuizForOffline(quizKey, onProgress) {
+    if (!isPuterSignedIn()) {
+        showToast('Offline downloading is not available when signed out. Your quizzes are already stored locally.', 4000, 'info');
+        throw new Error('Offline downloading is disabled for signed-out accounts.');
+    }
+
     const quiz = state.quizHistory && state.quizHistory[quizKey];
     if (!quiz) throw new Error('Quiz not found in history');
 
@@ -285,6 +298,10 @@ export async function removeQuizFromOffline(quizKey) {
  * @returns {Promise<{ quizKey: string, expiresAt: number }>}
  */
 export async function renewQuizOfflineAccess(quizKey) {
+    if (!isPuterSignedIn()) {
+        showToast('Offline downloading is not available when signed out. Your quizzes are already stored locally.', 4000, 'info');
+        throw new Error('Offline downloading is disabled for signed-out accounts.');
+    }
     return downloadQuizForOffline(quizKey);
 }
 
@@ -341,6 +358,11 @@ export function getExportableOfflineDownloads() {
  */
 export function openOfflineModal(quizKey, pushHash = true) {
     if (!quizKey || !elements.offlineModal) return;
+
+    if (!isPuterSignedIn()) {
+        showToast('Offline downloads are only needed for cloud-synced Puter accounts. Your quizzes are already stored on this device.', 4500, 'info');
+        return;
+    }
 
     state.activeOfflineModalKey = quizKey;
     state.lastHistoryMenuKey = quizKey;
@@ -464,10 +486,15 @@ export function closeOfflineModal(isFromPopState = false, popHistory = true) {
 export function updateHistorySubmenuOfflineButton(quizKey) {
     if (!elements.historySubmenuOfflineBtn) return;
 
-    const status = isQuizAvailableOffline(quizKey);
+    // If not signed in to Puter, hide the offline button completely (all quizzes are stored locally)
+    if (!isPuterSignedIn()) {
+        elements.historySubmenuOfflineBtn.classList.add('hidden');
+        return;
+    }
 
-    // Never hide the button; show current offline status or option to download
     elements.historySubmenuOfflineBtn.classList.remove('hidden');
+
+    const status = isQuizAvailableOffline(quizKey);
 
     if (status.available) {
         if (elements.historySubmenuOfflineText) {
@@ -518,6 +545,14 @@ export function updateHistorySubmenuOfflineButton(quizKey) {
 export function updateStatisticsOfflineBar(quizKey) {
     if (!elements.statisticsOfflineBar) return;
 
+    // If not signed in to Puter, hide the offline bar completely (all quizzes are stored locally)
+    if (!isPuterSignedIn()) {
+        elements.statisticsOfflineBar.classList.add('hidden');
+        return;
+    }
+
+    elements.statisticsOfflineBar.classList.remove('hidden');
+
     const status = isQuizAvailableOffline(quizKey);
 
     if (elements.statisticsOfflineStatusText) {
@@ -554,6 +589,76 @@ export function renderDownloadsView(pushHash = true) {
     pruneExpiredOfflineDownloads();
     showView('downloads', pushHash);
 
+    const retentionInfo = document.getElementById('downloads-retention-info');
+
+    // Signed-Out State: Display Local Device Mode Notice
+    if (!isPuterSignedIn()) {
+        if (retentionInfo) {
+            retentionInfo.classList.add('hidden');
+        }
+
+        if (elements.downloadsStorageBadge) {
+            elements.downloadsStorageBadge.textContent = 'Local Storage Active';
+            elements.downloadsStorageBadge.className = 'text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 justify-self-end whitespace-nowrap';
+        }
+
+        container.innerHTML = `
+            <div class="bg-gray-800/90 border border-gray-700/80 rounded-2xl p-6 sm:p-8 text-center max-w-xl mx-auto space-y-5 shadow-xl">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-950/40">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Signed Out • Local Device Mode</span>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Offline Downloads Not Needed</h3>
+                    <p class="text-sm text-gray-300 leading-relaxed max-w-md mx-auto">
+                        While signed out, all your quizzes, questions, and statistics are stored directly on this device and are <strong>always accessible offline</strong> without needing to be downloaded.
+                    </p>
+                    <p class="text-xs text-gray-400 leading-relaxed max-w-md mx-auto pt-1">
+                        Offline downloading is exclusively used by cloud-synced Puter accounts to selectively cache remote library quizzes for offline practice.
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                    <button id="downloads-goto-history-btn" class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>View All Quizzes in History</span>
+                    </button>
+                    <button id="downloads-signin-puter-btn" class="w-full sm:w-auto px-5 py-2.5 bg-gray-700/80 hover:bg-gray-700 text-gray-200 text-sm font-semibold rounded-xl border border-gray-600 transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        <span>Sign In with Puter</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const gotoHistoryBtn = document.getElementById('downloads-goto-history-btn');
+        if (gotoHistoryBtn) {
+            gotoHistoryBtn.onclick = () => {
+                showView('history-fullscreen');
+            };
+        }
+
+        const signinPuterBtn = document.getElementById('downloads-signin-puter-btn');
+        if (signinPuterBtn) {
+            signinPuterBtn.onclick = async () => {
+                const { loginToPuter } = await import('../helpers.js');
+                loginToPuter();
+            };
+        }
+
+        setupScrollReactiveHeader('downloads');
+        return;
+    }
+
+    // Signed-In State: Reveal 1-week retention notice and render downloads list
+    if (retentionInfo) {
+        retentionInfo.classList.remove('hidden');
+    }
+
     const db = state.quizHistory || {};
     const offlineQuizzes = [];
     let totalBytesAll = 0;
@@ -575,6 +680,7 @@ export function renderDownloadsView(pushHash = true) {
     // Update storage badge in header
     if (elements.downloadsStorageBadge) {
         elements.downloadsStorageBadge.textContent = formatBytes(totalBytesAll);
+        elements.downloadsStorageBadge.className = 'text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 justify-self-end whitespace-nowrap';
     }
 
     // Sort by expiration ascending (expiring soonest on top)
