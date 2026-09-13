@@ -1,5 +1,5 @@
-// Incremented to v55 for imported quiz action modal and sticky header text blur on line-wrap
-const CACHE_NAME = 'nodal-ai-cache-v55';
+// Incremented to v56 for header text blur re-trigger, expanded metadata, second chance disable & infinite marquee
+const CACHE_NAME = 'nodal-ai-cache-v56';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

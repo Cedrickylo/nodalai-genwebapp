@@ -1954,8 +1954,14 @@ export function setupScrollReactiveHeader(viewId) {
         header.classList.remove('is-unstuck');
     }
 
+    let unstuckTimeout = null;
+
     const setStuck = (stuck) => {
         if (stuck) {
+            if (unstuckTimeout) {
+                clearTimeout(unstuckTimeout);
+                unstuckTimeout = null;
+            }
             if (!header.classList.contains('is-stuck')) {
                 header.classList.remove('is-unstuck');
                 header.classList.add('is-stuck');
@@ -1964,6 +1970,11 @@ export function setupScrollReactiveHeader(viewId) {
             if (header.classList.contains('is-stuck')) {
                 header.classList.remove('is-stuck');
                 header.classList.add('is-unstuck');
+                if (unstuckTimeout) clearTimeout(unstuckTimeout);
+                unstuckTimeout = setTimeout(() => {
+                    header.classList.remove('is-unstuck');
+                    unstuckTimeout = null;
+                }, 300);
             }
         }
     };
@@ -2008,6 +2019,7 @@ export function setupScrollReactiveHeader(viewId) {
         observer.disconnect();
         window.removeEventListener('scroll', onScroll);
         if (rafId) cancelAnimationFrame(rafId);
+        if (unstuckTimeout) clearTimeout(unstuckTimeout);
     };
 
     scrollReactiveHeaderObservers.set(viewId, cleanup);
@@ -3065,6 +3077,83 @@ export function getQuizTypeLabel(config = {}, questions = []) {
     return 'MC';
 }
 
+export function formatQuizMetadata(config = {}, questions = []) {
+    const qCount = questions?.length || config.count || 0;
+    const typeLabel = getQuizTypeLabel(config, questions);
+    const diffName = config.difficulty || (config.customType === 'mixed' ? 'custom' : 'easy');
+    const diffTxt = `(${diffName})`;
+
+    // Timer (only if enabled, showing what is the time set)
+    let tInfo = '';
+    if (config.isTimed || config.timerMode === 'question') {
+        if (config.timerMode === 'question') {
+            const qSec = config.questionTimeLimit || config.questionTime || 30;
+            tInfo = `(${qSec}s/Q)`;
+        } else if (config.totalTime && config.totalTime > 0) {
+            tInfo = formatTime(config.totalTime);
+        }
+    }
+
+    // Attempts Limit (only if enabled)
+    const attInfo = config.isAttemptLimited ? `(${config.maxAttempts || 3} att)` : '';
+
+    // Auto-validation / Summary-only (only if enabled)
+    const isSummaryOnly = !!(config.showAnswersInSummaryOnly ?? config.manualReveal);
+    const summaryInfo = isSummaryOnly ? '(No Auto-Validate)' : '';
+
+    return [
+        `${qCount} Qs`,
+        `(${typeLabel})`,
+        diffTxt,
+        tInfo,
+        attInfo,
+        summaryInfo
+    ].filter(Boolean).join(' ');
+}
+
+export function initMetadataAutoScroll(container = document) {
+    if (!container) return;
+    const root = typeof container.querySelectorAll === 'function' ? container : document;
+    const wrappers = root.querySelectorAll('.quiz-metadata-scroll-wrapper');
+    if (!wrappers.length) return;
+
+    requestAnimationFrame(() => {
+        wrappers.forEach(wrapper => {
+            const track = wrapper.querySelector('.quiz-metadata-track');
+            const firstContent = wrapper.querySelector('.quiz-metadata-content');
+            if (!track || !firstContent) return;
+
+            const isOverflowing = firstContent.scrollWidth > wrapper.clientWidth + 2;
+            if (isOverflowing) {
+                wrapper.classList.add('has-marquee');
+                if (!wrapper.querySelector('.quiz-metadata-duplicate')) {
+                    const dup = document.createElement('span');
+                    dup.className = 'quiz-metadata-content quiz-metadata-duplicate';
+                    dup.setAttribute('aria-hidden', 'true');
+                    dup.textContent = firstContent.textContent;
+                    track.appendChild(dup);
+                }
+                const scrollDistance = firstContent.scrollWidth + 32;
+                const duration = Math.max(9, Math.round(scrollDistance / 24));
+                wrapper.style.setProperty('--marquee-duration', `${duration}s`);
+            } else {
+                wrapper.classList.remove('has-marquee');
+                wrapper.querySelector('.quiz-metadata-duplicate')?.remove();
+            }
+        });
+    });
+}
+
+if (typeof window !== 'undefined') {
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            initMetadataAutoScroll();
+        }, 200);
+    }, { passive: true });
+}
+
 export function refreshHistory() {
     const isCustomizing = state.isCustomizingHistory || (state.currentFiles && state.currentFiles.length > 0) || !document.getElementById('customize-content')?.classList.contains('hidden');
     if (isCustomizing) {
@@ -3135,13 +3224,6 @@ export function refreshHistory() {
     // Helper function to generate uniform inner HTML for both list items
     function generateQuizItemHTML(key, data, showDelete = false) {
         const config = data.config || {};
-        const tInfo = formatTime(config.totalTime);
-        const typeLabel = getQuizTypeLabel(config, data.questions);
-        const diffName = config.difficulty || (config.customType === 'mixed' ? 'custom' : 'easy');
-        const diffTxt = `(${diffName})`;
-        
-        const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
-        const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
         
         const isShared = data.share && data.share.isShared && (!data.share.expiryTimestamp || data.share.expiryTimestamp > Date.now());
         const shareIconHTML = isShared ? `
@@ -3166,7 +3248,11 @@ export function refreshHistory() {
                     ${downloadIconHTML}
                     ${shareIconHTML}
                 </div>
-                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs (${typeLabel}) ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+                <div class="quiz-metadata-scroll-wrapper relative overflow-hidden text-xs text-gray-400">
+                    <div class="quiz-metadata-track flex items-center">
+                        <span class="quiz-metadata-content whitespace-nowrap">${formatQuizMetadata(config, data.questions)}</span>
+                    </div>
+                </div>
             </div>
             <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
             <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
@@ -3212,6 +3298,7 @@ export function refreshHistory() {
             item.innerHTML = generateQuizItemHTML(key, data, false);
             elements.historyList.appendChild(item);
         });
+        initMetadataAutoScroll(elements.historyList);
     }
 
     // 4. RENDER FULL SCREEN LIST (If container exists in DOM layout - desktop Delete button visible)
@@ -3222,6 +3309,7 @@ export function refreshHistory() {
             item.innerHTML = generateQuizItemHTML(key, data, true);
             fullContainer.appendChild(item);
         });
+        initMetadataAutoScroll(fullContainer);
     }
 }
 
@@ -3451,18 +3539,31 @@ export function setupCustomizeView(config, name) {
     }
     if (elements.questionTimeInput) elements.questionTimeInput.value = config.questionTime || 30;
     
-    if (elements.secondChanceToggle) {
-        elements.secondChanceToggle.checked = config.enableSecondChance || false;
-        document.getElementById('second-chance-options')?.classList.toggle('hidden', !config.enableSecondChance);
+    const isSummaryOnly = summaryOnlyToggle ? summaryOnlyToggle.checked : false;
+    const allowChangeToggleEl = elements.allowChangeToggle || document.getElementById('allow-change-toggle');
+    const allowChangeContainer = elements.allowChangeContainer || document.getElementById('allow-change-container');
+    const secondChanceToggleEl = elements.secondChanceToggle || document.getElementById('second-chance-toggle');
+    const secondChanceContainer = elements.secondChanceContainer || document.getElementById('second-chance-container');
+    const secondChanceOptions = document.getElementById('second-chance-options');
+
+    if (secondChanceToggleEl) {
+        if (isSummaryOnly) {
+            secondChanceToggleEl.checked = false;
+            secondChanceToggleEl.disabled = true;
+            secondChanceContainer?.classList.add('opacity-50', 'pointer-events-none');
+            secondChanceOptions?.classList.add('hidden');
+        } else {
+            secondChanceToggleEl.disabled = false;
+            secondChanceToggleEl.checked = config.enableSecondChance || false;
+            secondChanceContainer?.classList.remove('opacity-50', 'pointer-events-none');
+            secondChanceOptions?.classList.toggle('hidden', !config.enableSecondChance);
+        }
     }
     if (elements.maxChancesInput) elements.maxChancesInput.value = config.maxChances || 1;
     
     if (elements.shuffleQuestionsToggle) elements.shuffleQuestionsToggle.checked = config.randomizeQuestions !== false;
     if (elements.shuffleChoicesToggle) elements.shuffleChoicesToggle.checked = config.randomizeChoices !== false;
 
-    const isSummaryOnly = summaryOnlyToggle ? summaryOnlyToggle.checked : false;
-    const allowChangeToggleEl = elements.allowChangeToggle || document.getElementById('allow-change-toggle');
-    const allowChangeContainer = elements.allowChangeContainer || document.getElementById('allow-change-container');
     if (allowChangeToggleEl) {
         if (isSummaryOnly) {
             allowChangeToggleEl.checked = false;
@@ -3576,10 +3677,13 @@ export function validateAllInputs() {
         enabled = enabled && maxAttempts > 0;
     }
 
-    // 1. Choice-Swapping settings panel (Automatically disabled when "Don't auto-validate" is checked)
+    // 1. Choice-Swapping & Second-Chance settings (Automatically disabled when "Don't auto-validate" is checked)
     const isSummaryOnly = summaryOnlyToggle ? summaryOnlyToggle.checked : false;
     const allowChangeToggleEl = elements.allowChangeToggle || document.getElementById('allow-change-toggle');
     const allowChangeContainer = elements.allowChangeContainer || document.getElementById('allow-change-container');
+    const secondChanceToggleEl = elements.secondChanceToggle || document.getElementById('second-chance-toggle');
+    const secondChanceContainer = elements.secondChanceContainer || document.getElementById('second-chance-container');
+    const secondChanceOptions = document.getElementById('second-chance-options');
 
     if (isSummaryOnly) {
         if (allowChangeToggleEl) {
@@ -3589,12 +3693,28 @@ export function validateAllInputs() {
         if (allowChangeContainer) {
             allowChangeContainer.classList.add('opacity-50', 'pointer-events-none');
         }
+        if (secondChanceToggleEl) {
+            secondChanceToggleEl.checked = false;
+            secondChanceToggleEl.disabled = true;
+        }
+        if (secondChanceContainer) {
+            secondChanceContainer.classList.add('opacity-50', 'pointer-events-none');
+        }
+        if (secondChanceOptions) {
+            secondChanceOptions.classList.add('hidden');
+        }
     } else {
         if (allowChangeToggleEl) {
             allowChangeToggleEl.disabled = false;
         }
         if (allowChangeContainer) {
             allowChangeContainer.classList.remove('opacity-50', 'pointer-events-none');
+        }
+        if (secondChanceToggleEl) {
+            secondChanceToggleEl.disabled = false;
+        }
+        if (secondChanceContainer) {
+            secondChanceContainer.classList.remove('opacity-50', 'pointer-events-none');
         }
     }
 

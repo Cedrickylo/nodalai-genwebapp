@@ -11,6 +11,8 @@ import {
     clearSubState,
     closeModalWithAnimation,
     getQuizTypeLabel,
+    formatQuizMetadata,
+    initMetadataAutoScroll,
     getActiveViewId
 } from '../helpers.js';
 import { handleHistoryClick } from './quizHistory.js';
@@ -624,7 +626,8 @@ export function renderDownloadsView(pushHash = true) {
         }
 
         if (elements.downloadsStorageBadge) {
-            elements.downloadsStorageBadge.textContent = 'Local Storage Active';
+            elements.downloadsStorageBadge.textContent = 'Local';
+            elements.downloadsStorageBadge.title = 'Local Storage Active (Signed Out)';
             elements.downloadsStorageBadge.className = 'text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 justify-self-end whitespace-nowrap';
         }
 
@@ -740,10 +743,6 @@ export function renderDownloadsView(pushHash = true) {
         item.className = 'offline-card-item p-3 sm:p-4 bg-gray-700/50 rounded-xl flex justify-between items-center gap-2 border border-gray-600/50';
 
         const config = quiz.config || {};
-        const tInfo = formatTime(config.totalTime);
-        const typeLabel = getQuizTypeLabel(config, quiz.questions);
-        const diffName = config.difficulty || (config.customType === 'mixed' ? 'custom' : 'easy');
-        const diffTxt = `(${diffName})`;
 
         const remainingMs = offlineInfo.remainingMs || 0;
         const daysLeft = Math.floor(remainingMs / (24 * 60 * 60 * 1000));
@@ -778,7 +777,11 @@ export function renderDownloadsView(pushHash = true) {
         item.innerHTML = `
             <div class="flex-grow min-w-0 mr-4 overflow-hidden offline-card-content flex flex-col justify-center">
                 ${titleHtml}
-                <p class="offline-meta-row text-xs text-gray-400 truncate">${config.count || 0} Qs (${typeLabel}) ${diffTxt} ${tInfo} • Saved with statistics</p>
+                <div class="quiz-metadata-scroll-wrapper relative overflow-hidden text-xs text-gray-400 offline-meta-row">
+                    <div class="quiz-metadata-track flex items-center">
+                        <span class="quiz-metadata-content whitespace-nowrap">${formatQuizMetadata(config, quiz.questions)} • Saved with statistics</span>
+                    </div>
+                </div>
             </div>
             <!-- Mobile 2-button layout: Stacked Load on top, Option button with text below -->
             <div class="flex flex-col md:hidden flex-shrink-0 gap-1.5 items-stretch min-w-[70px]">
@@ -823,6 +826,7 @@ export function renderDownloadsView(pushHash = true) {
     container.onclick = handleHistoryClick;
     setupScrollReactiveHeader('downloads');
     setupDownloadsResizeObserver(container);
+    initMetadataAutoScroll(container);
     requestAnimationFrame(() => {
         checkOfflineChipsFit();
     });

@@ -417,10 +417,13 @@ export function validateRemedialInputs() {
         chanceOk = Number.isInteger(chanceVal) && chanceVal > 0;
     }
 
-    // Choice-Swapping settings panel (Automatically disabled when "Don't auto-validate" is checked)
+    // Choice-Swapping & Second-Chance settings (Automatically disabled when "Don't auto-validate" is checked)
     const isRemedialSummaryOnly = elements.remedialSummaryOnlyToggle ? elements.remedialSummaryOnlyToggle.checked : false;
     const rAllowChange = elements.remedialAllowChangeToggle || document.getElementById('remedial-allow-change-toggle');
     const rAllowContainer = elements.remedialAllowChangeContainer || document.getElementById('remedial-allow-change-container');
+    const rSecondChance = elements.remedialSecondChanceToggle || document.getElementById('remedial-second-chance-toggle');
+    const rSecondChanceContainer = elements.remedialSecondChanceContainer || document.getElementById('remedial-second-chance-container');
+    const rSecondChanceOptions = elements.remedialSecondChanceOptions || document.getElementById('remedial-second-chance-options');
 
     if (isRemedialSummaryOnly) {
         if (rAllowChange) {
@@ -430,12 +433,28 @@ export function validateRemedialInputs() {
         if (rAllowContainer) {
             rAllowContainer.classList.add('opacity-50', 'pointer-events-none');
         }
+        if (rSecondChance) {
+            rSecondChance.checked = false;
+            rSecondChance.disabled = true;
+        }
+        if (rSecondChanceContainer) {
+            rSecondChanceContainer.classList.add('opacity-50', 'pointer-events-none');
+        }
+        if (rSecondChanceOptions) {
+            rSecondChanceOptions.classList.add('hidden');
+        }
     } else {
         if (rAllowChange) {
             rAllowChange.disabled = false;
         }
         if (rAllowContainer) {
             rAllowContainer.classList.remove('opacity-50', 'pointer-events-none');
+        }
+        if (rSecondChance) {
+            rSecondChance.disabled = false;
+        }
+        if (rSecondChanceContainer) {
+            rSecondChanceContainer.classList.remove('opacity-50', 'pointer-events-none');
         }
     }
 

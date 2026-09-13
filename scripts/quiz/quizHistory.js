@@ -23,6 +23,8 @@ import {
     extractShareId,
     getQuizTakes,
     getQuizTypeLabel,
+    formatQuizMetadata,
+    initMetadataAutoScroll,
     updateShareLinkDisplay,
     viewToHash
 } from '../helpers.js';
@@ -311,14 +313,6 @@ export function showAllHistoryFullScreen(pushHash = true) {
         
         // Add this fallback to prevent crashes from older quizzes
         const config = data.config || {};
-        
-        const tInfo = formatTime(config.totalTime);
-        const typeLabel = getQuizTypeLabel(config, data.questions);
-        const diffName = config.difficulty || (config.customType === 'mixed' ? 'custom' : 'easy');
-        const diffTxt = `(${diffName})`;
-
-        const attInfo = config.isAttemptLimited ? `(${config.maxAttempts} att)` : '';
-        const summaryInfo = config.showAnswersInSummaryOnly ? '(Summ Only)' : '';
 
         const isShared = data.share && data.share.isShared && (!data.share.expiryTimestamp || data.share.expiryTimestamp > Date.now());
         const shareIconHTML = isShared ? `
@@ -347,7 +341,11 @@ export function showAllHistoryFullScreen(pushHash = true) {
         item.innerHTML = `
             <div class="flex-grow min-w-0 mr-4 overflow-hidden">
                 ${titleHtml}
-                <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs (${typeLabel}) ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
+                <div class="quiz-metadata-scroll-wrapper relative overflow-hidden text-xs text-gray-400">
+                    <div class="quiz-metadata-track flex items-center">
+                        <span class="quiz-metadata-content whitespace-nowrap">${formatQuizMetadata(config, data.questions)}</span>
+                    </div>
+                </div>
             </div>
             <!-- Mobile 2-button layout: 3-dot Options (Submenu) and Load -->
             <div class="flex md:hidden flex-shrink-0 gap-1.5 items-center">
@@ -386,6 +384,8 @@ export function showAllHistoryFullScreen(pushHash = true) {
 
         container.appendChild(item);
     });
+
+    initMetadataAutoScroll(container);
 
     // Attach click handler for delegated actions inside full-list
     container.onclick = handleHistoryClick;

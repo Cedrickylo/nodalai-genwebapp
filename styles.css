@@ -349,8 +349,25 @@
             gap: 0.45rem !important;
         }
 
-        /* Sticky Header Text Line-Wrap Blur Animation */
-        @keyframes headerTextMotionBlur {
+        /* Sticky Header Text Line-Wrap Blur Animation (Dual Alternating) */
+        @keyframes headerTextMotionBlurStuck {
+            0% {
+                filter: blur(0px);
+            }
+            35% {
+                filter: blur(1.8px);
+                opacity: 0.88;
+            }
+            75% {
+                filter: blur(0.8px);
+            }
+            100% {
+                filter: blur(0px);
+                opacity: 1;
+            }
+        }
+
+        @keyframes headerTextMotionBlurUnstuck {
             0% {
                 filter: blur(0px);
             }
@@ -373,11 +390,74 @@
             word-break: break-word !important;
             overflow-wrap: anywhere !important;
             white-space: normal !important;
-            animation: headerTextMotionBlur 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: headerTextMotionBlurStuck 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .page-sticky-header.is-unstuck h2 {
-            animation: headerTextMotionBlur 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: headerTextMotionBlurUnstuck 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* ==================================================================
+           QUIZ METADATA ROW INFINITE AUTO-SCROLL (MARQUEE WITH GRADIENT MASKS)
+           Applies to clipped metadata rows on History and Downloads cards
+           ================================================================== */
+        @keyframes quizMetadataMarquee {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .quiz-metadata-scroll-wrapper {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .quiz-metadata-scroll-wrapper.has-marquee {
+            mask-image: linear-gradient(to right, transparent 0%, black 14px, black calc(100% - 14px), transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 14px, black calc(100% - 14px), transparent 100%);
+        }
+
+        .quiz-metadata-scroll-wrapper.has-marquee .quiz-metadata-track {
+            display: flex;
+            width: max-content;
+            will-change: transform;
+            animation: quizMetadataMarquee var(--marquee-duration, 14s) linear infinite;
+        }
+
+        .quiz-metadata-scroll-wrapper.has-marquee:hover .quiz-metadata-track,
+        .quiz-metadata-scroll-wrapper.has-marquee:active .quiz-metadata-track {
+            animation-play-state: paused;
+        }
+
+        .quiz-metadata-scroll-wrapper.has-marquee .quiz-metadata-content {
+            display: inline-block;
+            white-space: nowrap;
+            padding-right: 2rem;
+            flex-shrink: 0;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .quiz-metadata-scroll-wrapper.has-marquee .quiz-metadata-track {
+                animation: none !important;
+            }
+            .quiz-metadata-scroll-wrapper.has-marquee {
+                overflow-x: auto !important;
+                mask-image: none !important;
+                -webkit-mask-image: none !important;
+            }
+        }
+        .reduce-motion .quiz-metadata-scroll-wrapper.has-marquee .quiz-metadata-track {
+            animation: none !important;
+        }
+        .reduce-motion .quiz-metadata-scroll-wrapper.has-marquee {
+            overflow-x: auto !important;
+            mask-image: none !important;
+            -webkit-mask-image: none !important;
         }
 
         .page-sticky-header.is-stuck button[id*="back-btn"] {

@@ -89,7 +89,7 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
             if (state.currentQuizConfig.timerMode === 'question') state.isTimedQuiz = true;
         }
         if (elements.questionTimeInput) state.currentQuizConfig.questionTime = parseInt(elements.questionTimeInput.value, 10) || 30;
-        if (elements.secondChanceToggle) state.currentQuizConfig.enableSecondChance = elements.secondChanceToggle.checked;
+        if (elements.secondChanceToggle) state.currentQuizConfig.enableSecondChance = state.currentQuizConfig.showAnswersInSummaryOnly ? false : elements.secondChanceToggle.checked;
         if (elements.maxChancesInput) state.currentQuizConfig.maxChances = parseInt(elements.maxChancesInput.value, 10) || 1;
         if (elements.shuffleQuestionsToggle) state.currentQuizConfig.randomizeQuestions = elements.shuffleQuestionsToggle.checked;
         if (elements.shuffleChoicesToggle) state.currentQuizConfig.randomizeChoices = elements.shuffleChoicesToggle.checked;
@@ -195,9 +195,10 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
     const questionTime = isRemedial
         ? (parseInt(elements.remedialQuestionTimeInput?.value, 10) || 30)
         : (elements.questionTimeInput ? parseInt(elements.questionTimeInput.value, 10) || 30 : 30);
-    const enableSecondChance = isRemedial
+    const rawSecondChance = isRemedial
         ? (elements.remedialSecondChanceToggle?.checked || false)
         : (elements.secondChanceToggle ? elements.secondChanceToggle.checked : false);
+    const enableSecondChance = showAnswersInSummaryOnly ? false : rawSecondChance;
     const maxChances = isRemedial
         ? (parseInt(elements.remedialMaxChancesInput?.value, 10) || 1)
         : (elements.maxChancesInput ? parseInt(elements.maxChancesInput.value, 10) || 1 : 1);
