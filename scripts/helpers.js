@@ -3123,6 +3123,11 @@ export function initMetadataAutoScroll(container = document) {
             const firstContent = wrapper.querySelector('.quiz-metadata-content');
             if (!track || !firstContent) return;
 
+            if (wrapper._marqueeTimer) {
+                clearTimeout(wrapper._marqueeTimer);
+                wrapper._marqueeTimer = null;
+            }
+
             const isOverflowing = firstContent.scrollWidth > wrapper.clientWidth + 2;
             if (isOverflowing) {
                 wrapper.classList.add('has-marquee');
@@ -3136,8 +3141,49 @@ export function initMetadataAutoScroll(container = document) {
                 const scrollDistance = firstContent.scrollWidth + 32;
                 const duration = Math.max(9, Math.round(scrollDistance / 24));
                 wrapper.style.setProperty('--marquee-duration', `${duration}s`);
+
+                const startScroll = () => {
+                    if (!wrapper.isConnected || !wrapper.classList.contains('has-marquee')) return;
+                    track.classList.add('is-scrolling');
+                };
+
+                track.onanimationend = () => {
+                    // Reset to front (translateX(0)) by removing animation class
+                    track.classList.remove('is-scrolling');
+
+                    if (wrapper._marqueeTimer) {
+                        clearTimeout(wrapper._marqueeTimer);
+                        wrapper._marqueeTimer = null;
+                    }
+
+                    // Stop for 3 seconds at the front before marqueeing again
+                    wrapper._marqueeTimer = setTimeout(() => {
+                        wrapper._marqueeTimer = null;
+                        if (!wrapper.isConnected || !wrapper.classList.contains('has-marquee')) return;
+
+                        if (wrapper.matches(':hover')) {
+                            const onLeave = () => {
+                                wrapper.removeEventListener('mouseleave', onLeave);
+                                startScroll();
+                            };
+                            wrapper.addEventListener('mouseleave', onLeave);
+                        } else {
+                            startScroll();
+                        }
+                    }, 3000);
+                };
+
+                if (!track.classList.contains('is-scrolling')) {
+                    startScroll();
+                }
             } else {
                 wrapper.classList.remove('has-marquee');
+                track.classList.remove('is-scrolling');
+                track.onanimationend = null;
+                if (wrapper._marqueeTimer) {
+                    clearTimeout(wrapper._marqueeTimer);
+                    wrapper._marqueeTimer = null;
+                }
                 wrapper.querySelector('.quiz-metadata-duplicate')?.remove();
             }
         });
