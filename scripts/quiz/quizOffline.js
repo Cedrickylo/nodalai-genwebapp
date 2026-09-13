@@ -10,7 +10,8 @@ import {
     pushSubState,
     clearSubState,
     closeModalWithAnimation,
-    getQuizTypeLabel
+    getQuizTypeLabel,
+    getActiveViewId
 } from '../helpers.js';
 import { handleHistoryClick } from './quizHistory.js';
 
@@ -67,11 +68,14 @@ export function formatBytes(bytes) {
 /**
  * Calculates the exact storage consumption in bytes for a quiz and its statistics takes.
  * @param {string} quizKey
+ * @param {Array|Record<string, Array>} [cachedTakes=null] - Optional pre-fetched takes array or takes database to prevent redundant decryptions
  * @returns {{ totalBytes: number, quizBytes: number, takesBytes: number, totalFormatted: string, quizFormatted: string, takesFormatted: string }}
  */
-export function calculateQuizStorageBytes(quizKey) {
+export function calculateQuizStorageBytes(quizKey, cachedTakes = null) {
     const quiz = (state.quizHistory && state.quizHistory[quizKey]) || {};
-    const takes = getQuizTakes(quizKey) || [];
+    const takes = cachedTakes !== null
+        ? (Array.isArray(cachedTakes) ? cachedTakes : (cachedTakes[quizKey] || []))
+        : (getQuizTakes(quizKey) || []);
 
     const quizStr = JSON.stringify(quiz);
     const takesStr = JSON.stringify(takes);
@@ -118,12 +122,13 @@ export function formatTimeLeft(ms) {
  * - Manual download active (expires 7 days from download)
  * - Auto-offline active (created/imported < 7 days ago and not opted out)
  * @param {string} quizKey
+ * @param {Record<string, any>} [cachedDownloads=null] - Optional pre-fetched downloads registry to prevent repeated decryptions
  * @returns {{ available: boolean, isManual?: boolean, isAuto?: boolean, expiresAt?: number, downloadedAt?: number, remainingMs?: number, formattedTimeLeft?: string, sizeBytes?: number }}
  */
-export function isQuizAvailableOffline(quizKey) {
+export function isQuizAvailableOffline(quizKey, cachedDownloads = null) {
     if (!quizKey || !isPuterSignedIn()) return { available: false, remainingMs: 0 };
 
-    const downloads = getOfflineDownloads();
+    const downloads = cachedDownloads || getOfflineDownloads();
     const record = downloads[quizKey];
     const now = Date.now();
 
@@ -579,6 +584,26 @@ export function updateStatisticsOfflineBar(quizKey) {
 }
 
 /**
+ * Reveals the lazy skeleton placeholder while downloads data is processing.
+ */
+export function showDownloadsSkeleton() {
+    const skeleton = elements.downloadsSkeleton || document.getElementById('downloads-skeleton');
+    const list = elements.downloadsList || document.getElementById('downloads-list');
+    if (skeleton) skeleton.classList.remove('hidden');
+    if (list) list.classList.add('hidden');
+}
+
+/**
+ * Hides the lazy skeleton placeholder and reveals the populated downloads container.
+ */
+export function hideDownloadsSkeleton() {
+    const skeleton = elements.downloadsSkeleton || document.getElementById('downloads-skeleton');
+    const list = elements.downloadsList || document.getElementById('downloads-list');
+    if (skeleton) skeleton.classList.add('hidden');
+    if (list) list.classList.remove('hidden');
+}
+
+/**
  * Renders the full Downloads page (#downloads-view) with active offline quizzes.
  * @param {boolean} pushHash - Whether to push the #downloads hash to browser history
  */
@@ -593,6 +618,7 @@ export function renderDownloadsView(pushHash = true) {
 
     // Signed-Out State: Display Local Device Mode Notice
     if (!isPuterSignedIn()) {
+        hideDownloadsSkeleton();
         if (retentionInfo) {
             retentionInfo.classList.add('hidden');
         }
@@ -659,14 +685,16 @@ export function renderDownloadsView(pushHash = true) {
         retentionInfo.classList.remove('hidden');
     }
 
+    const cachedDownloads = getOfflineDownloads();
+    const cachedTakesDb = getQuizTakes() || {};
     const db = state.quizHistory || {};
     const offlineQuizzes = [];
     let totalBytesAll = 0;
 
     for (const [key, quiz] of Object.entries(db)) {
-        const offlineInfo = isQuizAvailableOffline(key);
+        const offlineInfo = isQuizAvailableOffline(key, cachedDownloads);
         if (offlineInfo.available) {
-            const storage = calculateQuizStorageBytes(key);
+            const storage = calculateQuizStorageBytes(key, cachedTakesDb[key] || []);
             totalBytesAll += storage.totalBytes;
             offlineQuizzes.push({
                 key,
@@ -689,6 +717,7 @@ export function renderDownloadsView(pushHash = true) {
     container.innerHTML = '';
 
     if (offlineQuizzes.length === 0) {
+        hideDownloadsSkeleton();
         container.innerHTML = `
             <div class="text-center py-12 px-4 space-y-3">
                 <div class="p-3 bg-cyan-500/10 text-cyan-400 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
@@ -790,6 +819,7 @@ export function renderDownloadsView(pushHash = true) {
         container.appendChild(item);
     });
 
+    hideDownloadsSkeleton();
     container.onclick = handleHistoryClick;
     setupScrollReactiveHeader('downloads');
     setupDownloadsResizeObserver(container);

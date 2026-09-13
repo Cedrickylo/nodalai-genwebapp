@@ -370,6 +370,7 @@ export const elements = {
     downloadsView: document.getElementById('downloads-view'),
     downloadsBackBtn: document.getElementById('downloads-back-btn'),
     downloadsStorageBadge: document.getElementById('downloads-storage-badge'),
+    downloadsSkeleton: document.getElementById('downloads-skeleton'),
     downloadsList: document.getElementById('downloads-list'),
 
     // History Submenu Offline Button

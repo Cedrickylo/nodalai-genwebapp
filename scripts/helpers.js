@@ -10,6 +10,7 @@ import {
     cleanupLingeringLegacyCloudFiles,
     NODAL_STORAGE_AES_KEY
 } from './quiz/quizCrypto.js';
+import { isQuizAvailableOffline, isPuterSignedIn, getOfflineDownloads } from './quiz/quizOffline.js';
 
 const {
     views,
@@ -1404,6 +1405,15 @@ export async function updateAuthUI() {
         if (elements.authBtnText) elements.authBtnText.textContent = 'Account';
         setSyncing('offline');
     }
+
+    // If currently viewing downloads, refresh view to update between signed-out notice and signed-in list
+    try {
+        const activeView = getActiveViewId();
+        if (activeView === 'downloads' || window.location.hash === '#downloads') {
+            const { renderDownloadsView } = await import('./quiz/quizOffline.js');
+            renderDownloadsView(false);
+        }
+    } catch (e) {}
 }
 
 export async function openAccountAsModal(pushHash = true) {
@@ -2721,6 +2731,11 @@ export async function handlePopState(event) {
                 updateNavHighlights('history');
             }
         } else if (targetViewId === 'downloads') {
+            showView('downloads', false);
+            const skeleton = elements.downloadsSkeleton || document.getElementById('downloads-skeleton');
+            const list = elements.downloadsList || document.getElementById('downloads-list');
+            if (skeleton) skeleton.classList.remove('hidden');
+            if (list) list.classList.add('hidden');
             const { renderDownloadsView } = await import('./quiz/quizOffline.js');
             renderDownloadsView(false);
             updateNavHighlights('downloads');
@@ -2769,6 +2784,11 @@ export async function restoreRouteFromHash(hash) {
         showAllHistoryFullScreen(false);
         updateNavHighlights('history');
     } else if (clean === 'downloads') {
+        showView('downloads', false);
+        const skeleton = elements.downloadsSkeleton || document.getElementById('downloads-skeleton');
+        const list = elements.downloadsList || document.getElementById('downloads-list');
+        if (skeleton) skeleton.classList.remove('hidden');
+        if (list) list.classList.add('hidden');
         const { renderDownloadsView } = await import('./quiz/quizOffline.js');
         renderDownloadsView(false);
         updateNavHighlights('downloads');
@@ -3078,6 +3098,9 @@ export function refreshHistory() {
         elements.showAllHistoryBtn?.classList.add('hidden');
     }
 
+    const signedIn = isPuterSignedIn();
+    const cachedDownloads = signedIn ? getOfflineDownloads() : null;
+
     // Helper function to generate uniform inner HTML for both list items
     function generateQuizItemHTML(key, data, showDelete = false) {
         const config = data.config || {};
@@ -3096,12 +3119,20 @@ export function refreshHistory() {
             </span>
         ` : '';
 
+        const isAvailableOffline = signedIn ? isQuizAvailableOffline(key, cachedDownloads).available : true;
+        const downloadIconHTML = isAvailableOffline ? `
+            <span class="text-cyan-400 bg-cyan-500/10 p-1 rounded inline-flex items-center flex-shrink-0" title="${signedIn ? 'Available offline (Downloaded)' : 'Stored locally on this device (Available offline)'}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </span>
+        ` : '';
+
         return `
             <div class="flex-grow min-w-0 mr-4 overflow-hidden">
                 <div class="flex items-center gap-2 min-w-0 mb-1 w-full">
                     <p class="font-semibold text-sm truncate min-w-0" title="${data.fileName || 'Untitled'}">
                         ${data.fileName || 'Untitled'}
                     </p>
+                    ${downloadIconHTML}
                     ${shareIconHTML}
                 </div>
                 <p class="text-xs text-gray-400 truncate">${config.count || 0} Qs (${typeLabel}) ${diffTxt} ${tInfo} ${attInfo} ${summaryInfo}</p>
@@ -4424,8 +4455,8 @@ export function initWelcomeModal() {
 export async function openHistoryActionsModal(quizKey, pushHash = true) {
     if (!elements.historyActionsModal) return;
 
-    const { isQuizAvailableOffline, updateHistorySubmenuOfflineButton } = await import('./quiz/quizOffline.js');
-    if (!navigator.onLine && !isQuizAvailableOffline(quizKey).available) {
+    const { isQuizAvailableOffline, isPuterSignedIn, updateHistorySubmenuOfflineButton } = await import('./quiz/quizOffline.js');
+    if (!navigator.onLine && isPuterSignedIn() && !isQuizAvailableOffline(quizKey).available) {
         showToast('This quiz is not available offline. Please connect to the internet or download it for offline use.', 4000, 'error');
         return;
     }

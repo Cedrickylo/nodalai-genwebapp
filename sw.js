@@ -1,5 +1,5 @@
-// Incremented to v52 for Tailwind CDN and Tone.js AudioContext quiet and lazy-load
-const CACHE_NAME = 'nodal-ai-cache-v52';
+// Incremented to v54 for getActiveViewId fix, instant lazy skeleton downloads, take auto-sync, and download chips
+const CACHE_NAME = 'nodal-ai-cache-v54';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

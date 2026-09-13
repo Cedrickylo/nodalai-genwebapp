@@ -712,8 +712,13 @@ export function attachQuizEventListeners() {
                     return;
                 }
                 closeModalWithAnimation(elements.mobileMenuModal, async () => {
+                    showView('downloads');
+                    const skeleton = elements.downloadsSkeleton || document.getElementById('downloads-skeleton');
+                    const list = elements.downloadsList || document.getElementById('downloads-list');
+                    if (skeleton) skeleton.classList.remove('hidden');
+                    if (list) list.classList.add('hidden');
                     const { renderDownloadsView } = await import('./quiz/quizOffline.js');
-                    renderDownloadsView();
+                    renderDownloadsView(false);
                 });
             });
             elements.mobileMenuHelpBtn?.addEventListener('click', async () => {
@@ -757,8 +762,13 @@ export function attachQuizEventListeners() {
             elements.desktopNavDownloadsBtn?.addEventListener('click', async () => {
                 if (!await confirmLeaveCustomizeIfActive()) return;
                 setDesktopNavActive('downloads');
+                showView('downloads');
+                const skeleton = elements.downloadsSkeleton || document.getElementById('downloads-skeleton');
+                const list = elements.downloadsList || document.getElementById('downloads-list');
+                if (skeleton) skeleton.classList.remove('hidden');
+                if (list) list.classList.add('hidden');
                 const { renderDownloadsView } = await import('./quiz/quizOffline.js');
-                renderDownloadsView();
+                renderDownloadsView(false);
             });
             elements.desktopNavHelpBtn?.addEventListener('click', async () => {
                 if (!await confirmLeaveCustomizeIfActive()) return;

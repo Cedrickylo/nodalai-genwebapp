@@ -26,6 +26,7 @@ import {
     updateShareLinkDisplay,
     viewToHash
 } from '../helpers.js';
+import { isQuizAvailableOffline, isPuterSignedIn, getOfflineDownloads } from './quizOffline.js';
 
 const {
     historyList
@@ -161,9 +162,9 @@ export async function handleHistoryClick(e) {
     const quizData = state.quizHistory[key];
     if (!quizData) return;
 
-    // Guard: Block history operations for non-downloaded quizzes while offline
-    const { isQuizAvailableOffline } = await import('./quizOffline.js');
-    if (!navigator.onLine && !isQuizAvailableOffline(key).available) {
+    // Guard: For cloud-synced accounts, block history operations for non-downloaded quizzes while offline
+    const { isQuizAvailableOffline, isPuterSignedIn } = await import('./quizOffline.js');
+    if (!navigator.onLine && isPuterSignedIn() && !isQuizAvailableOffline(key).available) {
         showToast('This quiz is not available offline. Please connect to the internet or download it for offline use.', 4000, 'error');
         return;
     }
@@ -301,6 +302,9 @@ export function showAllHistoryFullScreen(pushHash = true) {
         return;
     }
 
+    const signedIn = isPuterSignedIn();
+    const cachedDownloads = signedIn ? getOfflineDownloads() : null;
+
     sorted.forEach(([key, data]) => {
         const item = document.createElement('div');
         item.className = 'p-2 sm:p-3 bg-gray-700/50 rounded-lg flex justify-between items-center gap-2';
@@ -323,11 +327,19 @@ export function showAllHistoryFullScreen(pushHash = true) {
             </span>
         ` : '';
 
+        const isAvailableOffline = signedIn ? isQuizAvailableOffline(key, cachedDownloads).available : true;
+        const downloadIconHTML = isAvailableOffline ? `
+            <span class="text-cyan-400 bg-cyan-500/10 p-1 rounded inline-flex items-center flex-shrink-0" title="${signedIn ? 'Available offline (Downloaded)' : 'Stored locally on this device (Available offline)'}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </span>
+        ` : '';
+
         const titleHtml = `
             <div class="flex items-center gap-2 min-w-0 mb-1 w-full">
                 <p class="font-semibold text-sm truncate min-w-0" title="${data.fileName || 'Untitled'}">
                     ${data.fileName || 'Untitled'}
                 </p>
+                ${downloadIconHTML}
                 ${shareIconHTML}
             </div>
         `;

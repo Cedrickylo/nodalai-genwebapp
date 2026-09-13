@@ -7,7 +7,8 @@ import {
     saveQuizTake,
     pushSubState,
     clearSubState,
-    closeModalWithAnimation
+    closeModalWithAnimation,
+    syncHistoryWithCloud
 } from '../helpers.js';
 
 const {
@@ -195,6 +196,11 @@ export async function showResults() {
     saveQuizTake(quizKey, takeRecord);
     state.currentCompletedTake = takeRecord;
     state.currentStatsQuizKey = quizKey;
+
+    // Automatically trigger cloud synchronization so completed takes and scores sync across devices immediately
+    try {
+        syncHistoryWithCloud(false).catch(err => console.warn('[QuizResults] Auto-sync after quiz take error:', err));
+    } catch (e) {}
 
     // Wire up Review Quiz button to launch test review with 'results' origin
     if (elements.reviewQuizBtn) {
