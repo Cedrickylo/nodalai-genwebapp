@@ -138,20 +138,20 @@ async function initApp() {
         }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v54)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v55)
         // ==================================================================
         if ('serviceWorker' in navigator) {
             const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW v54] ServiceWorker registered with scope:', reg.scope);
+                    console.log('[SW v55] ServiceWorker registered with scope:', reg.scope);
 
                     // Proactively check for updates immediately
                     reg.update().catch(() => {});
 
                     // Check if an update is already waiting to activate
                     if (reg.waiting && navigator.serviceWorker.controller) {
-                        console.log('[SW v54] Existing waiting worker found, activating...');
+                        console.log('[SW v55] Existing waiting worker found, activating...');
                         sessionStorage.setItem('nodal_is_updating', 'true');
                         showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
                         reg.waiting.postMessage({ type: 'SKIP_WAITING' });

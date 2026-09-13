@@ -327,6 +327,15 @@ export const elements = {
     historySubmenuShareBtn: document.getElementById('history-submenu-share-btn'),
     historySubmenuEditBtn: document.getElementById('history-submenu-edit-btn'),
     historySubmenuDeleteBtn: document.getElementById('history-submenu-delete-btn'),
+    // Imported Quiz Action Modal
+    importedQuizModal: document.getElementById('imported-quiz-modal'),
+    importedQuizTitle: document.getElementById('imported-quiz-title'),
+    importedQuizSubheading: document.getElementById('imported-quiz-subheading'),
+    importedQuizBadge: document.getElementById('imported-quiz-badge'),
+    importedQuizMeta: document.getElementById('imported-quiz-meta'),
+    importedQuizStartBtn: document.getElementById('imported-quiz-start-btn'),
+    importedQuizCustomizeBtn: document.getElementById('imported-quiz-customize-btn'),
+    importedQuizCloseBtn: document.getElementById('imported-quiz-close-btn'),
     // Shared Quiz Received Action Modal
     sharedQuizModal: document.getElementById('shared-quiz-modal'),
     sharedQuizTitle: document.getElementById('shared-quiz-title'),
@@ -473,6 +482,7 @@ export const state = {
     questionTimerInterval: null,
     activeHistoryMenuKey: null,
     pendingSharedQuiz: null,
+    pendingImportedQuizKey: null,
     historyMenuOriginHash: '#history',
     historyMenuOriginView: 'history-fullscreen',
     historyMenuPreScrollY: null,

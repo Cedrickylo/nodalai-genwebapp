@@ -1951,7 +1951,22 @@ export function setupScrollReactiveHeader(viewId) {
     // Set initial state based on current scroll position
     if (isAtTop()) {
         header.classList.remove('is-stuck');
+        header.classList.remove('is-unstuck');
     }
+
+    const setStuck = (stuck) => {
+        if (stuck) {
+            if (!header.classList.contains('is-stuck')) {
+                header.classList.remove('is-unstuck');
+                header.classList.add('is-stuck');
+            }
+        } else {
+            if (header.classList.contains('is-stuck')) {
+                header.classList.remove('is-stuck');
+                header.classList.add('is-unstuck');
+            }
+        }
+    };
 
     // Hysteresis Observer:
     // When sentinel exits view, or near end of page, stick header.
@@ -1960,12 +1975,12 @@ export function setupScrollReactiveHeader(viewId) {
     // PRIORITIZE THE SMALL HEADER to eliminate resize flickering loops.
     const observer = new IntersectionObserver(([entry]) => {
         if (!entry.isIntersecting || isNearEnd()) {
-            header.classList.add('is-stuck');
+            setStuck(true);
         } else {
             if (isAtTop()) {
-                header.classList.remove('is-stuck');
+                setStuck(false);
             } else {
-                header.classList.add('is-stuck');
+                setStuck(true);
             }
         }
     }, { threshold: 0 });
@@ -1980,9 +1995,9 @@ export function setupScrollReactiveHeader(viewId) {
             rafId = null;
             const scrollTop = getScrollTop();
             if (scrollTop <= 5) {
-                header.classList.remove('is-stuck');
+                setStuck(false);
             } else if (scrollTop > 15 || isNearEnd()) {
-                header.classList.add('is-stuck');
+                setStuck(true);
             }
         });
     };
@@ -2036,6 +2051,7 @@ export function hashToView(hash) {
         case 'offline-modal': return (getActiveViewId() === 'downloads' ? 'downloads' : 'history-fullscreen');
         case 'account-modal': return getActiveViewId() || 'start';
         case 'import-choice': return 'start';
+        case 'imported-quiz': return 'start';
         default: return 'start';
     }
 }
@@ -2055,6 +2071,7 @@ export const SUB_STATE_HASHES = [
     '#share-manage',
     '#history-actions',
     '#shared-quiz',
+    '#imported-quiz',
     '#offline-modal',
     '#migration-modal',
     '#migration-choice',
@@ -2147,6 +2164,9 @@ export function isSubStateAuthorized(hash, eventState = null) {
     }
     if (hash === '#shared-quiz') {
         return elements.sharedQuizModal && !elements.sharedQuizModal.classList.contains('hidden');
+    }
+    if (hash === '#imported-quiz') {
+        return !!(state.pendingImportedQuizKey || (elements.importedQuizModal && !elements.importedQuizModal.classList.contains('hidden')));
     }
     if (hash === '#offline-modal') {
         return !!(state.activeOfflineModalKey || eventState?.quizKey || state.lastHistoryMenuKey || state.currentStatsQuizKey);
@@ -2418,6 +2438,17 @@ export async function handlePopState(event) {
         if (elements.sharedQuizModal && !elements.sharedQuizModal.classList.contains('hidden')) {
             if (targetHash !== '#shared-quiz') {
                 closeSharedQuizModal(true);
+                if (targetHash === '#home') {
+                    showView('start', false);
+                    return;
+                }
+            }
+        }
+
+        // 5e. Imported Quiz Action Modal Dismiss
+        if (elements.importedQuizModal && !elements.importedQuizModal.classList.contains('hidden')) {
+            if (targetHash !== '#imported-quiz') {
+                closeImportedQuizModal(true);
                 if (targetHash === '#home') {
                     showView('start', false);
                     return;
@@ -4739,6 +4770,47 @@ export function closeSharedQuizModal(isFromPopState = false, popHistory = true) 
 
     closeModalWithAnimation(elements.sharedQuizModal, () => {
         if (!isFromPopState && window.location.hash === '#shared-quiz') {
+            if (popHistory) {
+                window.history.back();
+            } else {
+                window.history.replaceState({ view: 'start' }, '', '#home');
+            }
+        }
+    });
+}
+
+export function openImportedQuizModal(quizKey) {
+    if (!elements.importedQuizModal || !quizKey) return;
+    const quizData = state.quizHistory[quizKey] || (state.customizingQuizData?.key === quizKey ? state.customizingQuizData : null);
+    if (!quizData) return;
+
+    state.pendingImportedQuizKey = quizKey;
+
+    const title = quizData.fileName || quizData.config?.quizTitle || 'Imported Quiz';
+    const count = quizData.questions?.length || (Array.isArray(quizData.questions) ? quizData.questions.length : 0);
+    const config = quizData.config || {};
+    const mode = config.difficulty
+        ? (config.difficulty === 'custom' && config.customTypeShort ? config.customTypeShort.toUpperCase() : config.difficulty.toUpperCase())
+        : 'Mixed Mode';
+
+    if (elements.importedQuizTitle) {
+        elements.importedQuizTitle.textContent = title;
+    }
+    if (elements.importedQuizMeta) {
+        elements.importedQuizMeta.textContent = `${count} Questions • ${mode}`;
+    }
+
+    elements.importedQuizModal.classList.remove('hidden');
+    pushSubState('#imported-quiz');
+}
+
+export function closeImportedQuizModal(isFromPopState = false, popHistory = true) {
+    if (!elements.importedQuizModal || elements.importedQuizModal.classList.contains('hidden')) return;
+    clearSubState('#imported-quiz');
+    state.pendingImportedQuizKey = null;
+
+    closeModalWithAnimation(elements.importedQuizModal, () => {
+        if (!isFromPopState && window.location.hash === '#imported-quiz') {
             if (popHistory) {
                 window.history.back();
             } else {

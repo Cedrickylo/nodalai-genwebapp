@@ -644,7 +644,7 @@ export async function handleQuizImport(event) {
             state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
             state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
 
-            const { saveQuizToDB, refreshHistory, closeAiPromptModal, closePasteJsonModal, closeImportChoiceModal, syncHistoryWithCloud } = await import('../helpers.js');
+            const { saveQuizToDB, refreshHistory, closeAiPromptModal, closePasteJsonModal, closeImportChoiceModal, syncHistoryWithCloud, openImportedQuizModal } = await import('../helpers.js');
             if (typeof closeAiPromptModal === 'function') closeAiPromptModal(true);
             if (typeof closePasteJsonModal === 'function') closePasteJsonModal(true);
             if (typeof closeImportChoiceModal === 'function') closeImportChoiceModal(true);
@@ -683,13 +683,11 @@ export async function handleQuizImport(event) {
             }
             refreshHistory();
 
-            state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
-            setupCustomizeView(state.currentQuizConfig, state.currentFileName);
-            showView('start', false);
-            pushSubState('#edit');
             hideLoadingOverlay();
             showToast(`Imported "${state.currentFileName}" successfully!`, 3000, 'success');
             statusMessage.textContent = '';
+            showView('start', false);
+            openImportedQuizModal(state.currentQuizKey);
         } catch (err) {
             console.error('Import Err:', err);
             hideLoadingOverlay();
@@ -832,7 +830,7 @@ export async function importQuizFromText(rawText) {
         state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
         state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
 
-        const { saveQuizToDB, refreshHistory, closeAiPromptModal, closePasteJsonModal, closeImportChoiceModal, syncHistoryWithCloud } = await import('../helpers.js');
+        const { saveQuizToDB, refreshHistory, closeAiPromptModal, closePasteJsonModal, closeImportChoiceModal, syncHistoryWithCloud, openImportedQuizModal } = await import('../helpers.js');
         if (typeof closeAiPromptModal === 'function') closeAiPromptModal(true);
         if (typeof closePasteJsonModal === 'function') closePasteJsonModal(true);
         if (typeof closeImportChoiceModal === 'function') closeImportChoiceModal(true);
@@ -871,13 +869,11 @@ export async function importQuizFromText(rawText) {
         }
         refreshHistory();
 
-        state.customizingQuizData = { ...state.quizHistory[state.currentQuizKey], key: state.currentQuizKey };
-        setupCustomizeView(state.currentQuizConfig, state.currentFileName);
-        showView('start', false);
-        pushSubState('#edit');
         hideLoadingOverlay();
         showToast(`Imported "${state.currentFileName}" successfully!`, 3000, 'success');
         statusMessage.textContent = '';
+        showView('start', false);
+        openImportedQuizModal(state.currentQuizKey);
         return true;
     } catch (err) {
         console.error('Text Import Err:', err);

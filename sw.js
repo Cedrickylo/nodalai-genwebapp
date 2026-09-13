@@ -1,5 +1,5 @@
-// Incremented to v54 for getActiveViewId fix, instant lazy skeleton downloads, take auto-sync, and download chips
-const CACHE_NAME = 'nodal-ai-cache-v54';
+// Incremented to v55 for imported quiz action modal and sticky header text blur on line-wrap
+const CACHE_NAME = 'nodal-ai-cache-v55';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode

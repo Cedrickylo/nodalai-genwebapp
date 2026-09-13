@@ -32,6 +32,8 @@ import {
     openHistoryActionsModal,
     closeSharedQuizModal,
     openSharedQuizModal,
+    closeImportedQuizModal,
+    openImportedQuizModal,
     setupCustomizeView,
     pushSubState,
     extractShareId,
@@ -1199,7 +1201,66 @@ export function attachQuizEventListeners() {
         });
     }
 
+    // Imported Quiz Action Modal Event Listeners
+    if (elements.importedQuizCloseBtn) {
+        elements.importedQuizCloseBtn.addEventListener('click', () => closeImportedQuizModal(false, true));
+    }
+    if (elements.importedQuizModal) {
+        elements.importedQuizModal.addEventListener('click', (e) => {
+            if (e.target === elements.importedQuizModal) {
+                closeImportedQuizModal(false, true);
+            }
+        });
+    }
+    if (elements.importedQuizStartBtn) {
+        elements.importedQuizStartBtn.addEventListener('click', () => {
+            const quizKey = state.pendingImportedQuizKey;
+            if (!quizKey) return;
+            const quiz = state.quizHistory[quizKey];
+            if (!quiz) return;
+
+            state.questions = quiz.questions;
+            state.currentQuizConfig = quiz.config || {};
+            state.currentFileName = quiz.fileName || 'Imported Quiz';
+            state.currentQuizKey = quizKey;
+
+            clearInProgressQuiz();
+            state.isTimedQuiz = state.currentQuizConfig.isTimed || false;
+            state.totalQuizTime = state.currentQuizConfig.totalTime || 0;
+            state.isAttemptLimited = state.currentQuizConfig.isAttemptLimited || false;
+            state.maxAttempts = state.currentQuizConfig.maxAttempts || 3;
+
+            closeImportedQuizModal(false, false);
+            showToast('Quiz started!', 2000, 'success');
+            startQuiz();
+        });
+    }
+    if (elements.importedQuizCustomizeBtn) {
+        elements.importedQuizCustomizeBtn.addEventListener('click', () => {
+            const quizKey = state.pendingImportedQuizKey;
+            if (!quizKey) return;
+            const quiz = state.quizHistory[quizKey];
+            if (!quiz) return;
+
+            state.editOriginView = 'start';
+            state.customizingQuizData = { key: quizKey, questions: quiz.questions, config: quiz.config, fileName: quiz.fileName };
+            closeImportedQuizModal(false, false);
+            setupCustomizeView(quiz.config, quiz.fileName);
+            setHistoryVisibility(false);
+            showView('start', false);
+            pushSubState('#edit');
+            showToast('Quiz settings loaded.', 2000, 'info');
+        });
+    }
+
     // Shared Quiz Received Action Modal Event Listeners
+    if (elements.sharedQuizModal) {
+        elements.sharedQuizModal.addEventListener('click', (e) => {
+            if (e.target === elements.sharedQuizModal) {
+                closeSharedQuizModal(false, true);
+            }
+        });
+    }
     if (elements.sharedQuizCloseBtn) {
         elements.sharedQuizCloseBtn.addEventListener('click', () => closeSharedQuizModal(false, true));
     }

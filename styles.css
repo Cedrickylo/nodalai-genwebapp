@@ -349,12 +349,35 @@
             gap: 0.45rem !important;
         }
 
+        /* Sticky Header Text Line-Wrap Blur Animation */
+        @keyframes headerTextMotionBlur {
+            0% {
+                filter: blur(0px);
+            }
+            35% {
+                filter: blur(1.8px);
+                opacity: 0.88;
+            }
+            75% {
+                filter: blur(0.8px);
+            }
+            100% {
+                filter: blur(0px);
+                opacity: 1;
+            }
+        }
+
         .page-sticky-header.is-stuck h2 {
             font-size: 1.15rem !important;
             line-height: 1.25 !important;
             word-break: break-word !important;
             overflow-wrap: anywhere !important;
             white-space: normal !important;
+            animation: headerTextMotionBlur 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .page-sticky-header.is-unstuck h2 {
+            animation: headerTextMotionBlur 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .page-sticky-header.is-stuck button[id*="back-btn"] {
@@ -419,6 +442,19 @@
             .page-sticky-header.is-stuck button[id*="back-btn"] {
                 padding: 0.35rem 0.4rem !important;
             }
+        }
+
+        @media (prefers-reduced-motion: reduce), (update: slow) {
+            .page-sticky-header.is-stuck h2,
+            .page-sticky-header.is-unstuck h2 {
+                animation: none !important;
+                filter: none !important;
+            }
+        }
+        .reduce-motion .page-sticky-header.is-stuck h2,
+        .reduce-motion .page-sticky-header.is-unstuck h2 {
+            animation: none !important;
+            filter: none !important;
         }
 
         .page-hero p {
