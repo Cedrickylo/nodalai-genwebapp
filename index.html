@@ -1565,7 +1565,8 @@
     <div id="mobile-menu-modal" class="hidden fixed inset-0 z-[100] flex flex-col md:hidden">
         <div class="flex-1 bg-black/60 backdrop-blur-sm" id="mobile-menu-backdrop"></div>
         <div class="w-full bg-gray-800 p-4 rounded-t-xl shadow-xl border-t border-gray-700">
-            <div class="flex justify-between items-center mb-4">
+            <div class="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-3 cursor-grab sheet-drag-handle md:hidden" aria-hidden="true"></div>
+            <div class="flex justify-between items-center mb-4 sheet-header">
                 <h3 class="text-lg font-semibold">Menu</h3>
                 <button id="mobile-menu-close-btn" class="text-gray-400 hover:text-white">Close</button>
             </div>
@@ -2986,8 +2987,8 @@
     <div id="history-actions-modal" class="hidden fixed inset-0 z-[110] flex flex-col justify-end md:justify-center md:items-center p-0 md:p-4 transition-all duration-200">
         <div class="fixed inset-0 bg-black/70 backdrop-blur-md" id="history-actions-backdrop"></div>
         <div class="w-full md:max-w-md bg-gray-800 border-t md:border border-gray-700 p-5 rounded-t-2xl md:rounded-2xl shadow-2xl space-y-4 relative z-10 max-h-[90vh] overflow-y-auto">
-            <div class="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-1 md:hidden" aria-hidden="true"></div>
-            <div class="flex justify-between items-center pb-2 border-b border-gray-700/60">
+            <div class="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-1 md:hidden cursor-grab sheet-drag-handle" aria-hidden="true"></div>
+            <div class="flex justify-between items-center pb-2 border-b border-gray-700/60 sheet-header">
                 <div class="min-w-0 flex-1 mr-3">
                     <h3 class="text-lg font-bold text-white leading-tight">Quiz Options</h3>
                     <p id="history-submenu-quiz-title" class="text-xs text-blue-400 font-medium truncate mt-0.5">Quiz Name</p>

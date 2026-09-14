@@ -38,6 +38,7 @@ import {
     pushSubState,
     extractShareId,
     closeModalWithAnimation,
+    openModalWithAnimation,
     updateResumeButtonVisibility,
     getGenerationCooldownWarning,
     confirmLeaveCustomizeIfActive
@@ -700,8 +701,8 @@ export function attachQuizEventListeners() {
             }
 
             // Menu open/close (mobile)
-            elements.mobileNavMenuBtn?.addEventListener('click', () => {
-                if (elements.mobileMenuModal) elements.mobileMenuModal.classList.remove('hidden');
+            elements.mobileNavMenuBtn?.addEventListener('click', (e) => {
+                if (elements.mobileMenuModal) openModalWithAnimation(elements.mobileMenuModal, e);
             });
             elements.mobileMenuCloseBtn?.addEventListener('click', () => {
                 closeModalWithAnimation(elements.mobileMenuModal);

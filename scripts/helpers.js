@@ -11,6 +11,7 @@ import {
     NODAL_STORAGE_AES_KEY
 } from './quiz/quizCrypto.js';
 import { isQuizAvailableOffline, isPuterSignedIn, getOfflineDownloads } from './quiz/quizOffline.js';
+import { attachBottomSheetGestures } from './bottomSheet.js';
 
 const {
     views,
@@ -98,6 +99,44 @@ const setVisibility = (element, isVisible) => {
     element.classList.toggle('hidden', !isVisible);
 };
 
+// Apple Spatial Consistency & Interruptibility Modal Controllers
+export function openModalWithAnimation(modal, triggerSource = null) {
+    if (!modal) return;
+    const modalEl = typeof modal === 'string' ? document.getElementById(modal) : modal;
+    if (!modalEl) return;
+
+    // Interrupt any active closing animation immediately
+    if (modalEl._closeTimer) {
+        clearTimeout(modalEl._closeTimer);
+        modalEl._closeTimer = null;
+    }
+    modalEl.classList.remove('modal-closing');
+    modalEl.classList.remove('hidden');
+
+    // Apple Spatial Consistency: Anchor modal transform-origin to trigger source
+    const cardEl = modalEl.querySelector('#account-card, [id$="-card"], .modal-content, > div:last-child');
+    if (cardEl && triggerSource) {
+        let clientX = null, clientY = null;
+        if (triggerSource instanceof MouseEvent || triggerSource instanceof PointerEvent || (triggerSource.clientX !== undefined && triggerSource.clientY !== undefined)) {
+            clientX = triggerSource.clientX;
+            clientY = triggerSource.clientY;
+        } else if (triggerSource instanceof HTMLElement) {
+            const r = triggerSource.getBoundingClientRect();
+            clientX = r.left + r.width / 2;
+            clientY = r.top + r.height / 2;
+        }
+
+        if (clientX !== null && clientY !== null) {
+            const cardRect = cardEl.getBoundingClientRect();
+            if (cardRect.width > 0 && cardRect.height > 0) {
+                const originX = Math.max(5, Math.min(95, ((clientX - cardRect.left) / cardRect.width) * 100));
+                const originY = Math.max(5, Math.min(95, ((clientY - cardRect.top) / cardRect.height) * 100));
+                cardEl.style.transformOrigin = `${originX.toFixed(1)}% ${originY.toFixed(1)}%`;
+            }
+        }
+    }
+}
+
 export function closeModalWithAnimation(modal, onClosed) {
     if (!modal) {
         if (typeof onClosed === 'function') onClosed();
@@ -109,17 +148,27 @@ export function closeModalWithAnimation(modal, onClosed) {
         return;
     }
     if (state.isReduceMotion) {
+        if (modalEl._closeTimer) {
+            clearTimeout(modalEl._closeTimer);
+            modalEl._closeTimer = null;
+        }
         modalEl.classList.add('hidden');
         modalEl.classList.remove('modal-closing');
         if (typeof onClosed === 'function') onClosed();
         return;
     }
-    if (modalEl.classList.contains('modal-closing')) return;
+
+    // Interruptibility: Cancel active closing timer if already running, smoothly re-target
+    if (modalEl._closeTimer) {
+        clearTimeout(modalEl._closeTimer);
+        modalEl._closeTimer = null;
+    }
 
     modalEl.classList.add('modal-closing');
-    setTimeout(() => {
+    modalEl._closeTimer = setTimeout(() => {
         modalEl.classList.add('hidden');
         modalEl.classList.remove('modal-closing');
+        modalEl._closeTimer = null;
         if (typeof onClosed === 'function') onClosed();
     }, 180);
 }
@@ -147,7 +196,7 @@ export function customConfirm(message, title = 'Confirm', acceptText = 'OK', can
             acceptConfirmBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
         }
 
-        confirmModal.classList.remove('hidden');
+        openModalWithAnimation(confirmModal);
 
         const cleanup = (result) => {
             closeModalWithAnimation(confirmModal, () => {
@@ -216,7 +265,7 @@ export function customTypingConfirm(message, title = 'Confirm Action', expectedT
             inputField.addEventListener('keydown', handleKeydown);
         }
 
-        confirmModal.classList.remove('hidden');
+        openModalWithAnimation(confirmModal);
         if (inputField) {
             setTimeout(() => {
                 inputField.focus();
@@ -266,7 +315,7 @@ export function customAlert(message, title = 'Alert', acceptText = 'OK') {
         acceptConfirmBtn.classList.replace('bg-red-600', 'bg-blue-600');
         acceptConfirmBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
 
-        confirmModal.classList.remove('hidden');
+        openModalWithAnimation(confirmModal);
 
         const cleanup = () => {
             closeModalWithAnimation(confirmModal, () => {
@@ -1434,7 +1483,7 @@ export async function openAccountAsModal(pushHash = true) {
         if (loggedOut) loggedOut.scrollTop = 0;
     }
 
-    elements.accountModalOverlay.classList.remove('hidden');
+    openModalWithAnimation(elements.accountModalOverlay);
     if (pushHash) {
         pushSubState('#account-modal', { view: getActiveViewId() });
     } else {
@@ -3999,7 +4048,7 @@ export async function openAiChoiceModal(config, fileName) {
     }
 
     if (elements.aiChoiceModal) {
-        elements.aiChoiceModal.classList.remove('hidden');
+        openModalWithAnimation(elements.aiChoiceModal);
         pushSubState('#ai-choice');
     }
 }
@@ -4057,7 +4106,7 @@ export async function openAiPromptModal(config, fileName, showNotice = false) {
     }
 
     if (elements.aiPromptModal) {
-        elements.aiPromptModal.classList.remove('hidden');
+        openModalWithAnimation(elements.aiPromptModal);
         if (window.location.hash === '#ai-choice') {
             clearSubState('#ai-choice');
             replaceSubState('#ai-prompt');
@@ -4309,6 +4358,73 @@ export function attachAuthHandlers() {
     }
 }
 
+// Apple Fluid Design System: Initializer for direct manipulation gestures and spatial consistency
+export function initAppleDesignInteractions() {
+    // 1. Mobile Menu Bottom Sheet 1:1 Direct Manipulation Drag
+    if (elements.mobileMenuModal) {
+        const backdrop = elements.mobileMenuBackdrop || document.getElementById('mobile-menu-backdrop');
+        const content = elements.mobileMenuModal.querySelector('div:last-child');
+        if (content) {
+            attachBottomSheetGestures({
+                modalContainer: elements.mobileMenuModal,
+                contentEl: content,
+                backdropEl: backdrop,
+                onClose: () => closeModalWithAnimation(elements.mobileMenuModal)
+            });
+        }
+    }
+
+    // 2. History Actions Bottom Sheet 1:1 Direct Manipulation Drag
+    if (elements.historyActionsModal) {
+        const backdrop = elements.historyActionsBackdrop || document.getElementById('history-actions-backdrop');
+        const content = elements.historyActionsModal.querySelector('div:last-child');
+        if (content) {
+            attachBottomSheetGestures({
+                modalContainer: elements.historyActionsModal,
+                contentEl: content,
+                backdropEl: backdrop,
+                onClose: () => {
+                    clearSubState('#history-actions');
+                    if (window.location.hash === '#history-actions') {
+                        const originHash = state.historyMenuOriginHash || viewToHash(state.historyMenuOriginView) || '#home';
+                        const originView = state.historyMenuOriginView || hashToView(originHash) || 'start';
+                        window.history.replaceState({ view: originView }, '', originHash);
+                        showView(originView, false);
+                    }
+                }
+            });
+        }
+    }
+
+    // 3. Apple Spatial Consistency: Trigger-Anchored Origins
+    const originTriggers = [
+        { id: 'desktop-nav-account-btn', modalId: 'account-modal-overlay', cardId: 'account-card' },
+        { id: 'mobile-menu-account-btn', modalId: 'account-modal-overlay', cardId: 'account-card' },
+        { id: 'account-manage-btn', modalId: 'account-modal-overlay', cardId: 'account-card' },
+        { id: 'mobile-nav-menu-btn', modalId: 'mobile-menu-modal' }
+    ];
+
+    originTriggers.forEach(({ id, modalId, cardId }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('pointerdown', (e) => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    const card = cardId ? modal.querySelector(`#${cardId}`) : modal.querySelector('div:last-child');
+                    if (card && e.clientX && e.clientY) {
+                        const rect = card.getBoundingClientRect();
+                        if (rect.width > 0 && rect.height > 0) {
+                            const originX = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+                            const originY = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
+                            card.style.transformOrigin = `${originX.toFixed(1)}% ${originY.toFixed(1)}%`;
+                        }
+                    }
+                }
+            }, { passive: true });
+        }
+    });
+}
+
 export function initializeAppState() {
     purgeLegacyLocalStorageKeys();
     state.quizHistory = getEncryptedStorageItem(DB_NAME, state.quizHistory || {});
@@ -4320,6 +4436,7 @@ export function initializeAppState() {
     setReduceMotion(localStorage.getItem('nodal_reduce_motion') === 'true');
     initDeviceOrientationLockCheck();
     updateResumeButtonVisibility();
+    initAppleDesignInteractions();
 }
 
 /**
@@ -4674,7 +4791,7 @@ export async function openHistoryActionsModal(quizKey, pushHash = true) {
         elements.historySubmenuQuizTitle.textContent = title;
     }
     updateHistorySubmenuOfflineButton(quizKey);
-    elements.historyActionsModal.classList.remove('hidden');
+    openModalWithAnimation(elements.historyActionsModal);
     if (pushHash) {
         pushSubState('#history-actions', { 
             quizKey, 
