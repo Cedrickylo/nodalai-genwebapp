@@ -36,6 +36,7 @@ import {
     openImportedQuizModal,
     setupCustomizeView,
     pushSubState,
+    clearSubState,
     extractShareId,
     closeModalWithAnimation,
     openModalWithAnimation,
@@ -1128,6 +1129,7 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuOfflineBtn) {
         elements.historySubmenuOfflineBtn.addEventListener('click', async () => {
             const key = state.activeHistoryMenuKey;
+            clearSubState('#history-actions');
             if (elements.historyActionsModal) {
                 elements.historyActionsModal.classList.add('hidden');
             }
@@ -1148,6 +1150,7 @@ export function attachQuizEventListeners() {
                 : (state.historyMenuOriginHash === '#downloads' || activeV === 'downloads')
                 ? 'downloads'
                 : 'history';
+            clearSubState('#history-actions');
             if (elements.historyActionsModal) {
                 elements.historyActionsModal.classList.add('hidden');
             }
@@ -1183,6 +1186,7 @@ export function attachQuizEventListeners() {
     if (elements.historySubmenuEditBtn) {
         elements.historySubmenuEditBtn.addEventListener('click', () => {
             const key = state.activeHistoryMenuKey;
+            clearSubState('#history-actions');
             if (elements.historyActionsModal) {
                 elements.historyActionsModal.classList.add('hidden');
             }

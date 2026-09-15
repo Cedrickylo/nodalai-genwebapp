@@ -12,6 +12,7 @@ import {
 } from './quiz/quizCrypto.js';
 import { isQuizAvailableOffline, isPuterSignedIn, getOfflineDownloads } from './quiz/quizOffline.js';
 import { attachBottomSheetGestures } from './bottomSheet.js';
+import { initializeAudio as initNativeAudio } from './quizAudio.js';
 
 const {
     views,
@@ -114,7 +115,7 @@ export function openModalWithAnimation(modal, triggerSource = null) {
     modalEl.classList.remove('hidden');
 
     // Apple Spatial Consistency: Anchor modal transform-origin to trigger source
-    const cardEl = modalEl.querySelector('#account-card, [id$="-card"], .modal-content, > div:last-child');
+    const cardEl = modalEl.querySelector('#account-card, [id$="-card"], .modal-content') || modalEl.lastElementChild;
     if (cardEl && triggerSource) {
         let clientX = null, clientY = null;
         if (triggerSource instanceof MouseEvent || triggerSource instanceof PointerEvent || (triggerSource.clientX !== undefined && triggerSource.clientY !== undefined)) {
@@ -2664,10 +2665,17 @@ export async function handlePopState(event) {
             }
         }
 
-        // 9. Re-open Modals when popping back into them
+        // 9. Modals when popping back: Options modal is NEVER re-opened on back navigation
         if (targetHash === '#history-actions') {
-            const quizKey = event.state?.quizKey || state.activeHistoryMenuKey || state.lastHistoryMenuKey || state.currentStatsQuizKey || localStorage.getItem('nodal_last_stats_key');
+            if (elements.historyActionsModal) {
+                elements.historyActionsModal.classList.add('hidden');
+                elements.historyActionsModal.classList.remove('modal-closing');
+            }
+            clearSubState('#history-actions');
+
             const originView = event.state?.view || state.historyMenuOriginView || (state.historyMenuOriginHash === '#downloads' ? 'downloads' : (state.historyMenuOriginHash === '#home' ? 'start' : 'history-fullscreen'));
+            const originHash = state.historyMenuOriginHash || (originView === 'downloads' ? '#downloads' : (originView === 'start' ? '#home' : '#history'));
+
             if (originView === 'history-fullscreen') {
                 state.historyOrigin = 'nav';
                 const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
@@ -2683,11 +2691,18 @@ export async function handlePopState(event) {
             } else {
                 showView(originView, false);
             }
-            if (quizKey && state.quizHistory && state.quizHistory[quizKey]) {
-                state.activeHistoryMenuKey = quizKey;
-                state.lastHistoryMenuKey = quizKey;
-                await openHistoryActionsModal(quizKey, false);
+
+            const scrollY = state.historyMenuPreScrollY ?? state.preModalScrollY ?? event.state?.preScrollY;
+            if (scrollY !== null && scrollY !== undefined) {
+                window.scrollTo({ top: scrollY, behavior: 'instant' });
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: scrollY, behavior: 'instant' });
+                });
+                state.historyMenuPreScrollY = null;
+                state.preModalScrollY = null;
             }
+
+            window.history.replaceState({ view: originView }, '', originHash);
             return;
         }
 
@@ -2900,14 +2915,11 @@ export async function restoreRouteFromHash(hash) {
         showView('start', false);
         await openAccountAsModal(false);
     } else if (clean === 'history-actions') {
-        const lastKey = state.activeHistoryMenuKey || state.lastHistoryMenuKey || localStorage.getItem('nodal_last_stats_key');
         state.historyOrigin = 'nav';
         const { showAllHistoryFullScreen } = await import('./quiz/quizHistory.js');
         showAllHistoryFullScreen(false);
         updateNavHighlights('history');
-        if (lastKey && state.quizHistory && state.quizHistory[lastKey]) {
-            await openHistoryActionsModal(lastKey, false);
-        }
+        window.history.replaceState({ view: 'history-fullscreen' }, '', '#history');
     } else if (clean === 'statistics') {
         const lastKey = state.currentStatsQuizKey || localStorage.getItem('nodal_last_stats_key');
         if (lastKey && state.quizHistory && state.quizHistory[lastKey]) {
@@ -4176,19 +4188,7 @@ export function closePasteJsonModal(fromPopState = false) {
 }
 
 export function initializeAudio() {
-    if (state.correctSound && state.incorrectSound) return;
-    try {
-        if (typeof Tone !== 'undefined') {
-            if (!state.correctSound) {
-                state.correctSound = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
-            }
-            if (!state.incorrectSound) {
-                state.incorrectSound = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
-            }
-        }
-    } catch (e) {
-        // Silently catch audio context initialization issues
-    }
+    initNativeAudio();
 }
 
 export async function loginToPuter() {

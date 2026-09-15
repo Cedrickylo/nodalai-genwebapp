@@ -140,7 +140,8 @@ async function initApp() {
         // ==================================================================
         // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v57)
         // ==================================================================
-        if ('serviceWorker' in navigator) {
+        const isSupportedSWProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        if ('serviceWorker' in navigator && isSupportedSWProtocol) {
             const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });

@@ -8,6 +8,7 @@ import {
     getQuizTakes,
     setupScrollReactiveHeader,
     pushSubState,
+    replaceSubState,
     clearSubState,
     closeModalWithAnimation,
     getQuizTypeLabel,
@@ -397,7 +398,12 @@ export function openOfflineModal(quizKey, pushHash = true) {
 
     elements.offlineModal.classList.remove('hidden');
     if (pushHash) {
-        pushSubState('#offline-modal', { quizKey, view: getActiveViewId() });
+        if (window.location.hash === '#history-actions') {
+            clearSubState('#history-actions');
+            replaceSubState('#offline-modal', { quizKey, view: getActiveViewId() });
+        } else {
+            pushSubState('#offline-modal', { quizKey, view: getActiveViewId() });
+        }
     } else {
         state.activeSubState = '#offline-modal';
         state.authorizedSubStates = state.authorizedSubStates || new Set();

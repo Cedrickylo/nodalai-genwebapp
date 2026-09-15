@@ -22,12 +22,17 @@ export function openQuizStatistics(quizKey, pushHash = true, origin = null) {
     renderQuizStatistics(quizKey);
     if (pushHash) {
         if (window.location.hash !== '#statistics') {
-            window.history.pushState({ 
+            const stateObj = { 
                 view: 'statistics', 
                 quizKey: quizKey, 
                 origin: state.statisticsOrigin, 
                 fromApp: true 
-            }, '', '#statistics');
+            };
+            if (window.location.hash === '#history-actions') {
+                window.history.replaceState(stateObj, '', '#statistics');
+            } else {
+                window.history.pushState(stateObj, '', '#statistics');
+            }
         }
         showView('statistics', false);
     } else {

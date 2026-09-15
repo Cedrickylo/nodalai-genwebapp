@@ -16,6 +16,8 @@ import {
     setupScrollReactiveHeader,
     setHistoryVisibility,
     pushSubState,
+    replaceSubState,
+    clearSubState,
     getActiveViewId,
     showLoadingOverlay,
     hideLoadingOverlay,
@@ -227,7 +229,12 @@ export async function handleHistoryClick(e) {
         setupCustomizeView(state.customizingQuizData.config, quizData.fileName);
         setHistoryVisibility(false);
         showView('start', false);
-        pushSubState('#edit');
+        if (window.location.hash === '#history-actions') {
+            clearSubState('#history-actions');
+            replaceSubState('#edit');
+        } else {
+            pushSubState('#edit');
+        }
     } else if (action === 'share') {
         const originView = getActiveViewId();
         const originHash = window.location.hash || viewToHash(originView) || '#home';

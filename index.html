@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Nodal AI</title>
     <!-- Web App Manifest & Standalone App Meta Tags -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111827">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Nodal AI">
@@ -13,12 +13,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nodal AI">
-    <link rel="apple-touch-icon" href="/icons/icon-180.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
     <!-- App Icons -->
-    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <script>
         // Suppress benign third-party library advisory and deprecation messages
         (function() {
@@ -46,7 +46,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
         // Suppress Puter ASCII banner and promotional console messages
@@ -124,7 +123,8 @@
         (function() {
             var isUpdating = false;
             try { isUpdating = sessionStorage.getItem('nodal_is_updating') === 'true'; } catch(e) {}
-            var isFirstLoad = ('serviceWorker' in navigator && !navigator.serviceWorker.controller);
+            var isSupportedSWProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+            var isFirstLoad = (isSupportedSWProtocol && 'serviceWorker' in navigator && !navigator.serviceWorker.controller);
 
             if (isUpdating || isFirstLoad) {
                 var initLoader = document.getElementById('app-init-loader');
@@ -144,8 +144,8 @@
                 }
             }
 
-            // Early check for waiting service worker
-            if ('serviceWorker' in navigator) {
+            // Early check for waiting service worker (supported secure protocols only)
+            if (isSupportedSWProtocol && 'serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistration().then(function(reg) {
                     if (reg && (reg.waiting || (reg.installing && navigator.serviceWorker.controller))) {
                         var initLoader = document.getElementById('app-init-loader');
