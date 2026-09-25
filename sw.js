@@ -1,12 +1,14 @@
-// Incremented to v57 for metadata marquee 3-second front pause cycle
-const CACHE_NAME = 'nodal-ai-cache-v57';
+// Incremented to v58 for CSP Puter S3 storage whitelist and quiz generation security policy fix
+const CACHE_NAME = 'nodal-ai-cache-v58';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
 const LOCAL_ASSETS_TO_CACHE = [
     '/',
     '/index.html',
+    '/404.html',
     '/manifest.json',
+    '/robots.txt',
     '/styles.css',
     '/scripts/main.js',
     '/scripts/helpers.js',
@@ -28,7 +30,9 @@ const LOCAL_ASSETS_TO_CACHE = [
     '/icons/icon-512.png',
     '/icons/icon-maskable-192.png',
     '/icons/icon-maskable-512.png',
-    '/icons/icon-180.png'
+    '/icons/icon-180.png',
+    '/icons/og-preview.png',
+    '/icons/og-preview.jpg'
 ];
 
 // List of allowed external CDNs to be automatically cached dynamically at runtime
@@ -42,14 +46,14 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v22] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v58] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             for (const asset of LOCAL_ASSETS_TO_CACHE) {
                 try {
                     await cache.add(asset);
                 } catch (err) {
-                    console.warn(`[Service Worker v22] Failed to pre-cache ${asset}:`, err);
+                    console.warn(`[Service Worker v58] Failed to pre-cache ${asset}:`, err);
                 }
             }
         }).then(() => self.skipWaiting())
@@ -58,13 +62,13 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v22] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v58] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME && cache !== OFFLINE_QUIZ_CACHE) {
-                        console.log('[Service Worker v22] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v58] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -77,7 +81,7 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v22] Notification warning during activate:', err);
+                console.warn('[Service Worker v58] Notification warning during activate:', err);
             }
         })
     );
@@ -169,16 +173,35 @@ async function fetchWithTimeout(request, timeoutMs = 2500) {
  * @returns {Promise<Response>}
  */
 async function handleLocalRequest(request, event) {
-    // 1. Check local cache first
+    // 1. Navigation requests: Network-First with fast timeout guard so that
+    // browsers always receive the freshest HTML and updated security/CSP headers when online.
+    if (request.mode === 'navigate') {
+        try {
+            const networkResponse = await fetchWithTimeout(request, 2000);
+            if (networkResponse && networkResponse.status === 200) {
+                const responseToCache = networkResponse.clone();
+                const cache = await caches.open(CACHE_NAME);
+                cache.put(request, responseToCache).catch(() => {});
+                return networkResponse;
+            }
+        } catch (netErr) {
+            // Offline, packet drop, or timeout: fall back to cached copy
+        }
+
+        const cachedNav = (await caches.match(request)) || (await caches.match('/index.html')) || (await caches.match('/'));
+        if (cachedNav) {
+            return cachedNav;
+        }
+
+        return new Response('Offline resource unavailable.', {
+            status: 503,
+            statusText: 'Service Unavailable'
+        });
+    }
+
+    // 2. Static sub-resources (JS, CSS, images, icons): Cache-First / Stale-While-Revalidate
     const cachedResponse = await caches.match(request);
-
-    // If navigation request, check for exact match or cached /index.html / /
-    const fallbackCached = (request.mode === 'navigate')
-        ? (cachedResponse || await caches.match('/index.html') || await caches.match('/'))
-        : cachedResponse;
-
-    if (fallbackCached) {
-        // Cached copy exists: return immediately to prevent infinite loading or hanging on blocked modems
+    if (cachedResponse) {
         if (event && event.waitUntil) {
             event.waitUntil((async () => {
                 try {
@@ -188,14 +211,14 @@ async function handleLocalRequest(request, event) {
                         await cache.put(request, networkResponse);
                     }
                 } catch (e) {
-                    // Slow network, modem blocked, or offline: ignore background update silently
+                    // Silently ignore background revalidation failures
                 }
             })());
         }
-        return fallbackCached;
+        return cachedResponse;
     }
 
-    // 2. Not cached yet (e.g. first visit before install completes)
+    // 3. Not yet cached: fetch over network with timeout guard
     try {
         const networkResponse = await fetchWithTimeout(request, 4000);
         if (networkResponse && networkResponse.status === 200) {
@@ -205,10 +228,6 @@ async function handleLocalRequest(request, event) {
         }
         return networkResponse;
     } catch (netErr) {
-        if (request.mode === 'navigate') {
-            const indexFallback = await caches.match('/index.html') || await caches.match('/');
-            if (indexFallback) return indexFallback;
-        }
         return new Response('Offline resource unavailable.', {
             status: 503,
             statusText: 'Service Unavailable'

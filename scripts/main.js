@@ -139,21 +139,21 @@ async function initApp() {
         }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v57)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v58)
         // ==================================================================
         const isSupportedSWProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
         if ('serviceWorker' in navigator && isSupportedSWProtocol) {
             const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW v57] ServiceWorker registered with scope:', reg.scope);
+                    console.log('[SW v58] ServiceWorker registered with scope:', reg.scope);
 
                     // Proactively check for updates immediately
                     reg.update().catch(() => {});
 
                     // Check if an update is already waiting to activate
                     if (reg.waiting && navigator.serviceWorker.controller) {
-                        console.log('[SW v57] Existing waiting worker found, activating...');
+                        console.log('[SW v58] Existing waiting worker found, activating...');
                         sessionStorage.setItem('nodal_is_updating', 'true');
                         showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
                         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -163,13 +163,13 @@ async function initApp() {
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         if (newWorker && navigator.serviceWorker.controller) {
-                            console.log('[SW v41] Service worker update found, displaying update loader...');
+                            console.log('[SW v58] Service worker update found, displaying update loader...');
                             sessionStorage.setItem('nodal_is_updating', 'true');
                             showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
 
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed') {
-                                    console.log('[SW v41] New version installed, triggering skipWaiting...');
+                                    console.log('[SW v58] New version installed, triggering skipWaiting...');
                                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                                 } else if (newWorker.state === 'redundant') {
                                     sessionStorage.removeItem('nodal_is_updating');
@@ -179,7 +179,7 @@ async function initApp() {
                         }
                     });
                 } catch (swErr) {
-                    console.warn('[SW v41] ServiceWorker registration failed:', swErr);
+                    console.warn('[SW v58] ServiceWorker registration failed:', swErr);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
@@ -187,21 +187,19 @@ async function initApp() {
 
             initServiceWorker();
 
-            // When new SW takes controller claim
+            // When new SW takes controller claim, cleanly reload to ensure new code & headers are active
+            let hasReloaded = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('[SW v41] Controller changed - new version active');
-                if (sessionStorage.getItem('nodal_is_updating') === 'true') {
-                    // Reload so new code boots cleanly with the pre-update loader active
+                console.log('[SW v58] Controller changed - reloading to apply latest version');
+                if (!hasReloaded) {
+                    hasReloaded = true;
                     window.location.reload();
-                } else {
-                    hideAppLoader();
-                    showToast('Nodal AI updated to the latest version!');
                 }
             });
 
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'SW_ACTIVATED') {
-                    console.log('[SW v41] Active version:', event.data.version);
+                    console.log('[SW v58] Active version:', event.data.version);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
