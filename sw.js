@@ -1,5 +1,5 @@
-// Incremented to v58 for CSP Puter S3 storage whitelist and quiz generation security policy fix
-const CACHE_NAME = 'nodal-ai-cache-v58';
+// Incremented to v59 for CDN connect-src whitelist and resilient fallback
+const CACHE_NAME = 'nodal-ai-cache-v59';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -46,14 +46,14 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v58] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v59] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             for (const asset of LOCAL_ASSETS_TO_CACHE) {
                 try {
                     await cache.add(asset);
                 } catch (err) {
-                    console.warn(`[Service Worker v58] Failed to pre-cache ${asset}:`, err);
+                    console.warn(`[Service Worker v59] Failed to pre-cache ${asset}:`, err);
                 }
             }
         }).then(() => self.skipWaiting())
@@ -62,13 +62,13 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v58] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v59] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME && cache !== OFFLINE_QUIZ_CACHE) {
-                        console.log('[Service Worker v58] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v59] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -81,7 +81,7 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v58] Notification warning during activate:', err);
+                console.warn('[Service Worker v59] Notification warning during activate:', err);
             }
         })
     );
@@ -256,10 +256,16 @@ async function handleCDNRequest(request) {
         }
         return networkResponse;
     } catch (err) {
-        return cachedResponse || new Response('CDN resource unavailable offline.', {
-            status: 503,
-            statusText: 'Service Unavailable'
-        });
+        if (cachedResponse) return cachedResponse;
+        // Attempt native browser fetch pass-through before falling back to 503
+        try {
+            return await fetch(request);
+        } catch (passErr) {
+            return new Response('CDN resource unavailable offline.', {
+                status: 503,
+                statusText: 'Service Unavailable'
+            });
+        }
     }
 }
 
