@@ -712,17 +712,13 @@ async function writePuterCloudBackup(fileName, contentString) {
         }
         return true;
     } catch (writeErr) {
-        console.warn(`Puter FS write exception on ${fileName}, trying unlink fallback:`, writeErr);
+        console.warn(`Puter FS write exception on ${fileName}, retrying direct write:`, writeErr);
         try {
-            if (typeof puter.fs.delete === 'function') {
-                await puter.fs.delete(fileName).catch(() => {});
-            } else if (typeof puter.fs.unlink === 'function') {
-                await puter.fs.unlink(fileName).catch(() => {});
-            }
-            await puter.fs.write(fileName, contentString);
+            const retryRes = await puter.fs.write(fileName, contentString, { overwrite: true });
+            if (retryRes && retryRes.error) return false;
             return true;
-        } catch (unlinkErr) {
-            console.error(`Puter FS fallback write failed on ${fileName}:`, unlinkErr);
+        } catch (retryErr) {
+            console.error(`Puter FS write failed on ${fileName}:`, retryErr);
             return false;
         }
     }
@@ -3921,7 +3917,7 @@ export function buildQuizSystemPrompt(config, fileName, fileContent = '') {
         ? `\n\n----------------------------------------\nSource Text / Reviewer:\n${effectiveContent}`
         : `\n\n----------------------------------------\nSource Text / Reviewer:\n[PASTE YOUR SOURCE TEXT / REVIEWER MATERIAL HERE]`;
 
-    return `System Prompt: JSON Quiz Generator
+    return `Instructional Specification: JSON Quiz Generator
 
 Role & Task:
 Act as an expert instructional designer and JSON architect. Your task is to generate a quiz based strictly on the provided text reviewer.

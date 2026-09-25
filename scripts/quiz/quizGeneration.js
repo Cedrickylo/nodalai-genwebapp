@@ -489,7 +489,7 @@ export async function startNodalAiGeneration(config, fileName) {
 
             // Build non-duplication prompt containing the full list of existing questions
             const existingQuestionsList = parsedQuiz.questions.map((q, idx) => `${idx + 1}. ${q.question}`).join('\n');
-            const missingPrompt = `System Prompt: Additional Quiz Questions Generator
+            const missingPrompt = `Instructional Specification: Additional Quiz Questions Generator
 
 Role & Task:
 You previously generated ${parsedQuiz.questions.length} questions for a quiz, but the user requested ${targetCount} questions.
