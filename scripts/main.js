@@ -79,7 +79,20 @@ export function hideAppLoader() {
 }
 
 async function initApp() {
-    if (window.puter) puter.quiet = true;
+    if (window.puter) {
+        puter.quiet = true;
+        if (window.puter.fs) {
+            try {
+                Object.defineProperty(window.puter.fs, 'signedBatchWriteSupported', {
+                    get() { return false; },
+                    set() {},
+                    configurable: true
+                });
+            } catch (e) {
+                window.puter.fs.signedBatchWriteSupported = false;
+            }
+        }
+    }
     try {
         // Bind user gesture to initialize and resume AudioContext (Tone.js)
         function bindUserGestureToStartAudio() {
@@ -91,8 +104,11 @@ async function initApp() {
                     }
                 } catch (e) {}
             };
+            window.addEventListener('pointerdown', resumeAudio, { once: true, passive: true });
             window.addEventListener('click', resumeAudio, { once: true, passive: true });
             window.addEventListener('keydown', resumeAudio, { once: true, passive: true });
+            window.addEventListener('touchstart', resumeAudio, { once: true, passive: true });
+        }
             window.addEventListener('touchstart', resumeAudio, { once: true, passive: true });
         }
         bindUserGestureToStartAudio();
@@ -139,21 +155,21 @@ async function initApp() {
         }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v59)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v60)
         // ==================================================================
         const isSupportedSWProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
         if ('serviceWorker' in navigator && isSupportedSWProtocol) {
             const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW v59] ServiceWorker registered with scope:', reg.scope);
+                    console.log('[SW v60] ServiceWorker registered with scope:', reg.scope);
 
                     // Proactively check for updates immediately
                     reg.update().catch(() => {});
 
                     // Check if an update is already waiting to activate
                     if (reg.waiting && navigator.serviceWorker.controller) {
-                        console.log('[SW v59] Existing waiting worker found, activating...');
+                        console.log('[SW v60] Existing waiting worker found, activating...');
                         sessionStorage.setItem('nodal_is_updating', 'true');
                         showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
                         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -163,13 +179,13 @@ async function initApp() {
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         if (newWorker && navigator.serviceWorker.controller) {
-                            console.log('[SW v59] Service worker update found, displaying update loader...');
+                            console.log('[SW v60] Service worker update found, displaying update loader...');
                             sessionStorage.setItem('nodal_is_updating', 'true');
                             showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
 
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed') {
-                                    console.log('[SW v59] New version installed, triggering skipWaiting...');
+                                    console.log('[SW v60] New version installed, triggering skipWaiting...');
                                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                                 } else if (newWorker.state === 'redundant') {
                                     sessionStorage.removeItem('nodal_is_updating');
@@ -179,7 +195,7 @@ async function initApp() {
                         }
                     });
                 } catch (swErr) {
-                    console.warn('[SW v59] ServiceWorker registration failed:', swErr);
+                    console.warn('[SW v60] ServiceWorker registration failed:', swErr);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
@@ -190,7 +206,7 @@ async function initApp() {
             // When new SW takes controller claim, cleanly reload to ensure new code & headers are active
             let hasReloaded = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('[SW v59] Controller changed - reloading to apply latest version');
+                console.log('[SW v60] Controller changed - reloading to apply latest version');
                 if (!hasReloaded) {
                     hasReloaded = true;
                     window.location.reload();
@@ -199,7 +215,7 @@ async function initApp() {
 
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'SW_ACTIVATED') {
-                    console.log('[SW v59] Active version:', event.data.version);
+                    console.log('[SW v60] Active version:', event.data.version);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }

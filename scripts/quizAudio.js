@@ -30,7 +30,7 @@ export async function resumeAudioContext() {
     const ctx = getAudioContext();
     if (ctx && ctx.state === 'suspended') {
         try {
-            await ctx.resume();
+            await ctx.resume().catch(() => {});
         } catch (e) {}
     }
 }

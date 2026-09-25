@@ -703,6 +703,20 @@ async function parsePuterFSFile(fileItem) {
 
 async function writePuterCloudBackup(fileName, contentString) {
     if (typeof puter === 'undefined' || !window.puter || !puter.fs) return false;
+    
+    // Ensure signed batch operations are bypassed in favor of direct same-origin /batch API
+    if (window.puter.fs.signedBatchWriteSupported !== false) {
+        try {
+            Object.defineProperty(window.puter.fs, 'signedBatchWriteSupported', {
+                get() { return false; },
+                set() {},
+                configurable: true
+            });
+        } catch (e) {
+            window.puter.fs.signedBatchWriteSupported = false;
+        }
+    }
+
     try {
         // Attempt write with overwrite: true and dedupe_name: false
         const res = await puter.fs.write(fileName, contentString, { overwrite: true, dedupe_name: false });
@@ -1160,18 +1174,24 @@ export async function calculatePuterStorageUsage() {
         await cleanupLingeringLegacyCloudFiles().catch(() => {});
 
         // 1. Files in user's app directory on Puter FS
+        let readdirSucceeded = false;
         if (puter.fs && typeof puter.fs.readdir === 'function') {
-            const items = await puter.fs.readdir('./').catch(() => []);
-            if (Array.isArray(items)) {
-                for (const it of items) {
-                    totalBytes += (typeof it.size === 'number' ? it.size : 0);
-                    fileCount++;
+            try {
+                const items = await puter.fs.readdir('./');
+                if (Array.isArray(items)) {
+                    readdirSucceeded = true;
+                    for (const it of items) {
+                        totalBytes += (typeof it.size === 'number' ? it.size : 0);
+                        fileCount++;
+                    }
                 }
+            } catch (rdErr) {
+                readdirSucceeded = false;
             }
         }
 
-        // 2. Fallback check for known sync files via stat if readdir was empty
-        if (totalBytes === 0 && puter.fs && typeof puter.fs.stat === 'function') {
+        // 2. Only check stat as fallback if readdir failed or is unavailable
+        if (!readdirSucceeded && totalBytes === 0 && puter.fs && typeof puter.fs.stat === 'function') {
             const syncStat = await puter.fs.stat(PUTER_FS_SYNC_FILE, { returnSize: true }).catch(() => null);
             if (syncStat?.size) {
                 totalBytes += syncStat.size;

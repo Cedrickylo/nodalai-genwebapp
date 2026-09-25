@@ -1,5 +1,5 @@
-// Incremented to v59 for CDN connect-src whitelist and resilient fallback
-const CACHE_NAME = 'nodal-ai-cache-v59';
+// Incremented to v60 for Puter /batch direct sync, navigation header fresh-fetch, and unpkg support
+const CACHE_NAME = 'nodal-ai-cache-v60';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -41,19 +41,23 @@ const ALLOWED_CDN_ORIGINS = [
     'fonts.googleapis.com',
     'fonts.gstatic.com',
     'cdnjs.cloudflare.com',
-    'js.puter.com'
+    'js.puter.com',
+    'unpkg.com'
 ];
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v59] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v60] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             for (const asset of LOCAL_ASSETS_TO_CACHE) {
                 try {
-                    await cache.add(asset);
+                    const res = await fetch(asset, { cache: 'reload' });
+                    if (res && res.ok) {
+                        await cache.put(asset, res);
+                    }
                 } catch (err) {
-                    console.warn(`[Service Worker v59] Failed to pre-cache ${asset}:`, err);
+                    console.warn(`[Service Worker v60] Failed to pre-cache ${asset}:`, err);
                 }
             }
         }).then(() => self.skipWaiting())
@@ -62,13 +66,13 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v59] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v60] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME && cache !== OFFLINE_QUIZ_CACHE) {
-                        console.log('[Service Worker v59] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v60] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -81,7 +85,7 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v59] Notification warning during activate:', err);
+                console.warn('[Service Worker v60] Notification warning during activate:', err);
             }
         })
     );
@@ -173,11 +177,15 @@ async function fetchWithTimeout(request, timeoutMs = 2500) {
  * @returns {Promise<Response>}
  */
 async function handleLocalRequest(request, event) {
-    // 1. Navigation requests: Network-First with fast timeout guard so that
+    // 1. Navigation requests: Network-First with direct fetch so that
     // browsers always receive the freshest HTML and updated security/CSP headers when online.
     if (request.mode === 'navigate') {
         try {
-            const networkResponse = await fetchWithTimeout(request, 2000);
+            // Using request.url string avoids TypeError in browsers that reject init options on mode: 'navigate'
+            const networkResponse = await fetch(request.url, {
+                cache: 'no-cache',
+                headers: { 'Accept': 'text/html' }
+            });
             if (networkResponse && networkResponse.status === 200) {
                 const responseToCache = networkResponse.clone();
                 const cache = await caches.open(CACHE_NAME);

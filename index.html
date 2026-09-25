@@ -47,11 +47,21 @@
             console.warn = function(...args) {
                 const msg = args[0] ? String(args[0]) : '';
                 if (msg.includes('cdn.tailwindcss.com should not be used in production') ||
-                    msg.includes('ScriptProcessorNode is deprecated')) {
+                    msg.includes('ScriptProcessorNode is deprecated') ||
+                    msg.includes('The AudioContext was not allowed to start')) {
                     return;
                 }
                 origWarn.apply(console, args);
             };
+
+            // Diagnostic listener to log exact details of any Content Security Policy violation
+            document.addEventListener('securitypolicyviolation', function(e) {
+                console.warn('[CSP Violation Logged]', {
+                    blockedURI: e.blockedURI,
+                    violatedDirective: e.violatedDirective,
+                    effectiveDirective: e.effectiveDirective
+                });
+            });
 
             const origLog = console.log;
             console.log = function(...args) {
@@ -88,6 +98,17 @@
     <script>
         if (window.puter) {
             window.puter.quiet = true;
+            if (window.puter.fs) {
+                try {
+                    Object.defineProperty(window.puter.fs, 'signedBatchWriteSupported', {
+                        get() { return false; },
+                        set() {},
+                        configurable: true
+                    });
+                } catch (e) {
+                    window.puter.fs.signedBatchWriteSupported = false;
+                }
+            }
         }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
