@@ -1,5 +1,5 @@
-// Incremented to v60 for Puter /batch direct sync, navigation header fresh-fetch, and unpkg support
-const CACHE_NAME = 'nodal-ai-cache-v60';
+// Incremented to v61 to deliver syntax fix, valid CSP host sources, and api.puter.com WebSocket support
+const CACHE_NAME = 'nodal-ai-cache-v61';
 const OFFLINE_QUIZ_CACHE = 'nodal-offline-quizzes-v1';
 
 // Pre-cache core local files to ensure stable installation and reliable offline mode
@@ -47,7 +47,7 @@ const ALLOWED_CDN_ORIGINS = [
 
 // 1. Install Event: Pre-cache local application framework files & immediately skip waiting
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker v60] Installing & Pre-caching Core Assets');
+    console.log('[Service Worker v61] Installing & Pre-caching Core Assets');
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             for (const asset of LOCAL_ASSETS_TO_CACHE) {
@@ -57,7 +57,7 @@ self.addEventListener('install', (event) => {
                         await cache.put(asset, res);
                     }
                 } catch (err) {
-                    console.warn(`[Service Worker v60] Failed to pre-cache ${asset}:`, err);
+                    console.warn(`[Service Worker v61] Failed to pre-cache ${asset}:`, err);
                 }
             }
         }).then(() => self.skipWaiting())
@@ -66,13 +66,13 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event: Flush deprecated caches from previous versions and claim clients
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker v60] Activating & Evicting Deprecated Caches');
+    console.log('[Service Worker v61] Activating & Evicting Deprecated Caches');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME && cache !== OFFLINE_QUIZ_CACHE) {
-                        console.log('[Service Worker v60] Evicting Deprecated Cache:', cache);
+                        console.log('[Service Worker v61] Evicting Deprecated Cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -85,7 +85,7 @@ self.addEventListener('activate', (event) => {
                     client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
                 }
             } catch (err) {
-                console.warn('[Service Worker v60] Notification warning during activate:', err);
+                console.warn('[Service Worker v61] Notification warning during activate:', err);
             }
         })
     );

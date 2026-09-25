@@ -109,8 +109,6 @@ async function initApp() {
             window.addEventListener('keydown', resumeAudio, { once: true, passive: true });
             window.addEventListener('touchstart', resumeAudio, { once: true, passive: true });
         }
-            window.addEventListener('touchstart', resumeAudio, { once: true, passive: true });
-        }
         bindUserGestureToStartAudio();
 
         // Check and migrate legacy unencrypted data with fullscreen loader if needed
@@ -155,21 +153,21 @@ async function initApp() {
         }
 
         // ==================================================================
-        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v60)
+        // SERVICE WORKER REGISTRATION & PWA LIFECYCLE (v61)
         // ==================================================================
         const isSupportedSWProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
         if ('serviceWorker' in navigator && isSupportedSWProtocol) {
             const initServiceWorker = async () => {
                 try {
                     const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-                    console.log('[SW v60] ServiceWorker registered with scope:', reg.scope);
+                    console.log('[SW v61] ServiceWorker registered with scope:', reg.scope);
 
                     // Proactively check for updates immediately
                     reg.update().catch(() => {});
 
                     // Check if an update is already waiting to activate
                     if (reg.waiting && navigator.serviceWorker.controller) {
-                        console.log('[SW v60] Existing waiting worker found, activating...');
+                        console.log('[SW v61] Existing waiting worker found, activating...');
                         sessionStorage.setItem('nodal_is_updating', 'true');
                         showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
                         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -179,13 +177,13 @@ async function initApp() {
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         if (newWorker && navigator.serviceWorker.controller) {
-                            console.log('[SW v60] Service worker update found, displaying update loader...');
+                            console.log('[SW v61] Service worker update found, displaying update loader...');
                             sessionStorage.setItem('nodal_is_updating', 'true');
                             showAppLoader('Updating Nodal AI', 'Applying the latest updates...');
 
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed') {
-                                    console.log('[SW v60] New version installed, triggering skipWaiting...');
+                                    console.log('[SW v61] New version installed, triggering skipWaiting...');
                                     newWorker.postMessage({ type: 'SKIP_WAITING' });
                                 } else if (newWorker.state === 'redundant') {
                                     sessionStorage.removeItem('nodal_is_updating');
@@ -195,7 +193,7 @@ async function initApp() {
                         }
                     });
                 } catch (swErr) {
-                    console.warn('[SW v60] ServiceWorker registration failed:', swErr);
+                    console.warn('[SW v61] ServiceWorker registration failed:', swErr);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
@@ -206,7 +204,7 @@ async function initApp() {
             // When new SW takes controller claim, cleanly reload to ensure new code & headers are active
             let hasReloaded = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('[SW v60] Controller changed - reloading to apply latest version');
+                console.log('[SW v61] Controller changed - reloading to apply latest version');
                 if (!hasReloaded) {
                     hasReloaded = true;
                     window.location.reload();
@@ -215,7 +213,7 @@ async function initApp() {
 
             navigator.serviceWorker.addEventListener('message', (event) => {
                 if (event.data && event.data.type === 'SW_ACTIVATED') {
-                    console.log('[SW v60] Active version:', event.data.version);
+                    console.log('[SW v61] Active version:', event.data.version);
                     sessionStorage.removeItem('nodal_is_updating');
                     hideAppLoader();
                 }
