@@ -1,12 +1,15 @@
 // api/generate-quiz.js
 // Vercel Serverless Function for Google Gemini Quiz Generation
-// Upgraded to Gemini 3.5 Flash-Lite with multi-model fallback resiliency
+// Hardened with CORS lockdown, rate limiting, prompt injection defense, and trimmed responses
+
+import { applyCors, checkRateLimit, getClientIp, containsPromptInjection } from './_security.js';
 
 export default async function handler(req, res) {
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    // 1. Enforce strict CORS
+    const corsAllowed = applyCors(req, res);
+    if (!corsAllowed) {
+        return res.status(403).json({ error: 'Forbidden: Origin not permitted.' });
+    }
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -28,6 +31,27 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    // 2. Rate limiting: Max 10 requests per 60 minutes per client IP
+    const clientIp = getClientIp(req);
+    const rateCheck = checkRateLimit(`quiz_gen_${clientIp}`, 10, 60 * 60 * 1000);
+    if (!rateCheck.allowed) {
+        res.setHeader('Retry-After', String(rateCheck.retryAfterSeconds));
+        return res.status(429).json({
+            error: 'Rate Limit Exceeded',
+            message: `Too many generation requests. Please wait ${Math.ceil(rateCheck.retryAfterSeconds / 60)} minutes before trying again.`,
+            retryAfter: rateCheck.retryAfterSeconds
+        });
+    }
+
+    // 3. Payload size check (Cap at 500KB)
+    const rawBodyLength = req.body ? JSON.stringify(req.body).length : 0;
+    if (rawBodyLength > 500 * 1024) {
+        return res.status(413).json({
+            error: 'Payload Too Large',
+            message: 'Request payload exceeds maximum permitted size of 500KB.'
+        });
+    }
+
     try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
@@ -46,6 +70,21 @@ export default async function handler(req, res) {
 
         if (!combinedPrompt.trim()) {
             return res.status(400).json({ error: 'Empty prompt provided.' });
+        }
+
+        if (combinedPrompt.length > 50000) {
+            return res.status(400).json({
+                error: 'Prompt Too Long',
+                message: 'Combined prompt length exceeds maximum allowed limit of 50,000 characters.'
+            });
+        }
+
+        // 4. Prompt injection & adversarial instruction override defense
+        if (containsPromptInjection(combinedPrompt)) {
+            return res.status(400).json({
+                error: 'Security Policy Violation',
+                message: 'Your prompt contains prohibited instruction override or injection patterns.'
+            });
         }
 
         // Prioritized list of model candidates to guarantee high availability
@@ -128,12 +167,12 @@ export default async function handler(req, res) {
             }
         }
 
+        // 5. Trimmed API Response: Return strictly rawText and model without internal telemetry
         if (successfulData) {
             const rawText = successfulData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
             return res.status(200).json({
                 rawText,
-                model: usedModel,
-                data: successfulData
+                model: usedModel
             });
         }
 
@@ -153,7 +192,6 @@ export default async function handler(req, res) {
                 ? 'The built-in AI model is currently unavailable or has been retired by Google. Please contact the developer to update the AI model.'
                 : googleMessage,
             isDeprecated: isModelDeprecation,
-            details: lastError?.details,
             failedModel: lastError?.model,
             upstreamStatus: lastError?.status
         });

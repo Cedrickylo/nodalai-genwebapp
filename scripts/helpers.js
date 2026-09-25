@@ -518,7 +518,9 @@ export async function handleDeleteProfile() {
                     const kvKeys = [
                         CLOUD_SYNC_KEY,
                         GENERATION_LOG_CLOUD_KEY,
-                        'custom_display_name'
+                        'custom_display_name',
+                        'nodal_age_consent_v1',
+                        'nodal_cookie_consent_v1'
                     ];
                     for (const key of kvKeys) {
                         try {
@@ -546,7 +548,7 @@ export async function handleDeleteProfile() {
             }
         }
 
-        // 4. Wipe Local Storage and Session Storage completely
+        // 4. Wipe Local Storage, Session Storage, and Cookies completely
         try {
             localStorage.clear();
         } catch (lsErr) {
@@ -556,6 +558,16 @@ export async function handleDeleteProfile() {
             sessionStorage.clear();
         } catch (ssErr) {
             console.warn('sessionStorage.clear error:', ssErr);
+        }
+        try {
+            document.cookie.split(";").forEach((cookie) => {
+                const name = cookie.split("=")[0].trim();
+                if (name) {
+                    document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; SameSite=Strict`;
+                }
+            });
+        } catch (cookieErr) {
+            console.warn('Cookie cleanup error:', cookieErr);
         }
 
         // 5. Delete all Cache API caches
@@ -5110,6 +5122,325 @@ if (typeof window !== 'undefined' && window.matchMedia) {
         if (section) {
             if (!section.classList.contains('hidden')) section.classList.add('hidden');
             if (!section.classList.contains('md:block')) section.classList.add('md:block');
+        }
+    });
+}
+
+// ==================================================================
+// COMPLIANCE, COOKIES, AGE CONSENT & PRIVACY GOVERNANCE CONTROLLER
+// ==================================================================
+export function initComplianceAndGovernance() {
+    // 1. Cookie Consent Banner & Preferences
+    const cookieBanner = document.getElementById('cookie-consent-banner');
+    const cookiePrefsModal = document.getElementById('cookie-preferences-modal');
+    const cookieAcceptAllBtn = document.getElementById('cookie-accept-all-btn');
+    const cookieRejectBtn = document.getElementById('cookie-reject-btn');
+    const cookiePreferencesBtn = document.getElementById('cookie-preferences-btn');
+    const closeCookiePrefsBtn = document.getElementById('close-cookie-prefs-btn');
+    const saveCookiePrefsBtn = document.getElementById('save-cookie-prefs-btn');
+    const prefStorageToggle = document.getElementById('pref-storage-toggle');
+
+    const COOKIE_CONSENT_KEY = 'nodal_cookie_consent_v1';
+    let savedConsent = null;
+    try {
+        const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+        if (raw) savedConsent = JSON.parse(raw);
+    } catch (e) {}
+
+    // Show cookie banner on first visit
+    if (!savedConsent && cookieBanner) {
+        cookieBanner.classList.remove('hidden');
+    }
+
+    if (cookieAcceptAllBtn) {
+        cookieAcceptAllBtn.onclick = () => {
+            const consentObj = { essential: true, preferences: true, timestamp: Date.now() };
+            try { localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consentObj)); } catch (e) {}
+            if (cookieBanner) cookieBanner.classList.add('hidden');
+            showToast('Storage preferences saved: All enabled.', 3000, 'success');
+        };
+    }
+
+    if (cookieRejectBtn) {
+        cookieRejectBtn.onclick = () => {
+            const consentObj = { essential: true, preferences: false, timestamp: Date.now() };
+            try { localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consentObj)); } catch (e) {}
+            if (cookieBanner) cookieBanner.classList.add('hidden');
+            showToast('Non-essential storage rejected.', 3000, 'neutral');
+        };
+    }
+
+    if (cookiePreferencesBtn && cookiePrefsModal) {
+        cookiePreferencesBtn.onclick = () => {
+            if (prefStorageToggle) {
+                prefStorageToggle.checked = savedConsent ? savedConsent.preferences !== false : true;
+            }
+            cookiePrefsModal.classList.remove('hidden');
+        };
+    }
+
+    if (closeCookiePrefsBtn && cookiePrefsModal) {
+        closeCookiePrefsBtn.onclick = () => {
+            cookiePrefsModal.classList.add('hidden');
+        };
+    }
+
+    if (saveCookiePrefsBtn && cookiePrefsModal) {
+        saveCookiePrefsBtn.onclick = () => {
+            const isPref = prefStorageToggle ? prefStorageToggle.checked : false;
+            const consentObj = { essential: true, preferences: isPref, timestamp: Date.now() };
+            try { localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consentObj)); } catch (e) {}
+            cookiePrefsModal.classList.add('hidden');
+            if (cookieBanner) cookieBanner.classList.add('hidden');
+            showToast(`Preferences updated: ${isPref ? 'Full storage active' : 'Strictly necessary only'}`, 3000, 'info');
+        };
+    }
+
+    // 2. Privacy Policy Modal
+    const privacyModal = document.getElementById('privacy-modal');
+    const closePrivacyModalBtn = document.getElementById('close-privacy-modal-btn');
+    const closePrivacyFooterBtn = document.getElementById('close-privacy-footer-btn');
+
+    const openPrivacy = () => {
+        if (privacyModal) privacyModal.classList.remove('hidden');
+    };
+    const closePrivacy = () => {
+        if (privacyModal) privacyModal.classList.add('hidden');
+    };
+
+    if (closePrivacyModalBtn) closePrivacyModalBtn.onclick = closePrivacy;
+    if (closePrivacyFooterBtn) closePrivacyFooterBtn.onclick = closePrivacy;
+
+    document.querySelectorAll('.open-privacy-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.preventDefault();
+            openPrivacy();
+        };
+    });
+
+    // 3. Terms of Service Modal
+    const termsModal = document.getElementById('terms-modal');
+    const closeTermsModalBtn = document.getElementById('close-terms-modal-btn');
+    const closeTermsFooterBtn = document.getElementById('close-terms-footer-btn');
+
+    const openTerms = () => {
+        if (termsModal) termsModal.classList.remove('hidden');
+    };
+    const closeTerms = () => {
+        if (termsModal) termsModal.classList.add('hidden');
+    };
+
+    if (closeTermsModalBtn) closeTermsModalBtn.onclick = closeTerms;
+    if (closeTermsFooterBtn) closeTermsFooterBtn.onclick = closeTerms;
+
+    document.querySelectorAll('.open-terms-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.preventDefault();
+            openTerms();
+        };
+    });
+
+    // 4. Data Deletion Request Modal (GDPR Art. 17 / CCPA)
+    const dataDeletionModal = document.getElementById('data-deletion-modal');
+    const closeDataDeletionModalBtn = document.getElementById('close-data-deletion-modal-btn');
+    const closeDataDeletionFooterBtn = document.getElementById('close-data-deletion-footer-btn');
+    const dataDeletionRequestBtn = document.getElementById('data-deletion-request-btn');
+    const dataDeletionRequestLoggedOutBtn = document.getElementById('data-deletion-request-logged-out-btn');
+    const executeInstantWipeBtn = document.getElementById('execute-instant-wipe-btn');
+    const deletionReceiptId = document.getElementById('deletion-receipt-id');
+
+    const openDataDeletionModal = () => {
+        if (deletionReceiptId) {
+            const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const datePart = Date.now().toString(36).toUpperCase();
+            deletionReceiptId.textContent = `REQ-DEL-${datePart}-${randomPart}`;
+        }
+        if (dataDeletionModal) dataDeletionModal.classList.remove('hidden');
+    };
+
+    const closeDataDeletionModal = () => {
+        if (dataDeletionModal) dataDeletionModal.classList.add('hidden');
+    };
+
+    const aboutOpenCookiesBtn = document.getElementById('about-open-cookies-btn');
+    if (aboutOpenCookiesBtn && cookiePrefsModal) {
+        aboutOpenCookiesBtn.onclick = () => {
+            if (prefStorageToggle) {
+                prefStorageToggle.checked = savedConsent ? savedConsent.preferences !== false : true;
+            }
+            cookiePrefsModal.classList.remove('hidden');
+        };
+    }
+
+    const aboutOpenDeletionBtn = document.getElementById('about-open-deletion-btn');
+    if (aboutOpenDeletionBtn) aboutOpenDeletionBtn.onclick = openDataDeletionModal;
+    if (dataDeletionRequestBtn) dataDeletionRequestBtn.onclick = openDataDeletionModal;
+    if (dataDeletionRequestLoggedOutBtn) dataDeletionRequestLoggedOutBtn.onclick = openDataDeletionModal;
+    if (closeDataDeletionModalBtn) closeDataDeletionModalBtn.onclick = closeDataDeletionModal;
+    if (closeDataDeletionFooterBtn) closeDataDeletionFooterBtn.onclick = closeDataDeletionModal;
+
+    if (executeInstantWipeBtn) {
+        executeInstantWipeBtn.onclick = async () => {
+            closeDataDeletionModal();
+            await handleDeleteProfile();
+        };
+    }
+
+    // 5. Age Gate & COPPA / Minor Consent Handling
+    const ageBracketSelect = document.getElementById('user-age-bracket');
+    const coppaSection = document.getElementById('coppa-parental-section');
+    const minorSection = document.getElementById('minor-consent-section');
+    const saveAgeConsentBtn = document.getElementById('save-age-consent-btn');
+    const ageConsentBadge = document.getElementById('age-consent-badge');
+    const parentGuardianName = document.getElementById('parent-guardian-name');
+    const parentGuardianEmail = document.getElementById('parent-guardian-email');
+    const parentConsentCheckbox = document.getElementById('parent-consent-checkbox');
+    const minorConsentCheckbox = document.getElementById('minor-consent-checkbox');
+
+    const AGE_CONSENT_KEY = 'nodal_age_consent_v1';
+
+    const updateAgeConsentUI = (record) => {
+        if (!ageConsentBadge) return;
+        if (!record || !record.bracket) {
+            ageConsentBadge.textContent = 'Status: Unverified';
+            ageConsentBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 border border-gray-600';
+            return;
+        }
+
+        if (record.bracket === 'under13') {
+            ageConsentBadge.textContent = 'Verified: Under 13 (Guardian Approved)';
+            ageConsentBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        } else if (record.bracket === 'minor') {
+            ageConsentBadge.textContent = 'Verified: Minor (13-17)';
+            ageConsentBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
+        } else {
+            ageConsentBadge.textContent = 'Verified: Adult (18+)';
+            ageConsentBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30';
+        }
+    };
+
+    // Load saved consent
+    let existingAgeConsent = null;
+    try {
+        const raw = localStorage.getItem(AGE_CONSENT_KEY);
+        if (raw) existingAgeConsent = JSON.parse(raw);
+    } catch (e) {}
+
+    if (existingAgeConsent) {
+        if (ageBracketSelect) ageBracketSelect.value = existingAgeConsent.bracket || '';
+        if (parentGuardianName && existingAgeConsent.parentName) parentGuardianName.value = existingAgeConsent.parentName;
+        if (parentGuardianEmail && existingAgeConsent.parentEmail) parentGuardianEmail.value = existingAgeConsent.parentEmail;
+        if (parentConsentCheckbox && existingAgeConsent.parentConsent) parentConsentCheckbox.checked = true;
+        if (minorConsentCheckbox && existingAgeConsent.minorConsent) minorConsentCheckbox.checked = true;
+        updateAgeConsentUI(existingAgeConsent);
+    }
+
+    if (ageBracketSelect) {
+        ageBracketSelect.onchange = () => {
+            const val = ageBracketSelect.value;
+            if (val === 'under13') {
+                if (coppaSection) coppaSection.classList.remove('hidden');
+                if (minorSection) minorSection.classList.add('hidden');
+            } else if (val === 'minor') {
+                if (coppaSection) coppaSection.classList.add('hidden');
+                if (minorSection) minorSection.classList.remove('hidden');
+            } else {
+                if (coppaSection) coppaSection.classList.add('hidden');
+                if (minorSection) minorSection.classList.add('hidden');
+            }
+        };
+        if (existingAgeConsent?.bracket) {
+            ageBracketSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
+    if (saveAgeConsentBtn) {
+        saveAgeConsentBtn.onclick = async () => {
+            const bracket = ageBracketSelect ? ageBracketSelect.value : '';
+            if (!bracket) {
+                showToast('Please select your age bracket.', 3500, 'warning');
+                return;
+            }
+
+            if (bracket === 'under13') {
+                const pName = parentGuardianName?.value.trim();
+                const pEmail = parentGuardianEmail?.value.trim();
+                const pChecked = parentConsentCheckbox?.checked;
+
+                if (!pName || !pEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pEmail)) {
+                    showToast('Please enter a valid parent/guardian name and email address.', 4000, 'warning');
+                    return;
+                }
+                if (!pChecked) {
+                    showToast('Parental consent checkbox must be confirmed.', 4000, 'warning');
+                    return;
+                }
+
+                const record = {
+                    bracket: 'under13',
+                    parentName: pName,
+                    parentEmail: pEmail,
+                    parentConsent: true,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(AGE_CONSENT_KEY, JSON.stringify(record));
+                if (typeof puter !== 'undefined' && window.puter?.auth?.isSignedIn?.() && puter.kv) {
+                    puter.kv.set(AGE_CONSENT_KEY, JSON.stringify(record)).catch(() => {});
+                }
+                updateAgeConsentUI(record);
+                showToast('Parental consent recorded successfully. Cloud features activated.', 4000, 'success');
+            } else if (bracket === 'minor') {
+                const mChecked = minorConsentCheckbox?.checked;
+                if (!mChecked) {
+                    showToast('Please confirm the minor guidance consent checkbox.', 4000, 'warning');
+                    return;
+                }
+                const record = {
+                    bracket: 'minor',
+                    minorConsent: true,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(AGE_CONSENT_KEY, JSON.stringify(record));
+                if (typeof puter !== 'undefined' && window.puter?.auth?.isSignedIn?.() && puter.kv) {
+                    puter.kv.set(AGE_CONSENT_KEY, JSON.stringify(record)).catch(() => {});
+                }
+                updateAgeConsentUI(record);
+                showToast('Minor consent recorded successfully.', 3500, 'success');
+            } else {
+                const record = {
+                    bracket: 'adult',
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(AGE_CONSENT_KEY, JSON.stringify(record));
+                if (typeof puter !== 'undefined' && window.puter?.auth?.isSignedIn?.() && puter.kv) {
+                    puter.kv.set(AGE_CONSENT_KEY, JSON.stringify(record)).catch(() => {});
+                }
+                updateAgeConsentUI(record);
+                showToast('Age verification recorded.', 3000, 'success');
+            }
+        };
+    }
+
+    // 6. Global Keyboard Navigation: Escape Key to Close Active Modals
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const openModals = [
+                dataDeletionModal,
+                privacyModal,
+                termsModal,
+                cookiePrefsModal,
+                elements.accountModalOverlay,
+                elements.importChoiceModal,
+                elements.pasteJsonModal,
+                document.getElementById('shared-quiz-modal')
+            ];
+
+            for (const modal of openModals) {
+                if (modal && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    break;
+                }
+            }
         }
     });
 }

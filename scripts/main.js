@@ -1,4 +1,4 @@
-import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter, isCustomizingQuizGeneration } from './helpers.js';
+import { initializeAudio, initializeAppState, attachAuthHandlers, updateAuthUI, prepareSavedProgress, initWelcomeModal, initRouter, isCustomizingQuizGeneration, initComplianceAndGovernance } from './helpers.js';
 import { attachQuizEventListeners, loadSharedQuiz } from './quiz.js';
 import { showToast, syncHistoryWithCloud, validateAllInputs, setSyncing, cleanupExpiredSharedQuizzes } from './helpers.js';
 import { initNetlifyMigrationBannerAndNotice } from './quiz/quizMigration.js';
@@ -125,6 +125,7 @@ async function initApp() {
 
         prepareSavedProgress();
         initWelcomeModal();
+        initComplianceAndGovernance();
         await initRouter();
         initNetlifyMigrationBannerAndNotice();
 

@@ -59,7 +59,7 @@ Studying from dense lecture presentations, 60-page PDF textbooks, and technical 
 
 - **Zero Friction**: Works instantly in any modern browser without mandatory sign-up. Guest mode provides full generation, testing, and offline caching capabilities.
 - **Client-Side Document Parsing**: Documents are extracted directly in the browser; source documents never get permanently stored on external database servers.
-- **Resilient AI Generation**: Integrated self-correction loops detect malformed JSON from the AI and automatically heal responses to ensure a 100% completion rate.
+- **Resilient AI Generation**: Integrated self-correction loops detect malformed JSON from the AI and automatically heal responses to maximize generation reliability and completion rates.
 - **True Offline Practice**: Quizzes, scoring histories, and answer keys remain fully interactive on your device even without an internet connection.
 
 ---
@@ -371,11 +371,13 @@ You agree not to:
 - Upload malicious payloads, corrupted archives, or files containing viruses, Trojans, or destructive scripts.
 - Use the Service to generate defamatory, obscene, harassing, or unlawful content.
 
-### 4. Third-Party Services
-Nodal AI integrates third-party services, including Google Gemini API, Puter.js, and Vercel. Your use of these integrated features is also subject to the respective terms and privacy policies of those providers.
+### 4. Third-Party Services & Dependency Audits
+Nodal AI integrates third-party services, including Google Gemini API, Puter.js, and Vercel. For our exhaustive security and data privacy assessment of all external CDNs and subprocessors, review the official [Third-Party Security Audit](docs/SECURITY_AUDIT.md). All visual assets and icons are unencumbered, public domain, or open-source permissive as declared in the [Asset Licensing Notice](LICENSE-ASSETS.md).
 
 ### 5. Termination & Modifications
 We reserve the right to suspend or restrict access to the Service for any user who violates these Terms or engages in abusive API consumption. We may update these Terms periodically; continued use of the Service following published updates constitutes acceptance of the modified Terms.
 
-### 6. Contact
-For questions, terms inquiries, or bug reports, open an issue on the [GitHub Repository](https://github.com/cedrickylo/nodalai-genwebapp/issues) or contact the project creator [@cedrickylo](https://github.com/cedrickylo).
+### 6. Developer & Business Contact
+- **Project Maintainer**: John Cedrick Siason ([@cedrickylo](https://github.com/cedrickylo))
+- **Support & Privacy Email**: [jc.siason08@gmail.com](mailto:jc.siason08@gmail.com)
+- **Official Repository & Issue Tracker**: [GitHub Repository](https://github.com/cedrickylo/nodalai-genwebapp/issues)

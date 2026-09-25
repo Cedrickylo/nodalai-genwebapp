@@ -1,3 +1,11 @@
+/*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://js.puter.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://img.shields.io https://*.puter.com; connect-src 'self' https://generativelanguage.googleapis.com https://api.puter.com https://*.puter.com https://tinyurl.com https://cleanuri.com; media-src 'self' data: blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'self';
+
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
   Service-Worker-Allowed: /
@@ -5,4 +13,3 @@
 /manifest.json
   Cache-Control: no-cache, no-store, must-revalidate
   Content-Type: application/manifest+json; charset=utf-8
-

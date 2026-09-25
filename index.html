@@ -3,7 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Nodal AI</title>
+    <title>Nodal AI - AI-Powered Quiz Generator &amp; Interactive Study Companion</title>
+    <meta name="description" content="Nodal AI is an AI-powered quiz generator and interactive study companion that transforms your study documents into tailored practice assessments instantly.">
+    <link rel="canonical" href="https://nodal-gamma.vercel.app/">
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nodal-gamma.vercel.app/">
+    <meta property="og:title" content="Nodal AI - AI-Powered Quiz Generator &amp; Interactive Study Companion">
+    <meta property="og:description" content="Nodal AI is an AI-powered quiz generator and interactive study companion that transforms your study documents into tailored practice assessments instantly.">
+    <meta property="og:image" content="https://nodal-gamma.vercel.app/icons/og-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Nodal AI Social Preview Card with glowing neural nodes">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://nodal-gamma.vercel.app/">
+    <meta name="twitter:title" content="Nodal AI - AI-Powered Quiz Generator &amp; Interactive Study Companion">
+    <meta name="twitter:description" content="Nodal AI is an AI-powered quiz generator and interactive study companion that transforms your study documents into tailored practice assessments instantly.">
+    <meta name="twitter:image" content="https://nodal-gamma.vercel.app/icons/og-preview.png">
+    <meta name="twitter:image:alt" content="Nodal AI Social Preview Card">
+
     <!-- Web App Manifest & Standalone App Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111827">
@@ -73,6 +94,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 <body class="bg-gray-900 text-white flex min-h-screen p-4">
+    <!-- Accessible Skip to Main Content Link for Keyboard Navigation -->
+    <a href="#start-view" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[999] focus:bg-blue-600 focus:text-white focus:font-semibold focus:px-4 focus:py-2.5 focus:rounded-xl focus:shadow-2xl focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-900">Skip to main content</a>
+
     <!-- Startup Initial Loading Screen (Shown ONLY on first-time install or when service worker is updating) -->
     <div id="app-init-loader" class="hidden fixed inset-0 z-[500] flex flex-col items-center justify-center bg-gray-900 transition-opacity duration-300">
         <div class="flex flex-col items-center space-y-5 px-6 text-center max-w-sm">
@@ -308,12 +332,20 @@
                 <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">Nodal AI Quiz Generator</h1>
                 <p id="start-subtitle" class="text-gray-400 mb-8 text-center">Transform your documents into tailored assessments instantly.</p>
                 
+                <!-- Anti-Spam Bot Honeypot -->
+                <input type="text" name="website_url_hp" id="website_url_hp" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
+
                 <div id="file-actions" class="flex items-center gap-2 mb-6 w-full min-w-0">
-                    <label for="file-upload-input" class="flex-1 min-w-0 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-lg transition text-center cursor-pointer truncate">
-                        <span id="file-name">Select Documents</span>
+                    <label for="file-upload-input" id="primary-cta-btn" class="flex-1 min-w-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-5 rounded-xl transition-all text-center cursor-pointer truncate shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2 transform hover:scale-[1.01] focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-gray-800" role="button" tabindex="0" aria-label="Select Documents to Generate Quiz">
+                        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span id="file-name" class="truncate">Select Documents to Generate Quiz</span>
                     </label>
-                    <button id="open-import-choice-btn" type="button" class="w-12 h-12 flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition cursor-pointer flex-shrink-0 shadow-md" title="Import Quiz" aria-label="Import Quiz">
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button id="open-import-choice-btn" type="button" class="w-12 h-12 flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition cursor-pointer flex-shrink-0 shadow-md focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-gray-800" title="Import Quiz" aria-label="Import Quiz from File or Text">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -971,14 +1003,44 @@
                         </section>
 
                         <section class="info-card lg:col-span-2">
-                            <h3>Privacy</h3>
-                            <p>Uploaded documents may be temporarily processed by Puter services when cloud features are enabled. Please avoid uploading sensitive personal data.</p>
+                            <h3>Privacy &amp; Data Transparency</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">Uploaded documents are processed ephemerally in-browser and transmitted over encrypted TLS to Google Gemini via our Vercel serverless proxy strictly to generate questions. We do not permanently store source documents on remote servers or use your study notes to train AI models. Cloud sync is isolated to your personal Puter cloud sandbox.</p>
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <button type="button" class="open-privacy-btn px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <span>Read Full Privacy Policy</span>
+                                </button>
+                                <button type="button" id="about-open-cookies-btn" class="px-3 py-1.5 bg-gray-700/60 hover:bg-gray-700 text-gray-200 border border-gray-600 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+                                    <span>Manage Cookie Consent</span>
+                                </button>
+                                <button type="button" id="about-open-deletion-btn" class="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 hover:text-white border border-red-800/40 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span>Data Deletion Request</span>
+                                </button>
+                            </div>
                         </section>
 
                         <section class="info-card lg:col-span-2">
-                            <h3>Terms of Service</h3>
-                            <p class="text-xs text-gray-400 leading-relaxed">By using this service you agree that the generated content is for educational use only. The authors are not responsible for misuse of generated quizzes. Do not upload copyrighted or sensitive proprietary materials without proper rights. The service may limit or suspend access if terms are violated.</p>
-                            <p class="text-xs text-gray-400 leading-relaxed mt-2">For full terms and conditions, see our official <a href="https://github.com/cedrickylo/nodalai-genwebapp#terms-of-use" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline font-medium inline-flex items-center gap-1"><span>Terms of Use &amp; Legal Disclaimer</span><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a> in the repository.</p>
+                            <h3>Terms of Service &amp; Fair Use</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">Generated quizzes and study cards are provided for formative assessment and educational practice. Users agree not to attempt prompt injection, automated API flooding, or upload copyright-infringing materials without necessary fair-use permissions.</p>
+                            <div class="pt-2">
+                                <button type="button" class="open-terms-btn px-3 py-1.5 bg-gray-700/60 hover:bg-gray-700 text-gray-200 border border-gray-600 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                    <span>Read Terms &amp; Conditions</span>
+                                </button>
+                            </div>
+                        </section>
+
+                        <section class="info-card lg:col-span-2">
+                            <h3>Official Business &amp; Developer Details</h3>
+                            <div class="text-xs text-gray-300 leading-relaxed space-y-1">
+                                <p><span class="text-gray-400 font-semibold">Entity / Project:</span> Nodal AI Educational Study Platform</p>
+                                <p><span class="text-gray-400 font-semibold">Developer &amp; Creator:</span> John Cedrick Siason (<a href="https://github.com/cedrickylo" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">@cedrickylo</a>)</p>
+                                <p><span class="text-gray-400 font-semibold">Support &amp; Inquiries:</span> <a href="mailto:jc.siason08@gmail.com" class="text-blue-400 hover:underline font-mono">jc.siason08@gmail.com</a></p>
+                                <p><span class="text-gray-400 font-semibold">Official Repository:</span> <a href="https://github.com/cedrickylo/nodalai-genwebapp" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">github.com/cedrickylo/nodalai-genwebapp</a></p>
+                                <p><span class="text-gray-400 font-semibold">Jurisdiction &amp; Hosting:</span> Philippines &bull; Global Vercel Edge Network</p>
+                            </div>
                         </section>
                     </div>
                 </div>
@@ -1862,27 +1924,88 @@
                 </button>
             </div>
 
-            <!-- Danger Zone for Account Deletion -->
-            <div class="bg-red-950/20 border border-red-900/30 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 mt-2">
-                <div class="text-left w-full sm:w-auto">
-                    <p class="text-xs font-semibold text-red-300">Danger Zone</p>
-                    <p class="text-[11px] text-gray-400">Permanently delete your profile and cloud data.</p>
+            <!-- Age Verification & Compliance Consent Panel -->
+            <div id="age-consent-panel" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 shadow-inner space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span>Age &amp; Guardian Consent</span>
+                    </label>
+                    <span id="age-consent-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Status: Unverified</span>
                 </div>
-                <button id="delete-profile-btn" class="w-full sm:w-auto shrink-0 bg-red-950/60 hover:bg-red-900/80 text-red-300 hover:text-white border border-red-800/50 hover:border-red-600 font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer" title="Permanently delete your profile and all associated data">
-                    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                    <span>Delete Nodal Profile</span>
-                </button>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <label for="user-age-bracket" class="block text-gray-400 mb-1">Age Bracket</label>
+                        <select id="user-age-bracket" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-blue-500">
+                            <option value="">Select your age...</option>
+                            <option value="under13">Under 13 (Requires Parental Consent)</option>
+                            <option value="minor">13 to 17 (Minor Consent)</option>
+                            <option value="adult">18 or older (Adult)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="user-birth-year" class="block text-gray-400 mb-1">Birth Year (Optional)</label>
+                        <input type="number" id="user-birth-year" min="1920" max="2026" placeholder="e.g. 2008" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- COPPA Under-13 Parental Consent Section -->
+                <div id="coppa-parental-section" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2 text-xs">
+                    <p class="font-semibold text-amber-300">COPPA Notice: Users under 13 require parental or legal guardian consent before using account features.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input type="text" id="parent-guardian-name" placeholder="Parent/Guardian Full Name" class="bg-gray-800 border border-gray-600 rounded px-2.5 py-1.5 text-white outline-none">
+                        <input type="email" id="parent-guardian-email" placeholder="Parent/Guardian Email" class="bg-gray-800 border border-gray-600 rounded px-2.5 py-1.5 text-white outline-none">
+                    </div>
+                    <label class="flex items-start gap-2 text-gray-300 cursor-pointer pt-1">
+                        <input type="checkbox" id="parent-consent-checkbox" class="mt-0.5 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <span>I confirm I am the parent/guardian and grant permission for my child to use Nodal AI for educational purposes under the <button type="button" class="text-blue-400 underline open-privacy-btn">Privacy Policy</button>.</span>
+                    </label>
+                </div>
+
+                <!-- Minor Consent Section (13-17) -->
+                <div id="minor-consent-section" class="hidden bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 space-y-2 text-xs">
+                    <label class="flex items-start gap-2 text-gray-300 cursor-pointer">
+                        <input type="checkbox" id="minor-consent-checkbox" class="mt-0.5 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <span>I am between 13 and 17 years old and confirm I have parent or guardian guidance to use Nodal AI.</span>
+                    </label>
+                </div>
+
+                <button id="save-age-consent-btn" type="button" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg text-xs transition shadow-sm">Save Consent Information</button>
+            </div>
+
+            <!-- Danger Zone for Account Deletion & Right to Erasure -->
+            <div class="bg-red-950/20 border border-red-900/30 rounded-xl p-3.5 sm:p-4 space-y-3 mt-2">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="text-left w-full sm:w-auto">
+                        <p class="text-xs font-semibold text-red-300">Data Deletion Request (GDPR / CCPA)</p>
+                        <p class="text-[11px] text-gray-400">Formal right to erasure with tracking receipt.</p>
+                    </div>
+                    <button id="data-deletion-request-btn" type="button" class="w-full sm:w-auto shrink-0 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 font-semibold py-2 px-3.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        <span>Request Erasure</span>
+                    </button>
+                </div>
+                <div class="border-t border-red-900/30 pt-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="text-left w-full sm:w-auto">
+                        <p class="text-xs font-semibold text-red-300">Permanent Wipe</p>
+                        <p class="text-[11px] text-gray-400">Permanently erase profile, local cache &amp; cloud records.</p>
+                    </div>
+                    <button id="delete-profile-btn" class="w-full sm:w-auto shrink-0 bg-red-950/60 hover:bg-red-900/80 text-red-300 hover:text-white border border-red-800/50 hover:border-red-600 font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer" title="Permanently delete your profile and all associated data">
+                        <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        <span>Delete Nodal Profile</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="account-logged-out-content" class="hidden p-6 sm:p-8 text-center space-y-6 overflow-y-auto flex-1 w-full max-w-md mx-auto">
-        <svg class="mx-auto w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        <svg class="mx-auto w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
         <div class="space-y-2">
             <h4 class="text-lg font-bold text-white">Login Required</h4>
             <p class="text-sm text-gray-400">Sign in to view your account details, sync history across devices, and manage your generation limits.</p>
@@ -1893,7 +2016,7 @@
             <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 shadow-inner flex items-center justify-between text-left">
                 <div class="space-y-0.5 pr-3">
                     <label for="reduce-motion-toggle-logged-out" class="text-sm font-semibold text-white flex items-center gap-2 cursor-pointer">
-                        <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                         <span>Reduce Motion</span>
                     </label>
                     <p class="text-xs text-gray-400">Disable transitions and animations across the entire website for better performance.</p>
@@ -1901,12 +2024,16 @@
                 <input type="checkbox" id="reduce-motion-toggle-logged-out" class="h-5 w-5 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0">
             </div>
             <button id="open-migration-logged-out-btn" class="w-full bg-gray-700/60 hover:bg-gray-700 text-gray-200 border border-gray-600/60 font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm cursor-pointer">
-                <svg class="w-4 h-4 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <svg class="w-4 h-4 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span>Migrate Data (Import / Export)</span>
             </button>
-            <div class="pt-2">
+            <div class="pt-2 space-y-2">
+                <button id="data-deletion-request-logged-out-btn" class="w-full bg-gray-800/80 hover:bg-gray-800 text-gray-300 border border-gray-700 font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                    <span>Request Data Deletion (GDPR / CCPA)</span>
+                </button>
                 <button id="delete-profile-logged-out-btn" class="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/40 hover:border-red-700/60 font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer" title="Permanently delete all local data, quizzes, and preferences on this device">
-                    <svg class="w-4 h-4 flex-shrink-0 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="w-4 h-4 flex-shrink-0 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         <line x1="10" y1="11" x2="10" y2="17"></line>
@@ -3207,6 +3334,230 @@
             <div class="space-y-1">
                 <h3 id="loading-overlay-title" class="text-lg font-bold text-white">Please wait...</h3>
                 <p id="loading-overlay-message" class="text-sm text-gray-300">Processing request...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================
+         COMPLIANCE & GOVERNANCE MODALS & BANNERS
+         ================================================================== -->
+
+    <!-- 1. Interactive Cookie Consent Banner -->
+    <div id="cookie-consent-banner" class="hidden fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-md z-[400] bg-gray-900/95 border border-gray-700/80 backdrop-blur-xl p-5 rounded-2xl shadow-2xl transition-all duration-300 animate-fade-in" role="region" aria-label="Cookie and Privacy Consent">
+        <div class="flex items-start gap-3.5 mb-3.5">
+            <div class="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 flex-shrink-0 mt-0.5">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2a10 10 0 0 0 0 20 10 10 0 0 0 10-10"></path>
+                    <path d="m4.93 4.93 4.24 4.24"></path>
+                    <path d="m14.83 9.17 4.24-4.24"></path>
+                    <path d="m14.83 14.83 4.24 4.24"></path>
+                    <path d="m9.17 14.83-4.24 4.24"></path>
+                </svg>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-white tracking-tight">Cookie &amp; Storage Preferences</h4>
+                <p class="text-xs text-gray-300 mt-1 leading-relaxed">
+                    We use strictly essential storage to secure your session and deliver quiz services. With your permission, we also remember local settings and reduce motion preferences. We never sell personal data or use ad trackers.
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 pt-1">
+            <button id="cookie-accept-all-btn" type="button" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-3 rounded-xl transition text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer text-center">
+                Accept All
+            </button>
+            <button id="cookie-reject-btn" type="button" class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 font-bold py-2.5 px-3 rounded-xl transition text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 cursor-pointer text-center">
+                Reject Non-Essential
+            </button>
+            <button id="cookie-preferences-btn" type="button" class="sm:flex-none px-3 py-2.5 text-xs text-blue-400 hover:text-blue-300 font-medium underline transition text-center cursor-pointer">
+                Preferences
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Granular Cookie Preferences Modal -->
+    <div id="cookie-preferences-modal" class="hidden fixed inset-0 z-[450] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="cookie-prefs-title">
+        <div class="bg-gray-800/95 border border-gray-700/80 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800 shrink-0">
+                <h3 id="cookie-prefs-title" class="text-lg font-bold text-white">Storage &amp; Cookie Preferences</h3>
+                <button id="close-cookie-prefs-btn" type="button" class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" aria-label="Close preferences modal">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs flex-1">
+                <!-- Strictly Necessary -->
+                <div class="bg-gray-900/40 border border-gray-700/60 rounded-xl p-4 flex items-start justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white text-sm">Strictly Necessary Storage</span>
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold uppercase">Always Active</span>
+                        </div>
+                        <p class="text-gray-300 leading-relaxed">
+                            Required for core app security, service worker offline caching, active quiz state, and encryption keys. Cannot be disabled.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Preferences & Local Cache -->
+                <div class="bg-gray-900/40 border border-gray-700/60 rounded-xl p-4 flex items-start justify-between gap-3">
+                    <div class="space-y-1 pr-2">
+                        <span class="font-bold text-white text-sm">Preferences &amp; Quiz Library Cache</span>
+                        <p class="text-gray-300 leading-relaxed">
+                            Allows remembering custom display names, sound settings, reduce motion preferences, and persisting saved quiz libraries across browser refreshes.
+                        </p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer mt-1 flex-shrink-0">
+                        <input type="checkbox" id="pref-storage-toggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <div class="p-3 bg-blue-950/20 border border-blue-900/30 rounded-xl text-blue-300 text-xs">
+                    Read our full disclosure in our <button type="button" class="underline font-bold text-blue-400 open-privacy-btn">Privacy Policy</button>.
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex justify-end gap-2 shrink-0">
+                <button id="save-cookie-prefs-btn" type="button" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition cursor-pointer">
+                    Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Dedicated Privacy Policy Modal -->
+    <div id="privacy-modal" class="hidden fixed inset-0 z-[450] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="privacy-modal-title">
+        <div class="bg-gray-800/95 border border-gray-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800 shrink-0">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <h3 id="privacy-modal-title" class="text-lg font-bold text-white">Nodal AI Privacy Policy</h3>
+                </div>
+                <button id="close-privacy-modal-btn" type="button" class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" aria-label="Close privacy modal">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-5 sm:p-7 overflow-y-auto space-y-5 text-xs text-gray-300 leading-relaxed flex-1">
+                <div class="border-b border-gray-700/60 pb-3">
+                    <p class="text-gray-400">Effective Date: September 2026 &bull; Version 2.0</p>
+                    <p class="mt-1">Nodal AI is built on the principle of <strong>Zero Friction &amp; Zero Unnecessary Data Collection</strong>. We respect your autonomy and your educational privacy.</p>
+                </div>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">1. Information We Collect &amp; How It Is Handled</h4>
+                    <p><strong>Uploaded Study Documents:</strong> Files you upload (PDF, DOCX, TXT) are parsed in-browser using client-side JavaScript. Only the extracted text necessary to generate questions is transmitted ephemerally via encrypted TLS to the Google Gemini API through our secure Vercel proxy. <strong>Source documents are never stored permanently on remote database servers</strong>, and Google developer API terms confirm prompts are not used to train generative AI models.</p>
+                    <p><strong>Quiz History &amp; Test Records:</strong> Stored locally on your personal device using encrypted browser storage (AES-256). If you sign in via Puter, records synchronize exclusively to your private sandboxed Puter cloud directory.</p>
+                    <p><strong>Zero Unnecessary Data:</strong> We do not track your browsing habits, maintain advertising identifiers, or deploy commercial tracking pixels.</p>
+                </section>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">2. Third-Party Service Providers</h4>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li><strong>Google Gemini AI:</strong> Processes generation prompts ephemerally. API keys are locked on the server and never exposed to clients.</li>
+                        <li><strong>Puter.com:</strong> Provides optional user authentication and isolated cloud storage sandbox.</li>
+                        <li><strong>Vercel Inc.:</strong> Hosts serverless backend proxies and static assets under strict HSTS and Content Security Policies.</li>
+                        <li><strong>TinyURL / CleanURI:</strong> Used only when explicitly requesting short share links for quizzes.</li>
+                    </ul>
+                </section>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">3. Children's Privacy (COPPA &amp; Minor Protection)</h4>
+                    <p>Nodal AI is an educational tool. For users under 13 years of age, we require verified parental or legal guardian consent before enabling cloud features. We do not knowingly solicit personal information from children without verified guardian consent. Users between 13 and 17 must acknowledge minor guidance consent.</p>
+                </section>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">4. Your Rights: Right to Erasure &amp; Portability</h4>
+                    <p>Under GDPR (Art. 17) and CCPA, you retain full rights over your data. You may export your complete quiz library anytime via encrypted <code>.nodal</code> backups, or execute an immediate cascading purge using the <strong>Delete Nodal Profile</strong> feature in your Account settings.</p>
+                </section>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">5. Contact &amp; Business Details</h4>
+                    <p>Developer &amp; Maintainer: <strong>John Cedrick Siason</strong> (<a href="https://github.com/cedrickylo" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">@cedrickylo</a>)</p>
+                    <p>Privacy Inquiries: <a href="mailto:jc.siason08@gmail.com" class="text-blue-400 hover:underline">jc.siason08@gmail.com</a></p>
+                    <p>Project Repository: <a href="https://github.com/cedrickylo/nodalai-genwebapp" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">github.com/cedrickylo/nodalai-genwebapp</a></p>
+                </section>
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex justify-end shrink-0">
+                <button id="close-privacy-footer-btn" type="button" class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded-xl text-xs transition cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Dedicated Terms of Service Modal -->
+    <div id="terms-modal" class="hidden fixed inset-0 z-[450] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">
+        <div class="bg-gray-800/95 border border-gray-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800 shrink-0">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <h3 id="terms-modal-title" class="text-lg font-bold text-white">Terms &amp; Conditions of Use</h3>
+                </div>
+                <button id="close-terms-modal-btn" type="button" class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" aria-label="Close terms modal">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-5 sm:p-7 overflow-y-auto space-y-5 text-xs text-gray-300 leading-relaxed flex-1">
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">1. Educational Use Disclaimer</h4>
+                    <p>Nodal AI is provided solely for educational study and formative assessment practice. The platform uses artificial intelligence to generate questions and explanations from user-uploaded materials. While we implement automatic validation, AI-generated content may occasionally contain inaccuracies. Users should verify critical study facts against authoritative source materials.</p>
+                </section>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">2. Acceptable Use &amp; Prohibited Conduct</h4>
+                    <p>Users agree not to:</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li>Attempt prompt injection attacks, jailbreaks, or instruction overrides against AI endpoints.</li>
+                        <li>Script, scrape, flood, or programmatically exploit the generation APIs with automated bots.</li>
+                        <li>Upload copyrighted materials, confidential records, or defamatory content without necessary rights.</li>
+                        <li>Attempt to bypass security headers, rate limits, or access controls.</li>
+                    </ul>
+                </section>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">3. Intellectual Property</h4>
+                    <p>You retain ownership of documents you upload. Quizzes generated through your documents are licensed for your personal educational use. All application code, styling, and graphics are licensed under open-source and permissive terms as documented in our repository.</p>
+                </section>
+
+                <section class="space-y-1.5">
+                    <h4 class="text-sm font-bold text-white">4. Fair Use Limits &amp; Service Availability</h4>
+                    <p>To ensure high availability for all learners, fair-use rate limits are applied to AI generation. The maintainers reserve the right to limit access or update backend models to maintain service stability.</p>
+                </section>
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex justify-end shrink-0">
+                <button id="close-terms-footer-btn" type="button" class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded-xl text-xs transition cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Formal Data Deletion Request Modal (GDPR Art. 17 / CCPA) -->
+    <div id="data-deletion-modal" class="hidden fixed inset-0 z-[450] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="data-deletion-modal-title">
+        <div class="bg-gray-800/95 border border-gray-700/80 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-4 sm:p-5 border-b border-gray-700 flex justify-between items-center bg-gray-800">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <h3 id="data-deletion-modal-title" class="text-lg font-bold text-white">Data Deletion Request</h3>
+                </div>
+                <button id="close-data-deletion-modal-btn" type="button" class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-700/50 cursor-pointer" aria-label="Close deletion request modal">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-5 sm:p-6 space-y-4 text-xs text-gray-300 leading-relaxed">
+                <p>
+                    Under the General Data Protection Regulation (GDPR Article 17) and California Consumer Privacy Act (CCPA), you have the right to request complete erasure of all personal data held about you.
+                </p>
+                <div class="bg-gray-900/60 p-3.5 rounded-xl border border-gray-700/60 space-y-2">
+                    <label class="block text-gray-400 font-semibold">Your Deletion Receipt Reference:</label>
+                    <div id="deletion-receipt-id" class="font-mono text-sm text-blue-400 select-all bg-gray-800 p-2 rounded border border-gray-700">REQ-DEL-...</div>
+                    <p class="text-[11px] text-gray-400">Save this reference for your records.</p>
+                </div>
+                <div class="space-y-2 pt-1">
+                    <button id="execute-instant-wipe-btn" type="button" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <span>Execute Instant Cascading Data Purge</span>
+                    </button>
+                    <p class="text-[10px] text-gray-400 text-center">Instantly wipes browser storage, Cache API, active session, and Puter cloud records.</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-gray-800/90 flex justify-end">
+                <button id="close-data-deletion-footer-btn" type="button" class="bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-2 px-4 rounded-xl text-xs transition cursor-pointer">Cancel</button>
             </div>
         </div>
     </div>
