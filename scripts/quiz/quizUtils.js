@@ -228,6 +228,26 @@ export function resetStartViewUI(preserveFileName = false) {
     if (diffGroup) diffGroup.classList.remove('hidden');
     document.getElementById('quiz-type-group')?.classList.remove('hidden');
     document.getElementById('ui-mode-group')?.classList.remove('hidden');
+
+    const customInstGroup = elements.customInstructionsGroup || document.getElementById('custom-instructions-group');
+    if (customInstGroup) customInstGroup.classList.remove('hidden');
+    const customInstInput = elements.customInstructionsInput || document.getElementById('custom-instructions-input');
+    if (customInstInput) {
+        customInstInput.value = '';
+        customInstInput.classList.remove('border-red-500', 'focus:ring-red-500');
+    }
+    const customInstCount = elements.customInstructionsCharCount || document.getElementById('custom-instructions-char-count');
+    if (customInstCount) {
+        customInstCount.textContent = '0/100';
+        customInstCount.className = 'text-xs font-mono font-medium text-gray-400';
+    }
+    const customInstFeedback = elements.customInstructionsFeedback || document.getElementById('custom-instructions-feedback');
+    if (customInstFeedback) {
+        customInstFeedback.classList.add('hidden');
+        customInstFeedback.textContent = '';
+    }
+    const customInstClearBtn = elements.customInstructionsClearBtn || document.getElementById('custom-instructions-clear-btn');
+    if (customInstClearBtn) customInstClearBtn.classList.add('hidden');
     
     if (questionCountInput) {
         questionCountInput.readOnly = false;

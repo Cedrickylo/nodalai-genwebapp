@@ -28,7 +28,8 @@ import {
     formatQuizMetadata,
     initMetadataAutoScroll,
     updateShareLinkDisplay,
-    viewToHash
+    viewToHash,
+    isQuizSyncedToCloud
 } from '../helpers.js';
 import { isQuizAvailableOffline, isPuterSignedIn, getOfflineDownloads } from './quizOffline.js';
 
@@ -157,6 +158,16 @@ export async function generateShareableLink(quizKey) {
 }
 
 export async function handleHistoryClick(e) {
+    const unsyncedBadge = e.target.closest('.unsynced-cloud-indicator');
+    if (unsyncedBadge) {
+        if (isPuterSignedIn()) {
+            showToast('This quiz has local changes that are not synced to Puter cloud yet.', 3500, 'warning');
+        } else {
+            showToast('This quiz is stored locally on this device. Sign in to Puter to enable cloud sync.', 3500, 'info');
+        }
+        return;
+    }
+
     // Find the closest button element, even if the user clicked the inner SVG icon or text span
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -335,11 +346,24 @@ export function showAllHistoryFullScreen(pushHash = true) {
             </span>
         ` : '';
 
+        const isSynced = isQuizSyncedToCloud(data);
+        const notSyncedIconHTML = !isSynced ? `
+            <span class="text-amber-400 bg-amber-500/10 p-1 rounded inline-flex items-center flex-shrink-0 unsynced-cloud-indicator cursor-pointer" title="${signedIn ? 'Not synced to cloud (Pending sync)' : 'Not synced to cloud (Stored locally on this device)'}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m2 2 20 20"></path>
+                    <path d="M5.782 5.782A7 7 0 0 0 4 14.9"></path>
+                    <path d="M21.5 13a4.5 4.5 0 0 0-4-5h-1.8a7 7 0 0 0-8.2-3.8"></path>
+                    <path d="M17.5 19H9a7 7 0 0 1-5-2.1"></path>
+                </svg>
+            </span>
+        ` : '';
+
         const titleHtml = `
             <div class="flex items-center gap-2 min-w-0 mb-1 w-full">
                 <p class="font-semibold text-sm truncate min-w-0" title="${data.fileName || 'Untitled'}">
                     ${data.fileName || 'Untitled'}
                 </p>
+                ${notSyncedIconHTML}
                 ${downloadIconHTML}
                 ${shareIconHTML}
             </div>

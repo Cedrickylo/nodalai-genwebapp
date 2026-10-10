@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Privacy Policy — Nodal AI</title>
+  <meta name="description" content="Nodal AI's complete privacy policy, data flow disclosure, subprocessor details, COPPA compliance, and GDPR/CCPA data deletion rights.">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .legal-content {
+      max-width: 840px;
+      margin: 4rem auto 6rem;
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 3rem;
+      backdrop-filter: blur(20px);
+    }
+    .legal-content h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .legal-content h2 { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--line); padding-bottom: 0.5rem; }
+    .legal-content h3 { font-size: 1.15rem; margin-top: 1.25rem; margin-bottom: 0.5rem; color: #a5b4fc; }
+    .legal-content p, .legal-content li { color: var(--ink-secondary); font-size: 0.98rem; line-height: 1.7; margin-bottom: 0.75rem; }
+    .legal-content ul { margin-left: 1.75rem; margin-bottom: 1rem; }
+    .legal-box {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--line-accent);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 768px) {
+      .legal-content {
+        margin: 2rem 0 4rem;
+        padding: 1.5rem 1.15rem;
+        border-radius: var(--radius-lg);
+      }
+      .legal-content h1 {
+        font-size: 1.85rem;
+      }
+      .legal-content h2 {
+        font-size: 1.3rem;
+      }
+      .legal-box {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="glass-nav" role="banner">
+    <div class="container nav-container">
+      <a href="index.html" class="brand-group">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 3v6m0 6v6M3 12h6m6 0h6"></path>
+          </svg>
+        </div>
+        <span class="brand-name">Nodal <span class="grad-text">AI</span></span>
+      </a>
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-secondary">← Back to Overview</a>
+        <a href="https://nodalai-genwebapp.vercel.app/" class="btn btn-primary">Launch App</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <article class="legal-content">
+      <span class="kicker">PRIVACY & DATA DISCLOSURE</span>
+      <h1>Privacy Policy</h1>
+      <p class="mono text-xs text-gray-400">Effective Date: September 2026 &bull; Version 2.4</p>
+
+      <div class="legal-box">
+        <strong>Executive Privacy Guarantee:</strong>
+        <p style="margin: 0.5rem 0 0; color: #e2e8f0;">
+          Nodal AI operates under a <em>Client-First, Zero-Knowledge</em> architectural philosophy. We do not sell your personal data, we do not deploy advertising or tracking pixels, and your uploaded lecture slides, notes, and PDF textbooks are extracted directly in your browser without ever being uploaded to permanent remote database servers.
+        </p>
+      </div>
+
+      <h2>1. Where Your Data Goes & Processing Architecture</h2>
+      <p>Nodal AI processes data across clearly defined, segregated layers:</p>
+      <ul>
+        <li><strong>In-Browser Document Extraction:</strong> Files you supply (PDF, DOCX, PPTX, TXT) are read directly inside browser web workers using client libraries (Mozilla PDF.js, Mammoth.js, JSZip). The source files reside exclusively in your computer's RAM during active use and are never sent to external servers.</li>
+        <li><strong>Google Gemini 3.5 API:</strong> When generating questions, extracted text is formatted into an ephemeral study prompt and sent via encrypted HTTPS to Google Gemini. Under developer API service terms, prompt payloads are processed transiently and are not retained or utilized to train public foundation models.</li>
+        <li><strong>Client-Side Storage:</strong> Your quiz history, score cards, and answer sheets are saved locally on your device via HTML5 IndexedDB and LocalStorage, encrypted using client-side AES-GCM.</li>
+        <li><strong>Optional Puter.com Cloud Sync:</strong> If you explicitly sign in with Puter, your quiz libraries are synced directly to your sandboxed Puter user directory (<code>/app/nodal_ai/</code>). Nodal AI maintains no centralized database holding user credentials.</li>
+      </ul>
+
+      <h2>2. Third-Party Subprocessor Disclosure</h2>
+      <table class="comparison-table" style="margin: 1rem 0 1.5rem;">
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Purpose</th>
+            <th>Data Transmitted</th>
+            <th>Retention Policy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Google Gemini API</strong></td>
+            <td>AI Question Generation</td>
+            <td>Ephemeral prompt text</td>
+            <td>Transient; zero model training</td>
+          </tr>
+          <tr>
+            <td><strong>Puter.com</strong></td>
+            <td>Optional Cloud Sync</td>
+            <td>Encrypted quiz JSON</td>
+            <td>Scoped to user's private sandbox</td>
+          </tr>
+          <tr>
+            <td><strong>Vercel Edge Network</strong></td>
+            <td>Hosting & Serverless Functions</td>
+            <td>IP address (for rate limiting)</td>
+            <td>Transient edge logs only</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Children's Privacy (COPPA Compliance)</h2>
+      <p>
+        Protecting the privacy of young learners is paramount. Nodal AI strictly adheres to the Children's Online Privacy Protection Act (COPPA):
+      </p>
+      <ul>
+        <li><strong>Users Under the Age of 13:</strong> Must obtain verifiable parental or legal guardian consent prior to creating a cloud-synced account or utilizing AI generation features.</li>
+        <li><strong>Parental Consent Protocol:</strong> Parents or guardians may contact our compliance team to review, modify, or permanently delete any information submitted by their children.</li>
+        <li><strong>Users Aged 13–17:</strong> May utilize the application for educational purposes with parental or educational institution awareness of our Terms and Privacy Policy.</li>
+      </ul>
+
+      <h2>4. Cookies & Tracking Technologies</h2>
+      <p>
+        Nodal AI does <strong>not</strong> use third-party advertising cookies, cross-site trackers, or behavioral analytics software. Our storage is limited to strictly necessary preferences (audio mute status, theme, offline cache keys). See our full <a href="cookie-policy.html" style="color:var(--accent-cyan); text-decoration:underline;">Cookie Policy</a> for detailed breakdowns.
+      </p>
+
+      <h2>5. Your Rights: Data Deletion & Portability (GDPR / CCPA)</h2>
+      <p>Regardless of your geographic location, you retain full ownership of your study materials:</p>
+      <ul>
+        <li><strong>Instant Local Deletion:</strong> You can completely destroy all local quizzes, history, and encryption keys with 1 click using the "Wipe Local Device Data" button on the homepage or through browser settings.</li>
+        <li><strong>Cloud Sync Deletion Request:</strong> If you utilized cloud synchronization and wish to request full account erasure, email your request to our compliance administrator: <a href="mailto:jc.siason08@gmail.com" style="color:var(--accent-cyan);">jc.siason08@gmail.com</a>. Requests are completed within 48 business hours.</li>
+        <li><strong>Data Portability:</strong> You can export all your quiz sets at any time in standardized JSON or encrypted <code>.nodal</code> formats.</li>
+      </ul>
+
+      <h2>6. Security Measures</h2>
+      <p>
+        We employ multi-layer security protections including HTTP Strict Transport Security (HSTS with 2-year preload), Content Security Policy (CSP), rate limiting, prompt injection defenses, input sanitization, and client-side AES-GCM encryption.
+      </p>
+
+      <h2>7. Contact Information & Business Details</h2>
+      <p>
+        <strong>Nodal AI Project</strong><br>
+        Lead Maintainer: Cedrick Kelly Siason<br>
+        Contact Email: <a href="mailto:jc.siason08@gmail.com" style="color:var(--accent-cyan);">jc.siason08@gmail.com</a><br>
+        Open Source Repository: <a href="https://github.com/cedrickylo/nodalai-genwebapp" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan);">github.com/cedrickylo/nodalai-genwebapp</a>
+      </p>
+    </article>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-bottom">
+      <div>&copy; 2026 Nodal AI &bull; Released under the MIT License.</div>
+      <div class="mono"><a href="terms.html" style="color:var(--ink-muted);">Terms of Service</a> &bull; <a href="cookie-policy.html" style="color:var(--ink-muted);">Cookie Policy</a></div>
+    </div>
+  </footer>
+</body>
+</html>

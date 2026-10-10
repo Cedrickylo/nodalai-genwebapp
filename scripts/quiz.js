@@ -1040,6 +1040,7 @@ export function attachQuizEventListeners() {
                 document.getElementById('ui-mode-group')?.classList.remove('hidden');
                 document.getElementById('question-count-group')?.classList.remove('hidden');
                 document.getElementById('difficulty-group')?.classList.remove('hidden');
+                document.getElementById('custom-instructions-group')?.classList.remove('hidden');
                 handleCustomTypeChange();
             }
         } else {
@@ -1049,6 +1050,56 @@ export function attachQuizEventListeners() {
             }
         }
     });
+
+    // Custom Prompt Instructions UI handlers
+    const customInstInput = elements.customInstructionsInput || document.getElementById('custom-instructions-input');
+    const customInstCount = elements.customInstructionsCharCount || document.getElementById('custom-instructions-char-count');
+    const customInstClear = elements.customInstructionsClearBtn || document.getElementById('custom-instructions-clear-btn');
+    const customInstFeedback = elements.customInstructionsFeedback || document.getElementById('custom-instructions-feedback');
+
+    if (customInstInput) {
+        customInstInput.addEventListener('input', () => {
+            let val = customInstInput.value;
+            if (val.length > 100) {
+                val = val.slice(0, 100);
+                customInstInput.value = val;
+            }
+            const len = val.length;
+            if (customInstCount) {
+                customInstCount.textContent = `${len}/100`;
+                if (len >= 100) {
+                    customInstCount.className = 'text-xs font-mono font-bold text-red-400';
+                } else if (len >= 80) {
+                    customInstCount.className = 'text-xs font-mono font-medium text-yellow-400';
+                } else {
+                    customInstCount.className = 'text-xs font-mono font-medium text-gray-400';
+                }
+            }
+            if (customInstClear) {
+                customInstClear.classList.toggle('hidden', len === 0);
+            }
+            if (customInstFeedback && !customInstFeedback.classList.contains('hidden')) {
+                customInstFeedback.classList.add('hidden');
+                customInstFeedback.textContent = '';
+                customInstInput.classList.remove('border-red-500', 'focus:ring-red-500');
+            }
+        });
+
+        customInstClear?.addEventListener('click', () => {
+            customInstInput.value = '';
+            if (customInstCount) {
+                customInstCount.textContent = '0/100';
+                customInstCount.className = 'text-xs font-mono font-medium text-gray-400';
+            }
+            customInstClear.classList.add('hidden');
+            if (customInstFeedback) {
+                customInstFeedback.classList.add('hidden');
+                customInstFeedback.textContent = '';
+            }
+            customInstInput.classList.remove('border-red-500', 'focus:ring-red-500');
+            customInstInput.focus();
+        });
+    }
 
     createRemedialBtn?.addEventListener('click', () => openRemedialSetupModal(true));
     closeRemedialSetupModalBtn?.addEventListener('click', () => closeRemedialSetupModal());

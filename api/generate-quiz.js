@@ -2,12 +2,13 @@
 // Vercel Serverless Function for Google Gemini Quiz Generation
 // Hardened with CORS lockdown, rate limiting, prompt injection defense, and trimmed responses
 
-import { applyCors, checkRateLimit, getClientIp, containsPromptInjection } from './_security.js';
+import { applyCors, checkRateLimit, getClientIp, containsPromptInjection, validateCustomInstructionContent, validateCsrf, logSecurityEvent } from './_security.js';
 
 export default async function handler(req, res) {
     // 1. Enforce strict CORS
     const corsAllowed = applyCors(req, res);
     if (!corsAllowed) {
+        logSecurityEvent('CORS_BLOCKED', { origin: req.headers.origin, ip: getClientIp(req) });
         return res.status(403).json({ error: 'Forbidden: Origin not permitted.' });
     }
 
@@ -31,10 +32,17 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    // Validate anti-CSRF protections on state-changing POST
+    if (!validateCsrf(req)) {
+        logSecurityEvent('CSRF_REJECTED', { ip: getClientIp(req) });
+        return res.status(403).json({ error: 'Forbidden: Missing or invalid CSRF authentication.' });
+    }
+
     // 2. Rate limiting: Max 10 requests per 60 minutes per client IP
     const clientIp = getClientIp(req);
     const rateCheck = checkRateLimit(`quiz_gen_${clientIp}`, 10, 60 * 60 * 1000);
     if (!rateCheck.allowed) {
+        logSecurityEvent('RATE_LIMIT_TRIGGERED', { ip: clientIp });
         res.setHeader('Retry-After', String(rateCheck.retryAfterSeconds));
         return res.status(429).json({
             error: 'Rate Limit Exceeded',
@@ -61,7 +69,19 @@ export default async function handler(req, res) {
             });
         }
 
-        const { systemPrompt, userPrompt, model } = req.body || {};
+        const { systemPrompt, userPrompt, model, customInstruction } = req.body || {};
+        
+        // Validate custom instruction if provided
+        if (customInstruction) {
+            const customCheck = validateCustomInstructionContent(customInstruction);
+            if (!customCheck.allowed) {
+                logSecurityEvent('CUSTOM_INSTRUCTION_REJECTED', { ip: clientIp, reason: customCheck.reason });
+                return res.status(400).json({
+                    error: 'Security Policy Violation',
+                    message: customCheck.reason || 'Prohibited custom instruction content.'
+                });
+            }
+        }
         
         // Build combined prompt content
         const combinedPrompt = systemPrompt 
@@ -81,6 +101,7 @@ export default async function handler(req, res) {
 
         // 4. Prompt injection & adversarial instruction override defense
         if (containsPromptInjection(combinedPrompt)) {
+            logSecurityEvent('PROMPT_INJECTION_DETECTED', { ip: clientIp, promptLength: combinedPrompt.length });
             return res.status(400).json({
                 error: 'Security Policy Violation',
                 message: 'Your prompt contains prohibited instruction override or injection patterns.'

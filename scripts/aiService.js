@@ -13,7 +13,7 @@ export function isUsingPuterAI() {
  * Sends prompt exclusively to the Vercel serverless function (/api/generate-quiz)
  * The GEMINI_API_KEY is securely held on the Vercel server and never exposed to the client.
  */
-export async function requestQuizFromVercel(systemPrompt, userPrompt = '', signal = null) {
+export async function requestQuizFromVercel(systemPrompt, userPrompt = '', signal = null, customInstruction = '') {
     const endpoint = '/api/generate-quiz';
 
     const fetchOptions = {
@@ -23,7 +23,8 @@ export async function requestQuizFromVercel(systemPrompt, userPrompt = '', signa
         },
         body: JSON.stringify({
             systemPrompt,
-            userPrompt
+            userPrompt,
+            customInstruction
         })
     };
 

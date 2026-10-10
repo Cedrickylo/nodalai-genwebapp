@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Cookie & Storage Policy — Nodal AI</title>
+  <meta name="description" content="Detailed disclosure of how Nodal AI uses LocalStorage, IndexedDB, and strictly necessary cookies with zero advertising tracking.">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .legal-content {
+      max-width: 840px;
+      margin: 4rem auto 6rem;
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 3rem;
+      backdrop-filter: blur(20px);
+    }
+    .legal-content h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .legal-content h2 { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--line); padding-bottom: 0.5rem; }
+    .legal-content p, .legal-content li { color: var(--ink-secondary); font-size: 0.98rem; line-height: 1.7; margin-bottom: 0.75rem; }
+    .legal-content ul { margin-left: 1.75rem; margin-bottom: 1rem; }
+    @media (max-width: 768px) {
+      .legal-content {
+        margin: 2rem 0 4rem;
+        padding: 1.5rem 1.15rem;
+        border-radius: var(--radius-lg);
+      }
+      .legal-content h1 {
+        font-size: 1.85rem;
+      }
+      .legal-content h2 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="glass-nav" role="banner">
+    <div class="container nav-container">
+      <a href="index.html" class="brand-group">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 3v6m0 6v6M3 12h6m6 0h6"></path>
+          </svg>
+        </div>
+        <span class="brand-name">Nodal <span class="grad-text">AI</span></span>
+      </a>
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-secondary">← Back to Overview</a>
+        <a href="https://nodalai-genwebapp.vercel.app/" class="btn btn-primary">Launch App</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <article class="legal-content">
+      <span class="kicker">STORAGE TRANSPARENCY</span>
+      <h1>Cookie & Local Storage Policy</h1>
+      <p class="mono text-xs text-gray-400">Effective Date: September 2026 &bull; Version 2.4</p>
+
+      <h2>1. Overview: No Advertising Trackers</h2>
+      <p>
+        Nodal AI does <strong>not</strong> partner with advertising networks, third-party data brokers, or behavioral analytics providers. We do not place cookies for cross-site tracking or profiling.
+      </p>
+
+      <h2>2. What Storage Mechanisms We Use</h2>
+      <p>
+        To make Nodal AI functional as an offline-first Progressive Web App (PWA) with instant response times, we utilize standard HTML5 browser storage technologies:
+      </p>
+
+      <table class="comparison-table" style="margin: 1.5rem 0;">
+        <thead>
+          <tr>
+            <th>Key / Store Name</th>
+            <th>Type</th>
+            <th>Purpose</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>nodal_cookie_consent</code></td>
+            <td>LocalStorage</td>
+            <td>Remembers your consent preference so the banner does not repeat</td>
+            <td>Persistent</td>
+          </tr>
+          <tr>
+            <td><code>nodal_audio_muted</code></td>
+            <td>LocalStorage</td>
+            <td>Stores your preference for synthesizer audio chime feedback</td>
+            <td>Persistent</td>
+          </tr>
+          <tr>
+            <td><code>nodal_age_verified</code></td>
+            <td>LocalStorage</td>
+            <td>Records that student/parental COPPA age check was confirmed</td>
+            <td>Persistent</td>
+          </tr>
+          <tr>
+            <td><code>nodal_ai_db</code></td>
+            <td>IndexedDB</td>
+            <td>Stores generated quizzes, score history, and question cards for 1-week offline retention</td>
+            <td>Up to 7 days / User Cleared</td>
+          </tr>
+          <tr>
+            <td>Puter Auth Session</td>
+            <td>Secure Cookie / Storage</td>
+            <td>Used strictly if you sign in to Puter.com to sync your private cloud storage</td>
+            <td>Session / User Logout</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. How to Manage and Delete Your Storage</h2>
+      <p>
+        Because all quiz data is stored client-side, you have total control over it:
+      </p>
+      <ul>
+        <li><strong>In Nodal AI:</strong> Click "Wipe Local Device Data" in the Data Deletion Request modal to immediately purge all IndexedDB and LocalStorage items.</li>
+        <li><strong>In Your Browser:</strong> Open Developer Tools (F12) &rarr; Application &rarr; Clear Storage, or clear browser cookies and site data for the domain.</li>
+      </ul>
+
+      <h2>4. Updates to this Policy</h2>
+      <p>
+        Any updates to our storage practices will be reflected in this document and announced via release notes.
+      </p>
+    </article>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-bottom">
+      <div>&copy; 2026 Nodal AI &bull; Released under the MIT License.</div>
+      <div class="mono"><a href="privacy.html" style="color:var(--ink-muted);">Privacy Policy</a> &bull; <a href="terms.html" style="color:var(--ink-muted);">Terms of Service</a></div>
+    </div>
+  </footer>
+</body>
+</html>

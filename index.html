@@ -422,6 +422,24 @@
                             <ul id="selected-files-list" class="space-y-1.5 text-xs text-gray-400 max-h-36 overflow-y-auto overflow-x-hidden pl-1 w-full min-w-0"></ul>
                         </div>
 
+                        <!-- Custom Prompt Instructions Component (Generation Only) -->
+                        <div id="custom-instructions-group" class="bg-gray-700/50 p-4 rounded-lg space-y-2 border border-gray-600/40">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-1.5">
+                                    <label for="custom-instructions-input" class="block text-sm font-medium text-gray-300">Custom Prompt Instructions <span class="text-xs text-gray-400 font-normal">(Optional)</span></label>
+                                    <span class="tooltip-container"><span class="tooltip-icon">?</span><span class="tooltip-text">Specify topical focus, chapter emphasis, or phrasing style for the AI quiz generation (max 100 characters).</span></span>
+                                </div>
+                                <span id="custom-instructions-char-count" class="text-xs font-mono font-medium text-gray-400">0/100</span>
+                            </div>
+                            <div class="relative">
+                                <input type="text" id="custom-instructions-input" maxlength="100" autocomplete="off" spellcheck="false" data-1p-ignore data-bwignore class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3.5 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition pr-8" placeholder="e.g., Focus on Chapter 2 terms &amp; definitions (max 100 chars)...">
+                                <button type="button" id="custom-instructions-clear-btn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition cursor-pointer" title="Clear instructions" aria-label="Clear custom instructions">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </div>
+                            <div id="custom-instructions-feedback" class="hidden text-xs flex items-center gap-1.5 p-2 rounded-md transition-all"></div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div id="question-count-group">
                                 <label for="question-count" class="block text-sm font-medium text-gray-300 mb-2">Number of Questions</label>

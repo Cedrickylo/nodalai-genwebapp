@@ -8,7 +8,8 @@ import {
     openAiChoiceModal,
     closeAiChoiceModal,
     clearSubState,
-    formatTime
+    formatTime,
+    validateCustomInstruction
 } from '../helpers.js';
 
 const {
@@ -218,6 +219,26 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
 
     if (timerMode === 'question') state.isTimedQuiz = true;
 
+    let customInstructions = '';
+    if (!isRemedial && !state.isCustomizingHistory) {
+        const rawCustom = elements.customInstructionsInput?.value || '';
+        const validation = validateCustomInstruction(rawCustom);
+        if (!validation.isValid) {
+            showToast(validation.error || 'Invalid custom instructions.', 4500, 'warning');
+            if (elements.customInstructionsFeedback) {
+                elements.customInstructionsFeedback.textContent = validation.error;
+                elements.customInstructionsFeedback.className = 'text-xs flex items-center gap-1.5 p-2 rounded-md bg-red-500/15 border border-red-500/30 text-red-300';
+                elements.customInstructionsFeedback.classList.remove('hidden');
+            }
+            if (elements.customInstructionsInput) {
+                elements.customInstructionsInput.classList.add('border-red-500', 'focus:ring-red-500');
+                elements.customInstructionsInput.focus();
+            }
+            return;
+        }
+        customInstructions = validation.sanitizedText || '';
+    }
+
     state.currentQuizConfig = {
         count: totalQ,
         difficulty: selDiff,
@@ -240,7 +261,8 @@ export async function handleQuizGeneration(isRemedial = false, skipStart = false
         maxChances,
         randomizeQuestions,
         randomizeChoices,
-        allowChangeSelection
+        allowChangeSelection,
+        customInstructions
     };
 
     let quizName = 'Custom Quiz';
@@ -432,7 +454,7 @@ export async function startNodalAiGeneration(config, fileName) {
         // --- STAGE 1: REQUEST & PARSE WITH AUTOMATED RETRY FOR INVALID JSON ---
         while (jsonAttempt <= maxJsonAttempts) {
             try {
-                const rawResponseText = await requestQuizFromVercel(currentPrompt, '', state.aiGenerationAbortController.signal);
+                const rawResponseText = await requestQuizFromVercel(currentPrompt, '', state.aiGenerationAbortController.signal, config.customInstructions || '');
                 parsedQuiz = cleanAndParseQuizJson(rawResponseText, fileName, config);
                 break; // Successfully parsed!
             } catch (err) {

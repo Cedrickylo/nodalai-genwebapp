@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>404 Page Not Found — Nodal AI</title>
+  <meta name="description" content="The requested page could not be found. Return to Nodal AI to explore practice quiz generation.">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .not-found-wrapper {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem 1.5rem;
+    }
+    .not-found-card {
+      background: var(--bg-card);
+      border: 1px solid var(--line-specular);
+      border-radius: var(--radius-xl);
+      padding: 3.5rem 2.5rem;
+      max-width: 520px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .num-404 {
+      font-size: clamp(4rem, 10vw, 6rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      background: var(--grad-hero);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  </style>
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container nav-container">
+      <a href="index.html" class="brand-group">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 3v6m0 6v6M3 12h6m6 0h6"></path>
+          </svg>
+        </div>
+        <span class="brand-name">Nodal <span class="grad-text">AI</span></span>
+      </a>
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-secondary">Home</a>
+        <a href="https://nodalai-genwebapp.vercel.app/" class="btn btn-primary">Launch App</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="not-found-wrapper">
+    <div class="not-found-card">
+      <span class="num-404">404</span>
+      <h2>Page Not Found</h2>
+      <p>The page or resource you requested does not exist or has been moved.</p>
+      <div class="flex items-center gap-3 pt-2">
+        <a href="index.html" class="btn btn-primary">Return to Landing Page</a>
+        <a href="https://nodalai-genwebapp.vercel.app/" class="btn btn-secondary">Launch Web App</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-bottom">
+      <div>&copy; 2026 Nodal AI &bull; Released under the MIT License.</div>
+      <div class="mono"><a href="privacy.html" style="color:var(--ink-muted);">Privacy Policy</a> &bull; <a href="terms.html" style="color:var(--ink-muted);">Terms</a></div>
+    </div>
+  </footer>
+</body>
+</html>
