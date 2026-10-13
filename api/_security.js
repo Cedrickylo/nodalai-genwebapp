@@ -129,8 +129,8 @@ export function validateCustomInstructionContent(text) {
     if (!trimmed) {
         return { allowed: true };
     }
-    if (trimmed.length > 100) {
-        return { allowed: false, reason: 'Custom instruction exceeds maximum allowed length of 100 characters.' };
+    if (trimmed.length > 300) {
+        return { allowed: false, reason: 'Custom instruction exceeds maximum allowed length of 300 characters.' };
     }
     if (/[\x00-\x1F\x7F\u200B-\u200D\uFEFF\u202E]/.test(trimmed)) {
         return { allowed: false, reason: 'Custom instruction contains prohibited control characters.' };

@@ -238,7 +238,7 @@ export function resetStartViewUI(preserveFileName = false) {
     }
     const customInstCount = elements.customInstructionsCharCount || document.getElementById('custom-instructions-char-count');
     if (customInstCount) {
-        customInstCount.textContent = '0/100';
+        customInstCount.textContent = '0/300';
         customInstCount.className = 'text-xs font-mono font-medium text-gray-400';
     }
     const customInstFeedback = elements.customInstructionsFeedback || document.getElementById('custom-instructions-feedback');

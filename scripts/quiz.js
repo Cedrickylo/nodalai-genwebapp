@@ -1060,16 +1060,16 @@ export function attachQuizEventListeners() {
     if (customInstInput) {
         customInstInput.addEventListener('input', () => {
             let val = customInstInput.value;
-            if (val.length > 100) {
-                val = val.slice(0, 100);
+            if (val.length > 300) {
+                val = val.slice(0, 300);
                 customInstInput.value = val;
             }
             const len = val.length;
             if (customInstCount) {
-                customInstCount.textContent = `${len}/100`;
-                if (len >= 100) {
+                customInstCount.textContent = `${len}/300`;
+                if (len >= 300) {
                     customInstCount.className = 'text-xs font-mono font-bold text-red-400';
-                } else if (len >= 80) {
+                } else if (len >= 240) {
                     customInstCount.className = 'text-xs font-mono font-medium text-yellow-400';
                 } else {
                     customInstCount.className = 'text-xs font-mono font-medium text-gray-400';
@@ -1088,7 +1088,7 @@ export function attachQuizEventListeners() {
         customInstClear?.addEventListener('click', () => {
             customInstInput.value = '';
             if (customInstCount) {
-                customInstCount.textContent = '0/100';
+                customInstCount.textContent = '0/300';
                 customInstCount.className = 'text-xs font-mono font-medium text-gray-400';
             }
             customInstClear.classList.add('hidden');
